@@ -111,6 +111,9 @@ public class APIHoldersMain {
           }
         } else {
           query = String.join("", param.get("text"));
+          if (!Joyous.conf.getBoolean("APIHolders.allow_blurred_ph", false)) {
+            return newPlaceholderJsonResponse(403, "Forbidden: The Query [text] was forbidden by server admin. Contact them for help.", null, null, null);
+          }
         }
         if (param.get("target") == null) {
           target = null;
@@ -185,7 +188,7 @@ public class APIHoldersMain {
           }
         }
         /* 普通字符串 */
-        return str.equalsIgnoreCase(placeholder);
+        return str.toLowerCase().contains(placeholder.toLowerCase());
       }
       return false;
     });

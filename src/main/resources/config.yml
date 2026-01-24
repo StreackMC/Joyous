@@ -6,7 +6,7 @@ APIHolders:
   path:
     ph: "/api/placeholder"
     status: "/api/status"
-
+  
   ## 跨域请求（CORS）标头
   # 在前端应用中，浏览器会限制跨域请求，即只允许下面配置的域名和同域名获取数据。
   # 这个设置具体控制Access-Control-Allow-Origin标头的内容，它可以为：
@@ -27,6 +27,11 @@ APIHolders:
     - "player_name"
     - "server_online"
     - "regex:server_.*"
+  
+  ## 是否允许模糊查询 Placeholders
+  # 启用后，允许通过使用 text 参数进行查询
+  # 这个参数传入的文本会直接作为一整段「文本」进行处理，而非「Placeholder」
+  allow_blurred_ph: false
 
 ## 配置文件版本
 version: 000001
