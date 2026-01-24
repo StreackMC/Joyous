@@ -13,20 +13,72 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Get short git hash
         id: git
         run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+
+      # 1. 生成主 jar / -sources.jar / -javadoc.jar
       - name: Build with Maven
         run: |
-          mvn -B package
+          mvn -B clean package -Prelease
+
+      # 2. 检查构建产物
+      - name: Detect artifact name
+        id: artifacts
+        run: echo "name=$(cat target/artifacts.txt)" >> "$GITHUB_OUTPUT"
+
+      # 3. 读取 ChangeLog 内容
+      - name: Read ChangeLog
+        id: changelog
+        shell: bash
+        run: |
+          if [ -f docs/.change_log.md ]; then
+            {
+              echo 'body<<EOF'
+              cat docs/.change_log.md
+              echo
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "body=*No ChangeLog yet.*" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 4. 生成版本信息 JSON
+      - name: Generate version_info_dev.json
+        run: |
+          cat > version_info_dev.json <<EOF
+          {
+            "version": "${{ github.ref_name }}",
+            "download_url": [
+              "unsupport feature",
+            ],
+            "changelog": ${{ toJson(steps.changelog.outputs.body) }},
+            "is_release": false,
+            "build_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_hash": "${{ steps.git.outputs.sha }}"
+          }
+          EOF
+          echo "Generated version_info_dev.json:"
+          cat version_info_dev.json
+
+      # 5. 上传 CI 产物
       - name: Upload built jar
         uses: actions/upload-artifact@v4
         with:
-          name: APIHolders-git@${{ steps.git.outputs.sha }}.jar
+          name: StreackLib-git@${{ steps.git.outputs.sha }}
           path: target/*.jar
+
+      # 6. 上传version_info_dev.json
+      - name: Upload version def
+        uses: actions/upload-artifact@v4
+        with:
+          name: version_info
+          path: version_info_dev.json

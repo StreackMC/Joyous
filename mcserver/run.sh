@@ -21,6 +21,7 @@ fi
 # 确保目标目录中只有最新的编译产物
 echo "清理旧的编译产物..."
 rm -rf ./target/Joyous-*.jar
+rm -rf ./target/original-Joyous-*.jar
 
 # 编译项目
 echo "正在编译项目..."
@@ -37,6 +38,7 @@ rm -rf "${PLUGINS_DIR}"/.paper-remapped/SteackLib-*.jar
 # 复制新插件
 echo "复制新插件..."
 cp ./target/Joyous-*.jar "${PLUGINS_DIR}/"
+rm -rf "${PLUGINS_DIR}"/Joyous-*-sources.jar
 
 # 启动服务器
 echo "启动服务器..."

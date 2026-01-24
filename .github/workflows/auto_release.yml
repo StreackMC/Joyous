@@ -14,47 +14,80 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Get short git hash
         id: git
         run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+
+      # 1. 生成主 jar / -sources.jar / -javadoc.jar
       - name: Build with Maven
         run: |
-          mvn -B package
+          mvn -B clean package -Prelease
+
+      # 2. 检查构建产物
+      - name: Detect artifact name
+        id: artifacts
+        run: echo "name=$(cat target/artifacts.txt)" >> "$GITHUB_OUTPUT"
+
+      # 3. 上传 CI 产物
       - name: Upload built jar
         uses: actions/upload-artifact@v4
         with:
           name: StreackLib-git@${{ steps.git.outputs.sha }}.jar
           path: target/*.jar
+
+      # 4. 读取 ChangeLog 内容
       - name: Read ChangeLog
         id: changelog
         shell: bash
         run: |
-          if [ -f .change_log.md ]; then
+          if [ -f docs/.change_log.md ]; then
             {
               echo 'body<<EOF'
-              cat .change_log.md
+              cat docs/.change_log.md
               echo
               echo 'EOF'
             } >> "$GITHUB_OUTPUT"
           else
             echo "body=*No ChangeLog yet.*" >> "$GITHUB_OUTPUT"
           fi
-      - name: Detect artifact name
-        id: artifacts
-        run: echo "name=$(cat target/artifacts.txt)" >> $GITHUB_OUTPUT
-      - name: Create Release & Upload Asset
+
+      # 5. 生成版本信息 JSON
+      - name: Generate version_info.json
+        run: |
+          cat > version_info.json <<EOF
+          {
+            "version": "${{ github.ref_name }}",
+            "download_url": [
+              "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.artifacts.outputs.name }}",
+              "https://gh.kdxiaoyi.top/github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.artifacts.outputs.name }}",
+            ],
+            "changelog": ${{ toJson(steps.changelog.outputs.body) }},
+            "is_release": true,
+            "build_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_hash": "${{ steps.git.outputs.sha }}"
+          }
+          EOF
+          echo "Generated version_info.json:"
+          cat version_info.json
+
+      # 6. 发布 Release (修改 files 参数)
+      - name: Create Release & Upload Assets
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: v${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.body }}
-          files: target/${{ steps.artifacts.outputs.name }}
+          files: |
+            target/*.jar
+            version_info.json
           draft: false
           prerelease: false
         env:
