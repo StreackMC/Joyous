@@ -20,7 +20,7 @@ fi
 
 # 确保目标目录中只有最新的编译产物
 echo "清理旧的编译产物..."
-rm -rf ./target/APIHolders-*.jar
+rm -rf ./target/Joyous-*.jar
 
 # 编译项目
 echo "正在编译项目..."
@@ -36,7 +36,7 @@ rm -rf "${PLUGINS_DIR}"/.paper-remapped/SteackLib-*.jar
 
 # 复制新插件
 echo "复制新插件..."
-cp ./target/APIHolders-*.jar "${PLUGINS_DIR}/"
+cp ./target/Joyous-*.jar "${PLUGINS_DIR}/"
 
 # 启动服务器
 echo "启动服务器..."
