@@ -8,7 +8,7 @@ import com.github.streackmc.StreackLib.utils.SConfig;
 
 public class Joyous {
 
-  public static final Long CONFIG_VERSION = 000200L;
+  public static final Long CONFIG_VERSION = 000001L;
 
   public static SConfig conf;
   public static JavaPlugin plugin;

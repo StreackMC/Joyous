@@ -4,17 +4,13 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
-import java.util.List;
 
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.StreackLib.StreackLib;
-import com.github.streackmc.StreackLib.utils.HTTPServer;
-import com.github.streackmc.StreackLib.utils.SConfig;
 
 public class entry extends JavaPlugin {
 
@@ -22,7 +18,7 @@ public class entry extends JavaPlugin {
 
   @Override
   public void onEnable() {
-    logger.info("正在启用APIHolders...");
+    logger.info("Enabling Joyous...");
     Joyous.plugin = this;
     Joyous.dataPath = this.getDataFolder();
     /* 检查依赖 */
@@ -37,23 +33,34 @@ public class entry extends JavaPlugin {
     /* 读入 StreackLib:HTTPServer */
     APIHoldersMain.httpServer = StreackLib.getHttpServer();
     if (APIHoldersMain.httpServer == null) {
-      logger.severe("启用失败：StreackLib的HTTPServer模块无法启用或无法与之通信。");
+      logger.severe("启用失败：StreackLib的HTTPServer模块未启用或无法与之通信。");
       getServer().getPluginManager().disablePlugin(this);
       return;
     }
     /* 检查更新 */
     CheckConfigUpdate();
-    /* 开启HTTPServer */
-    APIHoldersMain.onEnable();
+    /* 子模块 */
+    logger.info("正在启用子模块...");
+    try {/* 开启HTTPServer */
+      APIHoldersMain.onEnable();
+    } catch (Exception e) {
+      logger.severe("启用失败：" + e.getLocalizedMessage());
+      e.printStackTrace();
+    }
+
+    logger.info("Enabled Joyous.");
   }
 
   @Override
   public void onDisable() {
-    logger.info("正在禁用APIHolders...");
+    logger.info("Disabling Joyous...");
+    logger.info("正在禁用子模块...");
     try {
       APIHoldersMain.onDisable();
     } catch (Exception ignored) {
     }
+    logger.info("已尝试禁用全部子模块");
+    logger.info("Disabled Joyous.");
   }
 
   private void CheckConfigUpdate() {
