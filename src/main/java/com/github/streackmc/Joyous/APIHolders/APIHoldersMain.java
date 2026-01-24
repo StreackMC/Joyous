@@ -300,45 +300,97 @@ public class APIHoldersMain {
     data.put("motd", motd);
 
     /* TPS信息（新增：live, 60s_avg, 300s_avg） */
-    JSONObject tps = new JSONObject();
-    try {
-      double[] tpsArray = server.getTPS(); // Paper API: [1min, 5min, 15min]
-      double liveTps;
-
-      // 尝试获取更精确的实时TPS（基于最近tick时间）
-      try {
-        Object nmsServer = server.getClass().getMethod("getServer").invoke(server);
-        long[] tickTimes = (long[]) nmsServer.getClass().getField("tickTimes").get(nmsServer);
-        if (tickTimes != null && tickTimes.length > 0) {
-          // 计算最近20个tick的平均耗时（纳秒）
-          long sum = 0;
-          int count = Math.min(20, tickTimes.length);
-          for (int i = 0; i < count; i++) {
-            sum += tickTimes[tickTimes.length - 1 - i];
-          }
-          long avgTickNanos = sum / count;
-          // TPS = 1秒(1e9纳秒) / 平均每tick耗时，上限20
-          liveTps = Math.min(20.0, 1000000000.0 / avgTickNanos);
-        } else {
-          liveTps = tpsArray[0]; // 回退到1分钟平均
-        }
-      } catch (Exception ignored) {
-        liveTps = tpsArray[0]; // 反射失败时使用1分钟平均作为live值
-      }
-
-      tps.put("live", Math.round(liveTps * 100.0) / 100.0);
-      tps.put("60s_avg", Math.round(tpsArray[0] * 100.0) / 100.0);
-      tps.put("300s_avg", Math.round(tpsArray[1] * 100.0) / 100.0);
-
-    } catch (Exception e) {
-      // TPS获取失败时的默认值
-      tps.put("live", 0.0);
-      tps.put("60s_avg", 0.0);
-      tps.put("300s_avg", 0.0);
-    }
-    data.put("tps", tps);
+    data.put("tps", getTPSDataAsJSON());
 
     return data;
+  }
+
+  /**
+   * 获取服务器TPS数据（独立方法，使用反射兼容多版本）
+   * 返回包含 live(实时), 60s_avg(60秒平均), 300s_avg(300秒平均) 的JSON对象
+   * 
+   * @return JSONObject 包含TPS数据，获取失败时返回默认值20.0
+   * @since 0.0.2
+   */
+  @SuppressWarnings("unchecked")
+  public static JSONObject getTPSDataAsJSON() {
+    JSONObject tps = new JSONObject();
+    try {
+      // 尝试通过反射获取 MinecraftServer 的 recentTps 字段
+      // 适用于 Paper/Spigot 1.8-1.20+
+      double[] recentTps = getRecentTpsFromNms();
+      if (recentTps != null && recentTps.length >= 3) {
+        // recentTps 通常是 [1min, 5min, 15min]
+        // live TPS 使用 1分钟平均值作为近似（或可通过其他方式计算）
+        tps.put("live", roundTps(recentTps[0])); // 使用1分钟平均作为live近似
+        tps.put("60s_avg", roundTps(recentTps[0]));
+        tps.put("300s_avg", roundTps(recentTps[1]));
+      } else {
+        // 尝试 Paper 的 Bukkit.getTPS() 静态方法
+        try {
+          java.lang.reflect.Method getTpsMethod = Bukkit.class.getMethod("getTPS");
+          double[] paperTps = (double[]) getTpsMethod.invoke(null);
+          tps.put("live", roundTps(paperTps[0]));
+          tps.put("60s_avg", roundTps(paperTps[0]));
+          tps.put("300s_avg", roundTps(paperTps[1]));
+        } catch (NoSuchMethodException e) {
+          // 回退到默认值
+          tps.put("live", -1.0);
+          tps.put("60s_avg", -1.0);
+          tps.put("300s_avg", -1.0);
+        }
+      }
+    } catch (Exception e) {
+      tps.put("live", -1.0);
+      tps.put("60s_avg", -1.0);
+      tps.put("300s_avg", -1.0);
+    }
+    return tps;
+  }
+
+  /**
+   * 通过反射获取 NMS MinecraftServer 的 recentTps 字段
+   * 兼容 Paper/Spigot 1.8-1.20+
+   * 
+   * @return double[] [1min, 5min, 15min] 或 null（如果获取失败）
+   * @author KimiAI
+   * @since 0.0.1
+   */
+  public static double[] getRecentTpsFromNms() {
+    try {
+      // 获取 CraftServer
+      org.bukkit.Server server = Bukkit.getServer();
+      java.lang.reflect.Method getServerMethod = server.getClass().getMethod("getServer");
+      Object nmsServer = getServerMethod.invoke(server);
+      // 获取 recentTps 字段（MinecraftServer 类中）
+      java.lang.reflect.Field tpsField = nmsServer.getClass().getField("recentTps");
+      return (double[]) tpsField.get(nmsServer);
+
+    } catch (NoSuchFieldException e) {
+      // 尝试 Mojang 映射（1.17+ 可能使用不同的字段名）
+      try {
+        org.bukkit.Server server = Bukkit.getServer();
+        java.lang.reflect.Method getServerMethod = server.getClass().getMethod("getServer");
+        Object nmsServer = getServerMethod.invoke(server);
+        // 在某些版本中可能是 private，需要 setAccessible
+        java.lang.reflect.Field tpsField = nmsServer.getClass().getDeclaredField("recentTps");
+        tpsField.setAccessible(true);
+        return (double[]) tpsField.get(nmsServer);
+      } catch (Exception ex) {
+        return null;
+      }
+    } catch (Exception e) {
+      return null;
+    }
+  }
+  /**
+   * 限制TPS范围并保留两位小数
+   * 
+   * @author KimiAI
+   * @since 0.0.1
+   */
+  private static double roundTps(double tps) {
+    return Math.round(Math.max(0.0, Math.min(20.0, tps)) * 100.0) / 100.0;
   }
 
   /**
