@@ -146,25 +146,6 @@ public class APIHoldersMain {
     });
     logger.info("[APIHolders] 已注册PlaceholderAPI查询处理器： " + path);
   }
-
-  private static void enableStatus(String path) throws Exception {
-    // 启用对StatusAPI的查询支持
-    httpServer.registerHandler(path, session -> {
-      try {
-        /* 仅处理 GET */
-        if (!NanoHTTPD.Method.GET.equals(session.getMethod())) {
-          return newFixedLengthResponse(NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
-            NanoHTTPD.MIME_PLAINTEXT, "Method GET Allowed Only.");
-        }
-        return null;
-      } catch (Exception e) {
-        e.printStackTrace();
-        return newPlaceholderJsonResponse(500, "Internal Server Error: Unknown error emerged.", null, null, null);
-      }
-    });
-    logger.info("[APIHolders] 已注册StatusAPI查询处理器： " + path);
-  }
-
   /**
    * 判定输入的Placeholder是否允许使用
    * @param placeholder 要判断的PlaceholderAPI
@@ -194,7 +175,6 @@ public class APIHoldersMain {
     });
     return whiteMode ? matchAny : !matchAny;
   }
-
   /**
    * 快速封装适用于Placeholder的JSON响应
    * @param int code: HTTP状态码，默认500
@@ -239,6 +219,256 @@ public class APIHoldersMain {
       "application/json", root.toJSONString());
     rsp.addHeader("Access-Control-Allow-Origin", corsHeader);
     return rsp;
+  }
+
+  private static void enableStatus(String path) throws Exception {
+    // 启用对StatusAPI的查询支持
+    httpServer.registerHandler(path, session -> {
+      try {
+        /* 仅处理 GET */
+        if (!NanoHTTPD.Method.GET.equals(session.getMethod())) {
+          return newFixedLengthResponse(NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+              NanoHTTPD.MIME_PLAINTEXT, "Method GET Allowed Only.");
+        }
+        /* 构建状态数据（合并后的单一方法） */
+        JSONObject statusData = buildServerStatusData();
+        /* 返回JSON响应 */
+        NanoHTTPD.Response rsp = newFixedLengthResponse(
+            NanoHTTPD.Response.Status.OK,
+            "application/json",
+            statusData.toJSONString());
+        rsp.addHeader("Access-Control-Allow-Origin", corsHeader);
+        return rsp;
+      } catch (Exception e) {
+        e.printStackTrace();
+        return newPlaceholderJsonResponse(500, "Internal Server Error: " + e.getMessage(), null, null, null);
+      }
+    });
+    logger.info("[APIHolders] 已注册StatusAPI查询处理器： " + path);
+  }
+
+  /**
+   * 构建服务器完整状态数据
+   * 包含：online, retrieved_at, expires_at, version, players, motd, tps
+   * 
+   * @return 符合result.json结构的JSONObject（精简版）
+   * @since 0.0.2
+   */
+  @SuppressWarnings("unchecked")
+  private static JSONObject buildServerStatusData() {
+    JSONObject data = new JSONObject();
+    org.bukkit.Server server = Bukkit.getServer();
+    long timestamp = System.currentTimeMillis();
+
+    /* 基础状态 */
+    data.put("online", true);
+    data.put("retrieved_at", timestamp);
+    data.put("expires_at", timestamp + 30000); // 30秒缓存
+
+    /* 版本信息（移除protocol） */
+    JSONObject version = new JSONObject();
+    String rawVersion = server.getVersion();
+    version.put("name_raw", "§f" + rawVersion);
+    version.put("name_clean", rawVersion);
+    version.put("name_html", minecraftColorsToHtml("§f" + rawVersion));
+    data.put("version", version);
+
+    /* 玩家信息 */
+    JSONObject players = new JSONObject();
+    java.util.Collection<? extends org.bukkit.entity.Player> onlinePlayers = server.getOnlinePlayers();
+    players.put("online", onlinePlayers.size());
+    players.put("max", server.getMaxPlayers());
+
+    org.json.simple.JSONArray sampleList = new org.json.simple.JSONArray();
+    onlinePlayers.stream().limit(5).forEach(player -> {
+      JSONObject p = new JSONObject();
+      p.put("uuid", player.getUniqueId().toString());
+      p.put("name_raw", player.getDisplayName());
+      p.put("name_clean", stripMinecraftColors(player.getDisplayName()));
+      p.put("name_html", minecraftColorsToHtml(player.getDisplayName()));
+      sampleList.add(p);
+    });
+    players.put("list", sampleList);
+    data.put("players", players);
+
+    /* MOTD信息 */
+    JSONObject motd = new JSONObject();
+    String rawMotd = server.getMotd();
+    motd.put("raw", rawMotd);
+    motd.put("clean", stripMinecraftColors(rawMotd));
+    motd.put("html", minecraftColorsToHtml(rawMotd));
+    data.put("motd", motd);
+
+    /* TPS信息（新增：live, 60s_avg, 300s_avg） */
+    JSONObject tps = new JSONObject();
+    try {
+      double[] tpsArray = server.getTPS(); // Paper API: [1min, 5min, 15min]
+      double liveTps;
+
+      // 尝试获取更精确的实时TPS（基于最近tick时间）
+      try {
+        Object nmsServer = server.getClass().getMethod("getServer").invoke(server);
+        long[] tickTimes = (long[]) nmsServer.getClass().getField("tickTimes").get(nmsServer);
+        if (tickTimes != null && tickTimes.length > 0) {
+          // 计算最近20个tick的平均耗时（纳秒）
+          long sum = 0;
+          int count = Math.min(20, tickTimes.length);
+          for (int i = 0; i < count; i++) {
+            sum += tickTimes[tickTimes.length - 1 - i];
+          }
+          long avgTickNanos = sum / count;
+          // TPS = 1秒(1e9纳秒) / 平均每tick耗时，上限20
+          liveTps = Math.min(20.0, 1000000000.0 / avgTickNanos);
+        } else {
+          liveTps = tpsArray[0]; // 回退到1分钟平均
+        }
+      } catch (Exception ignored) {
+        liveTps = tpsArray[0]; // 反射失败时使用1分钟平均作为live值
+      }
+
+      tps.put("live", Math.round(liveTps * 100.0) / 100.0);
+      tps.put("60s_avg", Math.round(tpsArray[0] * 100.0) / 100.0);
+      tps.put("300s_avg", Math.round(tpsArray[1] * 100.0) / 100.0);
+
+    } catch (Exception e) {
+      // TPS获取失败时的默认值
+      tps.put("live", 0.0);
+      tps.put("60s_avg", 0.0);
+      tps.put("300s_avg", 0.0);
+    }
+    data.put("tps", tps);
+
+    return data;
+  }
+
+  /**
+   * 将Minecraft颜色代码(§)转换为HTML
+   * 支持：颜色代码、粗体(§l)、斜体(§o)、下划线(§n)、删除线(§m)、随机(§k)、重置(§r)
+   * @param text 要处理的文本
+   * @return 处理后的文本
+   * @since 0.0.1
+   */
+  public static String minecraftColorsToHtml(String text) {
+    if (text == null || text.isEmpty())
+      return "<span></span>";
+
+    StringBuilder html = new StringBuilder("<span>");
+    StringBuilder currentText = new StringBuilder();
+
+    boolean bold = false, italic = false, underline = false, strikethrough = false, obfuscated = false;
+    String color = null;
+
+    java.util.Map<Character, String> colors = new java.util.HashMap<>();
+    colors.put('0', "#000000");
+    colors.put('1', "#0000AA");
+    colors.put('2', "#00AA00");
+    colors.put('3', "#00AAAA");
+    colors.put('4', "#AA0000");
+    colors.put('5', "#AA00AA");
+    colors.put('6', "#FFAA00");
+    colors.put('7', "#AAAAAA");
+    colors.put('8', "#555555");
+    colors.put('9', "#5555FF");
+    colors.put('a', "#55FF55");
+    colors.put('b', "#55FFFF");
+    colors.put('c', "#FF5555");
+    colors.put('d', "#FF55FF");
+    colors.put('e', "#FFFF55");
+    colors.put('f', "#FFFFFF");
+
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+
+      if (c == '§' && i + 1 < text.length()) {
+        char code = Character.toLowerCase(text.charAt(i + 1));
+
+        if (currentText.length() > 0) {
+          html.append(wrapSpan(currentText.toString(), color, bold, italic, underline, strikethrough, obfuscated));
+          currentText = new StringBuilder();
+        }
+
+        if (code == 'r') {
+          bold = italic = underline = strikethrough = obfuscated = false;
+          color = null;
+        } else if (colors.containsKey(code)) {
+          color = colors.get(code);
+        } else if (code == 'l')
+          bold = true;
+        else if (code == 'o')
+          italic = true;
+        else if (code == 'n')
+          underline = true;
+        else if (code == 'm')
+          strikethrough = true;
+        else if (code == 'k')
+          obfuscated = true;
+
+        i++;
+      } else if (c == '\n') {
+        if (currentText.length() > 0) {
+          html.append(wrapSpan(currentText.toString(), color, bold, italic, underline, strikethrough, obfuscated));
+          currentText = new StringBuilder();
+        }
+        html.append("<br>");
+      } else {
+        currentText.append(c);
+      }
+    }
+
+    if (currentText.length() > 0) {
+      html.append(wrapSpan(currentText.toString(), color, bold, italic, underline, strikethrough, obfuscated));
+    }
+
+    html.append("</span>");
+    return html.toString();
+  }
+  
+  /**
+   * 包装文本为带样式的span标签
+   * @param text 要包装的文本
+   * @param color 颜色代码（如#RRGGBB），null表示默认颜色
+   * @param bold 是否加粗
+   * @param italic 是否斜体
+   * @param underline 是否下划线
+   * @param strikethrough 是否删除线
+   * @param obfuscated 是否乱码
+   * @return 包装好的span标签
+   * @since 0.0.1
+   */
+  public static String wrapSpan(String text, String color, boolean bold, boolean italic,
+      boolean underline, boolean strikethrough, boolean obfuscated) {
+    StringBuilder style = new StringBuilder();
+    if (obfuscated)
+      style.append("class=\"minecraft-format-obfuscated\" ");
+    if (color != null)
+      style.append("color: ").append(color).append(";");
+    if (bold)
+      style.append("font-weight: bold;");
+    if (italic)
+      style.append("font-style: italic;");
+
+    String decoration = "";
+    if (strikethrough && underline)
+      decoration = "text-decoration: line-through underline;";
+    else if (strikethrough)
+      decoration = "text-decoration: line-through;";
+    else if (underline)
+      decoration = "text-decoration: underline;";
+    style.append(decoration);
+
+    return String.format("<span %s>%s</span>",
+        style.length() > 0 ? "style=\"" + style.toString() + "\"" : "",
+        text);
+  }
+
+  /**
+   * 清除所有Minecraft颜色代码
+   * @param text 要处理的文本
+   * @return 处理后的文本
+   * @since 0.0.1
+   */
+  public static String stripMinecraftColors(String text) {
+    return text == null ? "" : text.replaceAll("§[0-9a-fA-Fk-oK-OrR]", "");
   }
 
   /**
