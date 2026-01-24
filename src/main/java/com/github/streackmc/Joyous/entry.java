@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.StreackLib.StreackLib;
+import com.github.streackmc.StreackLib.utils.SConfig;
 
 public class entry extends JavaPlugin {
 
@@ -18,9 +19,11 @@ public class entry extends JavaPlugin {
 
   @Override
   public void onEnable() {
-    logger.info("Enabling Joyous...");
     Joyous.plugin = this;
+    logger.info("Enabling Joyous...");
     Joyous.dataPath = this.getDataFolder();
+    Joyous.conf = new SConfig(Joyous.dataPath.toPath().resolve("config.yml").toFile(), "yml");
+    saveDefaultConfig();
     /* 检查依赖 */
     try {
       CheckDependencies();
