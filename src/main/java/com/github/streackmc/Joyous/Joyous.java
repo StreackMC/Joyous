@@ -1,5 +1,7 @@
 package com.github.streackmc.Joyous;
 
+import java.io.File;
+
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.github.streackmc.StreackLib.utils.SConfig;
@@ -10,6 +12,7 @@ public class Joyous {
 
   public static SConfig conf;
   public static JavaPlugin plugin;
+  public static File dataPath;
 
   /**
    * 是否启用调试模式
