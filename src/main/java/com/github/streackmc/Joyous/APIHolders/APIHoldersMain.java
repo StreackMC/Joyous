@@ -371,6 +371,7 @@ public class APIHoldersMain {
       // 尝试 Mojang 映射（1.17+ 可能使用不同的字段名）
       if (Joyous.isDebugMode()) {
         logger.error("无法通过NMS映射获取recentTps，尝试Mojang映射：" + e.getLocalizedMessage());
+        e.printStackTrace();
       }
       try {
         org.bukkit.Server server = Bukkit.getServer();
