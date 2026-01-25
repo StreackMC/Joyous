@@ -23,8 +23,8 @@ public class entry extends JavaPlugin {
     logger.plugin = this;
     logger.info("Enabling Joyous...");
     Joyous.dataPath = this.getDataFolder();
-    Joyous.conf = new SConfig(Joyous.dataPath.toPath().resolve("config.yml").toFile(), "yml");
     saveDefaultConfig();
+    Joyous.conf = new SConfig(Joyous.dataPath.toPath().resolve("config.yml").toFile(), "yml");
     /* 检查依赖 */
     try {
       CheckDependencies();
@@ -70,12 +70,16 @@ public class entry extends JavaPlugin {
   private void CheckConfigUpdate() {
     logger.info("正在检查配置文件：" + new File(Joyous.dataPath, "config.yml").getPath());
     int diff = Joyous.getConfigVerisonDiff();
+    if (diff == 0) {
+      logger.info("配置文件版本正常，无需更新。");
+      return;
+    }
     if (diff > 0) {
-      logger.warn("你的配置文件版本过高？请勿自行修改或强行应用高版本配置文件，否则可能引发意料之外的错误。当前版本：" + StreackLib.conf.getInt("version", 0) + "，适配版本："
+      logger.warn("你的配置文件版本过高？请勿自行修改或强行应用高版本配置文件，否则可能引发意料之外的错误。当前版本：" + Joyous.conf.getInt("version", 0) + "，适配版本："
           + Joyous.CONFIG_VERSION);
     }
     if (diff < 0) {
-      logger.severe("注意：你的配置文件版本过低，请参阅config.new.yml修改你的配置文件；现在未配置的项将使用默认值。当前版本：" + StreackLib.conf.getInt("version", 0)
+      logger.severe("注意：你的配置文件版本过低，请参阅config.new.yml修改你的配置文件；现在未配置的项将使用默认值。当前版本：" + Joyous.conf.getInt("version", 0)
           + "，适配版本：" + Joyous.CONFIG_VERSION);
       try (
           InputStream is = this.getResource("config.yml");
