@@ -322,88 +322,20 @@ public class APIHoldersMain {
   public static JSONObject getTPSDataAsJSON() {
     JSONObject tps = new JSONObject();
     try {
-      // 尝试通过反射获取 MinecraftServer 的 recentTps 字段
-      // 适用于 Paper/Spigot 1.8-1.20+
-      double[] recentTps = getRecentTpsFromNms();
-      if (recentTps != null && recentTps.length >= 3) {
-        // recentTps 通常是 [1min, 5min, 15min]
-        // live TPS 使用 1分钟平均值作为近似（或可通过其他方式计算）
-        tps.put("live", roundTps(recentTps[0])); // 使用1分钟平均作为live近似
-        tps.put("avg_60s", roundTps(recentTps[0]));
-        tps.put("avg_300s", roundTps(recentTps[1]));
-      } else {
-        // 尝试 Paper 的 Bukkit.getTPS() 静态方法
-        java.lang.reflect.Method getTpsMethod = Bukkit.class.getMethod("getTPS");
-        double[] paperTps = (double[]) getTpsMethod.invoke(null);
-        tps.put("live", roundTps(paperTps[0]));
-        tps.put("avg_60s", roundTps(paperTps[0]));
-        tps.put("avg_300s", roundTps(paperTps[1]));
-      }
+      double[] getTps = (double[]) Joyous.getServerTPS();
+      tps.put("live", getTps[0]);
+      tps.put("avg_1m", getTps[1]);
+      tps.put("avg_5m", getTps[2]);
+      tps.put("avg_15m", getTps[3]);
     } catch (Exception e) {
       logger.error("无法获取TPS：" + e.getLocalizedMessage());
       e.printStackTrace();
       tps.put("live", -1.0);
-      tps.put("avg_60s", -1.0);
-      tps.put("avg_300s", -1.0);
+      tps.put("avg_1m", -1.0);
+      tps.put("avg_5m", -1.0);
+      tps.put("avg_15m", -1.0);
     }
     return tps;
-  }
-
-  /**
-   * 通过反射获取 NMS MinecraftServer 的 recentTps 字段
-   * 兼容 Paper/Spigot 1.8-1.20+
-   * 
-   * @return double[] [1min, 5min, 15min] 或 null（如果获取失败）
-   * @author KimiAI
-   * @since 0.0.1
-   */
-  public static double[] getRecentTpsFromNms() {
-    try {
-      // 获取 CraftServer
-      org.bukkit.Server server = Bukkit.getServer();
-      java.lang.reflect.Method getServerMethod = server.getClass().getMethod("getServer");
-      Object nmsServer = getServerMethod.invoke(server);
-      // 获取 recentTps 字段（MinecraftServer 类中）
-      java.lang.reflect.Field tpsField = nmsServer.getClass().getField("recentTps");
-      return (double[]) tpsField.get(nmsServer);
-
-    } catch (NoSuchFieldException e) {
-      // 尝试 Mojang 映射（1.17+ 可能使用不同的字段名）
-      if (Joyous.isDebugMode()) {
-        logger.error("无法通过NMS映射获取recentTps，尝试Mojang映射：" + e.getLocalizedMessage());
-        e.printStackTrace();
-      }
-      try {
-        org.bukkit.Server server = Bukkit.getServer();
-        java.lang.reflect.Method getServerMethod = server.getClass().getMethod("getServer");
-        Object nmsServer = getServerMethod.invoke(server);
-        // 在某些版本中可能是 private，需要 setAccessible
-        java.lang.reflect.Field tpsField = nmsServer.getClass().getDeclaredField("recentTps");
-        tpsField.setAccessible(true);
-        return (double[]) tpsField.get(nmsServer);
-      } catch (Exception ex) {
-        if (Joyous.isDebugMode()) {
-          logger.error("无法通过Mojang映射获取recentTps：" + ex.getLocalizedMessage());
-          ex.printStackTrace(); 
-        }
-        return null;
-      }
-    } catch (Exception e) {
-      logger.err("获取瞬时TPS时发生未知错误：" + e.getLocalizedMessage());
-      e.printStackTrace();
-      return null;
-    }
-  }
-  /**
-   * 限制TPS范围并保留两位小数
-   * 
-   * @author KimiAI
-   * @since 0.0.1
-   */
-  private static double roundTps(double tps) {
-    double r = Math.round(Math.max(0.0, Math.min(20.0, tps)) * 100.0) / 100.0;
-    logger.debug("[APIHolders] 处理TPS值：" + tps + " -> " + r);
-    return r;
   }
 
   /**
