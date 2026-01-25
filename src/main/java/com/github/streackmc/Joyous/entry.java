@@ -98,9 +98,15 @@ public class entry extends JavaPlugin {
     if (StreackLib_paper == null || !StreackLib_paper.isEnabled()) {
       throw new RuntimeException("启用失败：未检测到StreackLib");
     }
+    if (Joyous.isDebugMode()) {
+      logger.debug("检测到StreackLib，版本：" + StreackLib_paper.getDescription().getVersion());
+      logger.warn("你正在StreackLib中使用调试模式并已继承到Joyous中，因此会收到更多信息。");
+    }
     /* 检测 PlaceholderAPI */
     if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
       throw new RuntimeException("启用失败：未检测到PlaceholderAPI");
+    } else {
+      logger.debug("检测到PlaceholderAPI，版本：" + Bukkit.getPluginManager().getPlugin("PlaceholderAPI").getDescription().getVersion());
     }
   }
 

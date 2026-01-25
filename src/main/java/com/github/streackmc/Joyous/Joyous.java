@@ -4,6 +4,7 @@ import java.io.File;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.SConfig;
 
 public class Joyous {
@@ -20,7 +21,8 @@ public class Joyous {
    * @since 0.0.1
    */
   public static boolean isDebugMode() {
-    return conf.getBoolean("debug", false);
+    // 继承StreackLib的调试状态
+    return StreackLib.conf.getBoolean("debug", false);
   }
 
   /**

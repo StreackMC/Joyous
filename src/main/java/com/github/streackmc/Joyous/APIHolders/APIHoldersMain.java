@@ -302,6 +302,8 @@ public class APIHoldersMain {
     /* TPS信息（新增：live, 60s_avg, 300s_avg） */
     data.put("tps", getTPSDataAsJSON());
 
+    logger.debug("[APIHolders] status数据构建完成：" + data.toString());
+
     return data;
   }
 
@@ -310,6 +312,8 @@ public class APIHoldersMain {
    * 返回包含 live(实时), 60s_avg(60秒平均), 300s_avg(300秒平均) 的JSON对象
    * 
    * @return JSONObject 包含TPS数据，获取失败时返回默认值20.0
+   * @author KimiAI
+   * @author kdxiaoyi 审计
    * @since 0.0.2
    */
   @SuppressWarnings("unchecked")
@@ -327,20 +331,15 @@ public class APIHoldersMain {
         tps.put("300s_avg", roundTps(recentTps[1]));
       } else {
         // 尝试 Paper 的 Bukkit.getTPS() 静态方法
-        try {
-          java.lang.reflect.Method getTpsMethod = Bukkit.class.getMethod("getTPS");
-          double[] paperTps = (double[]) getTpsMethod.invoke(null);
-          tps.put("live", roundTps(paperTps[0]));
-          tps.put("60s_avg", roundTps(paperTps[0]));
-          tps.put("300s_avg", roundTps(paperTps[1]));
-        } catch (NoSuchMethodException e) {
-          // 回退到默认值
-          tps.put("live", -1.0);
-          tps.put("60s_avg", -1.0);
-          tps.put("300s_avg", -1.0);
-        }
+        java.lang.reflect.Method getTpsMethod = Bukkit.class.getMethod("getTPS");
+        double[] paperTps = (double[]) getTpsMethod.invoke(null);
+        tps.put("live", roundTps(paperTps[0]));
+        tps.put("60s_avg", roundTps(paperTps[0]));
+        tps.put("300s_avg", roundTps(paperTps[1]));
       }
     } catch (Exception e) {
+      logger.error("无法获取TPS：" + e.getLocalizedMessage());
+      e.printStackTrace();
       tps.put("live", -1.0);
       tps.put("60s_avg", -1.0);
       tps.put("300s_avg", -1.0);
@@ -368,6 +367,9 @@ public class APIHoldersMain {
 
     } catch (NoSuchFieldException e) {
       // 尝试 Mojang 映射（1.17+ 可能使用不同的字段名）
+      if (Joyous.isDebugMode()) {
+        logger.error("无法通过NMS映射获取recentTps，尝试Mojang映射：" + e.getLocalizedMessage());
+      }
       try {
         org.bukkit.Server server = Bukkit.getServer();
         java.lang.reflect.Method getServerMethod = server.getClass().getMethod("getServer");
@@ -377,9 +379,15 @@ public class APIHoldersMain {
         tpsField.setAccessible(true);
         return (double[]) tpsField.get(nmsServer);
       } catch (Exception ex) {
+        if (Joyous.isDebugMode()) {
+          logger.error("无法通过Mojang映射获取recentTps：" + ex.getLocalizedMessage());
+          ex.printStackTrace(); 
+        }
         return null;
       }
     } catch (Exception e) {
+      logger.err("获取瞬时TPS时发生未知错误：" + e.getLocalizedMessage());
+      e.printStackTrace();
       return null;
     }
   }
@@ -390,7 +398,9 @@ public class APIHoldersMain {
    * @since 0.0.1
    */
   private static double roundTps(double tps) {
-    return Math.round(Math.max(0.0, Math.min(20.0, tps)) * 100.0) / 100.0;
+    double r = Math.round(Math.max(0.0, Math.min(20.0, tps)) * 100.0) / 100.0;
+    logger.debug("[APIHolders] 处理TPS值：" + tps + " -> " + r);
+    return r;
   }
 
   /**
@@ -472,6 +482,7 @@ public class APIHoldersMain {
     }
 
     html.append("</span>");
+    logger.debug("Minecraft颜色代码转换为HTML: " + text + " -> " + html.toString());
     return html.toString();
   }
   
