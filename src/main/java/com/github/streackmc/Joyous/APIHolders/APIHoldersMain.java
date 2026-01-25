@@ -268,9 +268,9 @@ public class APIHoldersMain {
     /* 版本信息（移除protocol） */
     JSONObject version = new JSONObject();
     String rawVersion = server.getVersion();
-    version.put("name_raw", "§f" + rawVersion);
-    version.put("name_clean", rawVersion);
-    version.put("name_html", minecraftColorsToHtml("§f" + rawVersion));
+    version.put("mc", "§f" + rawVersion);
+    version.put("text", rawVersion);
+    version.put("html", minecraftColorsToHtml("§f" + rawVersion));
     data.put("version", version);
 
     /* 玩家信息 */
@@ -283,9 +283,11 @@ public class APIHoldersMain {
     onlinePlayers.stream().limit(5).forEach(player -> {
       JSONObject p = new JSONObject();
       p.put("uuid", player.getUniqueId().toString());
-      p.put("name_raw", player.getDisplayName());
-      p.put("name_clean", stripMinecraftColors(player.getDisplayName()));
-      p.put("name_html", minecraftColorsToHtml(player.getDisplayName()));
+      p.put("mc", player.getDisplayName());
+      JSONObject pn = new JSONObject();
+      pn.put("text", stripMinecraftColors(player.getDisplayName()));
+      pn.put("html", minecraftColorsToHtml(player.getDisplayName()));
+      p.put("name", pn);
       sampleList.add(p);
     });
     players.put("list", sampleList);
@@ -294,12 +296,12 @@ public class APIHoldersMain {
     /* MOTD信息 */
     JSONObject motd = new JSONObject();
     String rawMotd = server.getMotd();
-    motd.put("raw", rawMotd);
-    motd.put("clean", stripMinecraftColors(rawMotd));
+    motd.put("mc", rawMotd);
+    motd.put("text", stripMinecraftColors(rawMotd));
     motd.put("html", minecraftColorsToHtml(rawMotd));
     data.put("motd", motd);
 
-    /* TPS信息（新增：live, 60s_avg, 300s_avg） */
+    /* TPS信息（新增：live, avg_60s, avg_300s） */
     data.put("tps", getTPSDataAsJSON());
 
     logger.debug("[APIHolders] status数据构建完成：" + data.toString());
@@ -309,7 +311,7 @@ public class APIHoldersMain {
 
   /**
    * 获取服务器TPS数据（独立方法，使用反射兼容多版本）
-   * 返回包含 live(实时), 60s_avg(60秒平均), 300s_avg(300秒平均) 的JSON对象
+   * 返回包含 live(实时), avg_60s(60秒平均), avg_300s(300秒平均) 的JSON对象
    * 
    * @return JSONObject 包含TPS数据，获取失败时返回默认值20.0
    * @author KimiAI
@@ -327,22 +329,22 @@ public class APIHoldersMain {
         // recentTps 通常是 [1min, 5min, 15min]
         // live TPS 使用 1分钟平均值作为近似（或可通过其他方式计算）
         tps.put("live", roundTps(recentTps[0])); // 使用1分钟平均作为live近似
-        tps.put("60s_avg", roundTps(recentTps[0]));
-        tps.put("300s_avg", roundTps(recentTps[1]));
+        tps.put("avg_60s", roundTps(recentTps[0]));
+        tps.put("avg_300s", roundTps(recentTps[1]));
       } else {
         // 尝试 Paper 的 Bukkit.getTPS() 静态方法
         java.lang.reflect.Method getTpsMethod = Bukkit.class.getMethod("getTPS");
         double[] paperTps = (double[]) getTpsMethod.invoke(null);
         tps.put("live", roundTps(paperTps[0]));
-        tps.put("60s_avg", roundTps(paperTps[0]));
-        tps.put("300s_avg", roundTps(paperTps[1]));
+        tps.put("avg_60s", roundTps(paperTps[0]));
+        tps.put("avg_300s", roundTps(paperTps[1]));
       }
     } catch (Exception e) {
       logger.error("无法获取TPS：" + e.getLocalizedMessage());
       e.printStackTrace();
       tps.put("live", -1.0);
-      tps.put("60s_avg", -1.0);
-      tps.put("300s_avg", -1.0);
+      tps.put("avg_60s", -1.0);
+      tps.put("avg_300s", -1.0);
     }
     return tps;
   }
