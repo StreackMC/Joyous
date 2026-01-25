@@ -20,6 +20,7 @@ public class entry extends JavaPlugin {
   @Override
   public void onEnable() {
     Joyous.plugin = this;
+    logger.plugin = this;
     logger.info("Enabling Joyous...");
     Joyous.dataPath = this.getDataFolder();
     Joyous.conf = new SConfig(Joyous.dataPath.toPath().resolve("config.yml").toFile(), "yml");
