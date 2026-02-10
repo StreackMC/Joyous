@@ -18,6 +18,7 @@ public class Joyous {
 
   public static SConfig conf;
   public static SConfig confDefault;
+  public static SConfig confBuild;
   public static JavaPlugin plugin;
   public static File dataPath;
 
@@ -37,6 +38,7 @@ public class Joyous {
    * 负数表示低于当前版本，正数表示高于当前版本，0表示相同版本
    * 
    * @return 差异版本数量
+   * @throws NullPointerException 当 conf* 未被初始化时
    * @since 0.0.1
    */
   public static int getConfigVerisonDiff() {
@@ -44,6 +46,17 @@ public class Joyous {
     int diff = Long.compare(cfgVer, confDefault.getLong("config-version", 000000L));// TODO: bug,无法正常检测
     logger.debug(String.format("配置文件版本：%d，适配版本：%d，差值：%d", cfgVer, confDefault.getLong("config-version", 000000L), diff));
     return diff;
+  }
+
+  /**
+   * 获取当前版本
+   * 
+   * @return
+   * @throws NullPointerException 当 conf* 未被初始化时
+   * @since 0.0.1
+   */
+  public static String getVersion() throws NullPointerException {
+    return confBuild.getString("version");
   }
 
   /**
