@@ -21,7 +21,6 @@ public class entry extends JavaPlugin {
     /* 获取全局变量 */
     Joyous.plugin = this;
     logger.plugin = this;
-    logger.info("Enabling Joyous...");
     Joyous.dataPath = this.getDataFolder();
     saveDefaultConfig();
     try {
@@ -85,14 +84,12 @@ public class entry extends JavaPlugin {
 
   @Override
   public void onDisable() {
-    logger.info("Disabling Joyous...");
     logger.info("正在禁用子模块...");
     try {
       APIHoldersMain.onDisable();
     } catch (Exception ignored) {
     }
     logger.info("已尝试禁用全部子模块");
-    logger.info("Disabled Joyous.");
   }
 
   private void CheckConfigUpdate() {
