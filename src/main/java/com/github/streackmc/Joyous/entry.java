@@ -9,7 +9,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.StreackLib.StreackLib;
+import com.github.streackmc.StreackLib.self.manager;
 import com.github.streackmc.StreackLib.utils.SConfig;
+import com.github.streackmc.StreackLib.utils.SEventCentral;
 import com.github.streackmc.StreackLib.utils.SFile;
 
 public class entry extends JavaPlugin {
@@ -66,8 +68,9 @@ public class entry extends JavaPlugin {
       return;
     }
 
-    /* 检查更新 */
-    CheckConfigUpdate();
+    /* 初始化配置文件相关 */
+    CheckConfigUpdate(); // 检查更新
+    AdaptConfigReloadNotification(); // 自动重载事件监听并提示
 
     /* 子模块 */
     logger.info("正在启用子模块...");
@@ -131,6 +134,14 @@ public class entry extends JavaPlugin {
     }
   }
 
+  private void AdaptConfigReloadNotification() {
+    SEventCentral.addEventListener(SConfig.EVENTS.CHANGED, event -> {
+      if (event.CALLER_ID.equals(Joyous.conf.INSTANCE_ID)) logger.info("已重载配置");
+      if (event.CALLER_ID.equals(Joyous.confDefault.INSTANCE_ID) || event.CALLER_ID.equals(Joyous.confBuild.INSTANCE_ID)) {
+        logger.warn("缓存的临时配置文件被修改，这会导致意外的行为！谁干的？ " + manager.getCaller(manager.getCallerMethod.NO_STREACKLIB));
+      };
+    });
+  }
 
   private entry() {}
 }
