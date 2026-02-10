@@ -8,12 +8,12 @@ main: com.github.streackmc.Joyous.entry
 depend: ["StreackLib", "PlaceholderAPI"]
 
 commands:
-  apiholders:
-    description: "管理 APIHolders 模块"
-    usage: "/<command> <version|reload>"
-    permission: joyous.apiholders.command
+  joyous:
+    description: "未使用的命令"
+    usage: "/<command>"
+    permission: joyous.unused
 
 permissions:
-  joyous.apiholders.command:
-    description: "允许使用 /apiholders 管理 APIHolders 模块"
+  joyous.unused:
+    description: "根权限，目前未使用"
     default: op
