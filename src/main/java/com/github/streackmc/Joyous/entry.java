@@ -1,9 +1,7 @@
 package com.github.streackmc.Joyous;
 
 import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
+import java.io.IOException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -12,6 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.SConfig;
+import com.github.streackmc.StreackLib.utils.SFile;
 
 public class entry extends JavaPlugin {
 
@@ -110,17 +109,11 @@ public class entry extends JavaPlugin {
     if (diff < 0) {
       logger.severe("注意：你的配置文件版本过低，请参阅config.new.yml修改你的配置文件；现在未配置的项将使用默认值。当前版本：" + Joyous.conf.getInt("version", 0)
           + "，适配版本：" + Joyous.confDefault.getLong("config-version", 000000L));
-      try (
-          InputStream is = this.getResource("config.yml");
-          OutputStream os = Files.newOutputStream(new File(Joyous.dataPath, "config.new.yml").toPath());) {
-        byte[] buffer = new byte[1024];
-        int length;
-        while ((length = is.read(buffer)) > 0) {
-          os.write(buffer, 0, length);
-        }
-        os.close();
+      try {
+        if (!SFile.cp(Joyous.conf.getFile(), new File(Joyous.dataPath, "config.new.yml")))
+          throw new IOException("无法复制配置文件");
       } catch (Exception e) {
-        logger.severe("配置文件更新失败：" + e.getLocalizedMessage());
+        logger.severe("配置文件更新失败：" + e);
         e.printStackTrace();
       }
     }
@@ -133,7 +126,7 @@ public class entry extends JavaPlugin {
       throw new RuntimeException("启用失败：未检测到StreackLib");
     }
     if (Joyous.isDebugMode()) {
-      logger.debug("检测到StreackLib，版本：" + StreackLib_paper.getDescription().getVersion());
+      logger.debug("检测到StreackLib，版本：" + StreackLib.buildConf.getString("version"));
       logger.warn("你正在StreackLib中使用调试模式并已继承到Joyous中，因此会收到更多信息。");
     }
     /* 检测 PlaceholderAPI */
