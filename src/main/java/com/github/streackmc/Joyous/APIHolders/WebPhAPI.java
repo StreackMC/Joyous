@@ -18,8 +18,8 @@ import fi.iki.elonen.NanoHTTPD;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public class WebPhAPI {
+  /** 启用对PlaceholderAPI的查询支持 */
   static void enablePH(String path) throws Exception {
-    // 启用对PlaceholderAPI的查询支持
     APIHoldersMain.httpServer.registerHandler(path, session -> {
       try {
         /* 仅处理 GET */
@@ -77,7 +77,7 @@ public class WebPhAPI {
           }
         }
       } catch (Exception e) {
-        e.printStackTrace();
+        logger.err("[APIHolders] 无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
         return newPlaceholderJsonResponse(500, "Internal Server Error: Unknown error emerged.", null, null, null);
       }
     });
@@ -103,7 +103,8 @@ public class WebPhAPI {
         if (str.startsWith("regex:")) {
           try {
             return Pattern.compile(str.substring(6)).matcher(placeholder).find();
-          } catch (PatternSyntaxException ignore) {
+          } catch (PatternSyntaxException ignored) {
+            logger.debug("[APIHolders] 忽略一处正则表达式错误：" + ignored.getLocalizedMessage(), ignored);
             return false;
           }
         }

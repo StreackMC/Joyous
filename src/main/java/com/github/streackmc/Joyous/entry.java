@@ -53,8 +53,7 @@ public class entry extends JavaPlugin {
     try {
       CheckDependencies();
     } catch (RuntimeException e) {
-      logger.severe(e.getLocalizedMessage());
-      e.printStackTrace();
+      logger.severe(e.getLocalizedMessage(), e);
       getServer().getPluginManager().disablePlugin(this);
       return;
     }
@@ -75,8 +74,7 @@ public class entry extends JavaPlugin {
     try {/* 开启HTTPServer */
       APIHoldersMain.onEnable();
     } catch (Exception e) {
-      logger.severe("启用失败：" + e.getLocalizedMessage());
-      e.printStackTrace();
+      logger.severe("启用失败：" + e.getLocalizedMessage(), e);
     }
 
     logger.info("Enabled Joyous.");
@@ -110,8 +108,7 @@ public class entry extends JavaPlugin {
         if (!SFile.cp(Joyous.conf.getFile(), new File(Joyous.dataPath, "config.new.yml")))
           throw new IOException("无法复制配置文件");
       } catch (Exception e) {
-        logger.severe("配置文件更新失败：" + e);
-        e.printStackTrace();
+        logger.severe("配置文件更新失败：" + e, e);
       }
     }
   }

@@ -110,8 +110,7 @@ public class APIHoldersMain {
   // sender.sendMessage("§a配置已重载。");
   // } catch (Exception e) {
   // sender.sendMessage("§c重载失败: " + e.getLocalizedMessage());
-  // logger.severe("配置重载时出错: " + e.getLocalizedMessage());
-  // e.printStackTrace();
+  // logger.severe("配置重载时出错: " + e.getLocalizedMessage(), e);
   // }
   // break;
   // default:

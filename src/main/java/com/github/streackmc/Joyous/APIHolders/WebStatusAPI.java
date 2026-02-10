@@ -31,7 +31,7 @@ public class WebStatusAPI {
         rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.corsHeader);
         return rsp;
       } catch (Exception e) {
-        e.printStackTrace();
+        logger.err("[APIHolders] 无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
         return newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR,
             NanoHTTPD.MIME_PLAINTEXT, "500 Internal Server Error: " + e.getLocalizedMessage());
       }
@@ -120,8 +120,7 @@ public class WebStatusAPI {
       tps.put("avg_5m", getTps[2]);
       tps.put("avg_15m", getTps[3]);
     } catch (Exception e) {
-      logger.error("无法获取TPS：" + e.getLocalizedMessage());
-      e.printStackTrace();
+      logger.error("无法获取TPS：" + e.getLocalizedMessage(), e);
       tps.put("live", -1.0);
       tps.put("avg_1m", -1.0);
       tps.put("avg_5m", -1.0);
