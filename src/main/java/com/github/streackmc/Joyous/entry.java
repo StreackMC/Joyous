@@ -25,7 +25,7 @@ public class entry extends JavaPlugin {
     Joyous.dataPath = this.getDataFolder();
     saveDefaultConfig();
     try {
-      Joyous.confDefault = new SConfig(Joyous.getResourceAsFile("config.yml"), "yml");
+      Joyous.confDefault = new SConfig(Joyous.getResourceAsFile("/config.yml"), "yml");
     } catch (Exception e1) {
       try {
         logger.warn("无法载入内联配置文件，正使用空配置替代……：", e1);
@@ -37,7 +37,7 @@ public class entry extends JavaPlugin {
       }
     }
     try {
-      Joyous.confBuild = new SConfig(Joyous.getResourceAsFile("plugin.yml"), "yml");
+      Joyous.confBuild = new SConfig(Joyous.getResourceAsFile("/plugin.yml"), "yml");
     } catch (Exception e1) {
       try {
         logger.warn("无法载入构建信息文件，正使用空配置替代……：", e1);
