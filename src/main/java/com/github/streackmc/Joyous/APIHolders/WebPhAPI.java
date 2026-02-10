@@ -92,11 +92,11 @@ public class WebPhAPI {
    * @since 0.0.1
    */
   private static boolean isUsableHolder(String placeholder) {
-    if (APIHoldersMain.rawList == null || APIHoldersMain.rawList.isEmpty()) {
+    if (APIHoldersMain.CONF.rawList() == null || APIHoldersMain.CONF.rawList().isEmpty()) {
       /* 空名单：白名单默认拒绝，黑名单默认通过 */
-      return !APIHoldersMain.whiteMode;
+      return !APIHoldersMain.CONF.whiteMode();
     }
-    boolean matchAny = APIHoldersMain.rawList.stream().anyMatch(obj -> {
+    boolean matchAny = APIHoldersMain.CONF.rawList().stream().anyMatch(obj -> {
       if (obj instanceof String) {
         String str = (String) obj;
         /* 正则 */
@@ -113,7 +113,7 @@ public class WebPhAPI {
       }
       return false;
     });
-    return APIHoldersMain.whiteMode ? matchAny : !matchAny;
+    return APIHoldersMain.CONF.whiteMode() ? matchAny : !matchAny;
   }
 
   /**
@@ -170,7 +170,7 @@ public class WebPhAPI {
     root.put("result", respond);
     NanoHTTPD.Response rsp = newFixedLengthResponse(NanoHTTPD.Response.Status.lookup(code),
         "application/json", root.toJSONString());
-    rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.corsHeader);
+    rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
     return rsp;
   }
 }

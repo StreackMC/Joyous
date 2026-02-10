@@ -17,11 +17,27 @@ import com.github.streackmc.StreackLib.utils.HTTPServer;
 public class APIHoldersMain {
 
   public static HTTPServer httpServer;
-  public static List<?> rawList;
-  public static boolean whiteMode;
-  public static String corsHeader;
-  public static String phPath;
-  public static String statusPath;
+
+  public static final class CONF {// 动态获取以支持热重载
+    public static final boolean whiteMode() {
+      return Joyous.conf.getBoolean("APIHolders.whitelist", false);
+    }
+
+    public static final String corsHeader() {
+      return Joyous.conf.getString("APIHolders.cors", "*");
+    }
+
+    public static final List<?> rawList() {
+      return Joyous.conf.getListOfString("APIHolders.whitelist");
+    }
+
+    public static final String phPath() {
+      return Joyous.conf.getString("APIHolders.path.ph", "/api/placeholder");
+    }
+    public static final String statusPath() {
+      return Joyous.conf.getString("APIHolders.path.status", "/api/status");
+    }
+  }
 
   /**
    * 
@@ -30,15 +46,10 @@ public class APIHoldersMain {
    */
   public static void onEnable() throws Exception {
     logger.info("[APIHolders] 正在启用……");
-    rawList = Joyous.conf.getList("APIHolders.whitelist");
-    whiteMode = Joyous.conf.getBoolean("APIHolders.whitelist", false);
-    corsHeader = Joyous.conf.getString("APIHolders.cors", "*");
-    phPath = Joyous.conf.getString("APIHolders.path.ph", "/api/placeholder");
-    statusPath = Joyous.conf.getString("APIHolders.path.status", "/api/status");
     try {
-      if (!phPath.isEmpty()) {
-        logger.info("[APIHolders] 正在启用PlaceholderAPI查询处理器…… @ " + phPath);
-        WebPhAPI.enablePH(phPath);
+      if (!CONF.phPath().isEmpty()) {
+        logger.info("[APIHolders] 正在启用PlaceholderAPI查询处理器…… @ " + CONF.phPath());
+        WebPhAPI.enablePH(CONF.phPath());
       } else {
         logger.info("[APIHolders] 没有启用PlaceholderAPI查询处理器");
       }
@@ -46,9 +57,9 @@ public class APIHoldersMain {
       throw new Exception("无法注册PlaceholderAPI查询处理器：" + e.getLocalizedMessage(), e);
     }
     try {
-      if (!statusPath.isEmpty()) {
-        logger.info("[APIHolders] 正在启用StatusAPI查询处理器…… @ " + statusPath);
-        WebStatusAPI.enableStatus(statusPath);
+      if (!CONF.statusPath().isEmpty()) {
+        logger.info("[APIHolders] 正在启用StatusAPI查询处理器…… @ " + CONF.statusPath());
+        WebStatusAPI.enableStatus(CONF.statusPath());
       } else {
         logger.info("[APIHolders] 没有启用StatusAPI查询处理器");
       }
@@ -66,8 +77,8 @@ public class APIHoldersMain {
   public static void onDisable() throws Exception {
     logger.info("[APIHolders] 正在禁用……");
     try {
-      httpServer.removeHandler(phPath);
-      httpServer.removeHandler(statusPath);
+      httpServer.removeHandler(CONF.phPath());
+      httpServer.removeHandler(CONF.statusPath());
     } catch (Exception e) {
       throw new Exception("[APIHolders] 无法移除事件处理器：" + e.getLocalizedMessage(), e);
     }

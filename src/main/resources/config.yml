@@ -2,7 +2,8 @@
 APIHolders:
   ## 监听路径
   # 必须以 / 开头，ph查询特定Placeholder，status查询服务器状态。
-  # 留空表示不启用
+  # * 留空表示不启用
+  # * 不支持热重载
   path:
     ph: "/api/placeholder"
     status: "/api/status"
@@ -30,6 +31,7 @@ APIHolders:
   
   ## 是否允许模糊查询 Placeholders
   # 启用后，允许通过使用 text 参数进行查询
+  # 不保证上述过滤机制可以正常工作。故不推荐启用
   # 这个参数传入的文本会直接作为一整段「文本」进行处理，而非「Placeholder」
   allow_blurred_ph: false
 

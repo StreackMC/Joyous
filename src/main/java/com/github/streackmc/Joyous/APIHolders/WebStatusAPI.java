@@ -28,7 +28,7 @@ public class WebStatusAPI {
             NanoHTTPD.Response.Status.OK,
             "application/json",
             statusData.toJSONString());
-        rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.corsHeader);
+        rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
         return rsp;
       } catch (Exception e) {
         logger.err("[APIHolders] 无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
