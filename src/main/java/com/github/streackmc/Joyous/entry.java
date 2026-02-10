@@ -37,6 +37,18 @@ public class entry extends JavaPlugin {
         getServer().getPluginManager().disablePlugin(this);
       }
     }
+    try {
+      Joyous.confBuild = new SConfig(Joyous.getResourceAsFile("plugin.yml"), "yml");
+    } catch (Exception e1) {
+      try {
+        logger.warn("无法载入构建信息文件，正使用空配置替代……：", e1);
+        Joyous.confBuild = new SConfig("","yml","joyous");
+      } catch (Exception e2) {
+        // 真到这了也没必要继续运行了
+        logger.severe("无法载入构建信息文件，也无法使用空配置替代：", e2);
+        getServer().getPluginManager().disablePlugin(this);
+      }
+    }
     Joyous.conf = new SConfig(Joyous.dataPath.toPath().resolve("config.yml").toFile(), "yml");
 
     /* 检查依赖 */
