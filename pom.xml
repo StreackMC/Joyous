@@ -9,7 +9,7 @@
   <description>栈流Streack服务器的玩法功能插件</description>
 
   <properties>
-    <streacklib.version>0.4.0</streacklib.version>
+    <streacklib.version>0.4.4</streacklib.version>
     <!-- <streacklib.version>master-SNAPSHOT</streacklib.version> -->
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
