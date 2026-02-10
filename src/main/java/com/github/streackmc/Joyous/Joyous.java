@@ -1,18 +1,23 @@
 package com.github.streackmc.Joyous;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.ApiStatus.Internal;
 
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.SConfig;
 
 public class Joyous {
 
-  public static final Long CONFIG_VERSION = 000001L;
-
   public static SConfig conf;
+  public static SConfig confDefault;
   public static JavaPlugin plugin;
   public static File dataPath;
 
@@ -36,56 +41,29 @@ public class Joyous {
    */
   public static int getConfigVerisonDiff() {
     Long cfgVer = conf.getLong("config-version", 000000L);
-    int diff = Long.compare(cfgVer, CONFIG_VERSION);// TODO: bug,无法正常检测
-    logger.debug(String.format("配置文件版本：%d，适配版本：%d，差值：%d", cfgVer, CONFIG_VERSION, diff));
+    int diff = Long.compare(cfgVer, confDefault.getLong("config-version", 000000L));// TODO: bug,无法正常检测
+    logger.debug(String.format("配置文件版本：%d，适配版本：%d，差值：%d", cfgVer, confDefault.getLong("config-version", 000000L), diff));
     return diff;
   }
 
-  //TODO: 需要改进
   /**
-   * 获取当前服务器的TPS数值（Ticks Per Second，每秒刻数）
-   * <p>
-   * 通过反射调用 Paper/Spigot 服务端方法获取性能数据。
-   * 兼容 Paper（有实时TPS）和纯 Spigot（只有平均值）。
+   * 提取JAR内部资源文件
    * 
-   * @return double[4] 数组，索引对应：
-   *         [0] = 最近1秒的TPS（Paper为实时计算，Spigot为1分钟平均）
-   *         [1] = 最近1分钟的平均TPS
-   *         [2] = 最近5分钟的平均TPS
-   *         [3] = 最近15分钟的平均TPS
-   *         [4] = 时间戳
-   *         如果发生非致命错误则会返回-1.0
-   * @throws Exception 当服务器不支持TPS查询或反射调用失败时
-   * @author KimiAI
-   * @author kdxiaoyi 审计
-   * @since 0.0.1
+   * @param name 要提取的资源文件
+   * @return 资源文件对象
+   * @throws FileNotFoundException 没有找到指定的资源文件
+   * @throws IOException           无法创建指定的临时文件
    */
-  public static double[] getServerTPS() throws Exception {
-    double[] tps = new double[5];
-    tps[4] = System.currentTimeMillis();
-    try {
-      // 获取1m/5m/15m TPS
-      java.lang.reflect.Method getTpsMethod = Bukkit.class.getMethod("getTPS");
-      double[] paperTps = (double[]) getTpsMethod.invoke(null);
-      tps[1] = paperTps[0];
-      tps[2] = paperTps[1];
-      tps[3] = paperTps[2];
-      // 获取1s TPS
-      try {
-        java.lang.reflect.Method tickTimeMethod = Bukkit.class.getMethod("getAverageTickTime");
-        double avgTickTime = (Double) tickTimeMethod.invoke(null);
-        if (avgTickTime > 0) {
-          tps[0] = 1000.0 / avgTickTime;
-        } else {
-          tps[0] = 20.0;
-        }
-      } catch (NoSuchMethodException e) {
-        tps[0] = tps[1];
-      }
-      return tps;
-    } catch (Exception e) {
-      throw new Exception("获取TPS时发生未知错误：" + e.getLocalizedMessage(), e);
+  @Internal
+  public static File getResourceAsFile(String name) throws Exception {
+    InputStream in = Joyous.class.getResourceAsStream(name);
+    if (in == null) {
+      throw new FileNotFoundException(String.format("没有找到 %s ，打包时是否包括了它？", name));
     }
+    Path tmp = File.createTempFile("extract-", ".tmp").toPath();
+    Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+    tmp.toFile().deleteOnExit();
+    return tmp.toFile();
   }
 
   private Joyous() {

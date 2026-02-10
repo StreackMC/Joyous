@@ -19,12 +19,26 @@ public class entry extends JavaPlugin {
 
   @Override
   public void onEnable() {
+    /* 获取全局变量 */
     Joyous.plugin = this;
     logger.plugin = this;
     logger.info("Enabling Joyous...");
     Joyous.dataPath = this.getDataFolder();
     saveDefaultConfig();
+    try {
+      Joyous.confDefault = new SConfig(Joyous.getResourceAsFile("config.yml"), "yml");
+    } catch (Exception e1) {
+      try {
+        logger.warn("无法载入内联配置文件，正使用空配置替代……：", e1);
+        Joyous.confDefault = new SConfig("","yml","joyous");
+      } catch (Exception e2) {
+        // 真到这了也没必要继续运行了
+        logger.severe("无法载入内联配置文件，也无法使用空配置替代：", e2);
+        getServer().getPluginManager().disablePlugin(this);
+      }
+    }
     Joyous.conf = new SConfig(Joyous.dataPath.toPath().resolve("config.yml").toFile(), "yml");
+
     /* 检查依赖 */
     try {
       CheckDependencies();
@@ -34,6 +48,7 @@ public class entry extends JavaPlugin {
       getServer().getPluginManager().disablePlugin(this);
       return;
     }
+
     /* 读入 StreackLib:HTTPServer */
     APIHoldersMain.httpServer = StreackLib.getHttpServer();
     if (APIHoldersMain.httpServer == null) {
@@ -41,8 +56,10 @@ public class entry extends JavaPlugin {
       getServer().getPluginManager().disablePlugin(this);
       return;
     }
+
     /* 检查更新 */
     CheckConfigUpdate();
+
     /* 子模块 */
     logger.info("正在启用子模块...");
     try {/* 开启HTTPServer */
@@ -76,11 +93,11 @@ public class entry extends JavaPlugin {
     }
     if (diff > 0) {
       logger.warn("你的配置文件版本过高？请勿自行修改或强行应用高版本配置文件，否则可能引发意料之外的错误。当前版本：" + Joyous.conf.getInt("version", 0) + "，适配版本："
-          + Joyous.CONFIG_VERSION);
+          + Joyous.confDefault.getLong("config-version", 000000L));
     }
     if (diff < 0) {
       logger.severe("注意：你的配置文件版本过低，请参阅config.new.yml修改你的配置文件；现在未配置的项将使用默认值。当前版本：" + Joyous.conf.getInt("version", 0)
-          + "，适配版本：" + Joyous.CONFIG_VERSION);
+          + "，适配版本：" + Joyous.confDefault.getLong("config-version", 000000L));
       try (
           InputStream is = this.getResource("config.yml");
           OutputStream os = Files.newOutputStream(new File(Joyous.dataPath, "config.new.yml").toPath());) {

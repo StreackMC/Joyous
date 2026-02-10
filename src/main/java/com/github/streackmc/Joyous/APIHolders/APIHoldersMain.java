@@ -13,6 +13,7 @@ import org.json.simple.JSONObject;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.StreackLib.bukkit.SBukkit;
 import com.github.streackmc.StreackLib.utils.HTTPServer;
 
 import fi.iki.elonen.NanoHTTPD;
@@ -322,7 +323,7 @@ public class APIHoldersMain {
   public static JSONObject getTPSDataAsJSON() {
     JSONObject tps = new JSONObject();
     try {
-      double[] getTps = (double[]) Joyous.getServerTPS();
+      double[] getTps = (double[]) SBukkit.getServerTPS();
       tps.put("live", getTps[0]);
       tps.put("avg_1m", getTps[1]);
       tps.put("avg_5m", getTps[2]);
