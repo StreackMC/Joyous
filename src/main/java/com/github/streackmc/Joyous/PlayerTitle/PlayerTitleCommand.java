@@ -40,8 +40,15 @@ public class PlayerTitleCommand {
               .executes(this::set_titleId_target) // /playertitle set <titleId> <target>
             )
           )
-      )
-      .build(), "玩家称号管理", Joyous.conf.getListOfString("PlayerTitle.alias", List.of("ptitle")));
+      ).then(
+        Commands.literal("help").executes(this::help)
+      ).build(), "玩家称号管理", Joyous.conf.getListOfString("PlayerTitle.alias", List.of("ptitle")));
+  }
+
+  private int help(CommandContext<CommandSourceStack> ctx) {
+    CommandSender sender = ctx.getSource().getSender();
+    sender.sendMessage(Joyous.i18n.tr("titles.help"));
+    return 1;
   }
 
   private int set_titleId(CommandContext<CommandSourceStack> ctx) {
@@ -59,7 +66,7 @@ public class PlayerTitleCommand {
       return 0;
     } catch (Exception e) {
       logger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
-      sender.sendMessage(Joyous.i18n.tr("titles.set.wrong"));
+      sender.sendMessage(Joyous.i18n.tr("titles.set.wrong"), e.getLocalizedMessage());
       return 0;
     }
     return 1;
@@ -74,11 +81,11 @@ public class PlayerTitleCommand {
       target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
       logger.debug("无法设置为指定玩家设置称号：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"));
+      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
       return 0;
     }
     try {
-      PlayerTitleMain.setTitle(target, titleId, false, false);
+      PlayerTitleMain.setTitle(target, titleId, true, false);
     } catch (IllegalArgumentException failure) {
       sender.sendMessage(failure.getLocalizedMessage());
       return 0;
