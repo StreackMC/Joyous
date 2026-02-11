@@ -3,6 +3,7 @@ package com.github.streackmc.Joyous;
 import java.io.File;
 import java.nio.file.Files;
 
+import com.github.streackmc.StreackLib.utils.MCColor;
 import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
 
@@ -49,7 +50,7 @@ public class i18n extends SConfig {
         logger.severe("未能更新翻译文件：" + e.getLocalizedMessage(), e);
       }
     }
-    return result;
+    return MCColor.parse(result);
   }
 
 }
