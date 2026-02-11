@@ -27,7 +27,7 @@ public class i18n extends SConfig {
     // 如果没有释放文件则释放一个
     if (Files.notExists(Joyous.dataPath.toPath().resolve("language.yml"))) {
       try {
-        SFile.mv(defaultMap.getFile(), this.getFile());
+        SFile.cp(defaultMap.getFile(), this.getFile());
       } catch (Exception e) {
         logger.severe("无法释放语言文件：" + e.getLocalizedMessage(), e);
       }
@@ -46,7 +46,7 @@ public class i18n extends SConfig {
     if (result.isEmpty()) {
       result = defaultMap.getString(key, "[MISSING_TRANSLATION]");
       try {
-        SFile.mv(defaultMap.getFile(), Joyous.dataPath.toPath().resolve("language.new.yml").toFile());
+        SFile.cp(defaultMap.getFile(), Joyous.dataPath.toPath().resolve("language.new.yml").toFile());
       } catch (Exception e) {
         logger.severe("未能更新翻译文件：" + e.getLocalizedMessage(), e);
       }
