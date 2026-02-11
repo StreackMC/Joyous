@@ -44,9 +44,9 @@ PlayerTitle:
   # * 不支持热重载
   enabled: true
   ## 称号前缀
-  prefix: "「"
+  prefix: "&7「"
   ## 称号后缀
-  prefix: "」"
+  suffix: "」"
 
 ## 配置文件版本
 version: 000001

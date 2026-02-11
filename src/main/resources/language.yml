@@ -15,3 +15,10 @@
 system:
   i18n:
     update: "您的语言文件需要更新了，请查看 %s"
+  commadn:
+    no_premission: "未知或不完整的命令"
+
+titles:
+  outdated: "&e注意，您的称号已过期，将重置为默认。"
+  set: ""
+  missing: "&c错误：&r&f系统找不到您的称号 &b[%s] ，其已被删除？"
