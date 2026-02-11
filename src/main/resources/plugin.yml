@@ -17,6 +17,6 @@ permissions:
   joyous.unused:
     description: "根权限，目前未使用"
     default: op
-  joyous.title:
+  joyous.titles:
     description: "标识玩家是否可以使用某个称号"
     default: false
