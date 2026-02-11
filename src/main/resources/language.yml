@@ -28,3 +28,4 @@ titles:
   set:
     done: "&a已将称号设置为 &r%s"
     wrong: "&c设置称号时发生了错误：&f%s"
+    unknown: "&c未知的称号"

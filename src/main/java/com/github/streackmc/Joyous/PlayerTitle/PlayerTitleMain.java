@@ -3,6 +3,8 @@ package com.github.streackmc.Joyous.PlayerTitle;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import javax.annotation.Nullable;
+
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -70,7 +72,7 @@ public class PlayerTitleMain {
 
     // 先获取玩家设置的称号
     String titleId = pdc.get(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING);
-    if (titleId.equals(null) || titleId.equals("empty") || titleId.isEmpty()) {
+    if (titleId == null || titleId.equals("empty") || titleId.isEmpty()) {
       // 没有设置就返回
       return "";
     }
@@ -101,17 +103,24 @@ public class PlayerTitleMain {
   }
 
   /** 设置称号 */
-  public static final void setTitle(Player player, String titleId) {
+  public static final void setTitle(Player player,@Nullable String titleId,@Nullable Boolean slience,@Nullable Boolean forced) throws IllegalArgumentException {
     PersistentDataContainer pdc = player.getPersistentDataContainer();
 
-    // 检查是否持有
-    if (checkTitlePermission(player, titleId)) {
-      player.sendMessage(Joyous.i18n.get("titles.status.not_have_yet"));
+    // 如果是移除
+    if (titleId == null || titleId.isEmpty() || titleId.isBlank()) {
+      pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
       return;
     }
 
-    pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
-    player.sendMessage(Joyous.i18n.get("titles.set.done"), getTitle(player));
+    if (forced == null || !forced) {
+      // 检查是否存在
+      if (titleList.getString(titleId, null) == null) throw new IllegalArgumentException(Joyous.i18n.get("titles.set.unknown"));
+
+      // 检查是否持有
+      if (checkTitlePermission(player, titleId)) throw new IllegalArgumentException(Joyous.i18n.get("titles.status.not_have_yet"));
+    }
+    pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, titleId);
+    if (!(slience == null || slience)) player.sendMessage(Joyous.i18n.get("titles.set.done"), getTitle(player));
   }
 
   /** 判断是否具有权限 <p> 仅检查不移除 */

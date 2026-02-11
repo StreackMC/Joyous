@@ -47,15 +47,19 @@ public class PlayerTitleCommand {
   private int set_titleId(CommandContext<CommandSourceStack> ctx) {
     String titleId = StringArgumentType.getString(ctx, "titleId");
     CommandSender sender = ctx.getSource().getSender();
+
     if (!(sender instanceof Player player)) {
       sender.sendMessage(Joyous.i18n.get("system.command.player_only"));
       return 0;
     }
     try {
-      PlayerTitleMain.setTitle(player, titleId);
+      PlayerTitleMain.setTitle(player, titleId, false, false);
+    } catch (IllegalArgumentException failure) {
+      sender.sendMessage(failure.getLocalizedMessage());
+      return 0;
     } catch (Exception e) {
       logger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
-      sender.sendMessage(Joyous.i18n.get("titles.set.wrong", e.getLocalizedMessage()));
+      sender.sendMessage(Joyous.i18n.get("titles.set.wrong"));
       return 0;
     }
     return 1;
@@ -63,15 +67,26 @@ public class PlayerTitleCommand {
   
   private int set_titleId_target(CommandContext<CommandSourceStack> ctx) {
     String titleId = StringArgumentType.getString(ctx, "titleId");
+    CommandSender sender = ctx.getSource().getSender();
     Player target;
+
     try {
       target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
       logger.debug("无法设置为指定玩家设置称号：%s", e.getLocalizedMessage(), e);
-      ctx.getSource().getSender().sendMessage(Joyous.i18n.get("system.command.target_loss"));
+      sender.sendMessage(Joyous.i18n.get("system.command.target_loss"));
       return 0;
     }
-    PlayerTitleMain.setTitle(target, titleId);
+    try {
+      PlayerTitleMain.setTitle(target, titleId, false, false);
+    } catch (IllegalArgumentException failure) {
+      sender.sendMessage(failure.getLocalizedMessage());
+      return 0;
+    } catch (Exception e) {
+      logger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
+      sender.sendMessage(Joyous.i18n.get("titles.set.wrong"));
+      return 0;
+    }
     return 1;
   }
 
