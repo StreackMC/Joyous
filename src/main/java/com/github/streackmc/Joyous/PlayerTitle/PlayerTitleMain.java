@@ -78,7 +78,7 @@ public class PlayerTitleMain {
     }
 
     // 检查是否过期
-    if (checkTitlePermission(player, titleId)) {
+    if (!checkTitlePermission(player, titleId)) {
       player.sendMessage(Joyous.i18n.tr("titles.status.outdated"));
       logger.info("玩家 [%s] 持有的称号 [%s] 已过期", player.getName(), titleId);
       pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
@@ -118,7 +118,7 @@ public class PlayerTitleMain {
         throw new IllegalArgumentException(Joyous.i18n.tr("titles.set.unknown"));
 
       // 检查是否持有
-      if (checkTitlePermission(player, titleId))
+      if (!checkTitlePermission(player, titleId))
         throw new IllegalArgumentException(Joyous.i18n.tr("titles.status.not_have_yet"));
     }
     
