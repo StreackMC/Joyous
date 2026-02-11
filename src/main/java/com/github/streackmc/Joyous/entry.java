@@ -34,7 +34,7 @@ public class entry extends JavaPlugin {
     Joyous.conf = new SConfig(Joyous.dataPath.toPath().resolve("config.yml").toFile(), "yml");
     Joyous.i18n = new i18n(Joyous.dataPath);
     if (Files.exists(Joyous.dataPath.toPath().resolve("language.new.yml"))) {
-      logger.warn(Joyous.i18n.get("system.i18n.update"), Joyous.dataPath.toPath().resolve("language.new.yml").toAbsolutePath());
+      logger.warn(Joyous.i18n.tr("system.i18n.update"), Joyous.dataPath.toPath().resolve("language.new.yml").toAbsolutePath());
     }
     try {
       Joyous.confDefault = new SConfig(Joyous.getResourceAsFile("/config.yml"), "yml");

@@ -41,7 +41,7 @@ public class i18n extends SConfig {
    * @param args 多余的参数用来 String.format
    * @return
    */
-  public String get(String key, String... args) {
+  public String tr(String key, String... args) {
     String result = this.getString(key, "");
     if (result.isEmpty()) {
       result = defaultMap.getString(key, "[MISSING_TRANSLATION]");

@@ -49,7 +49,7 @@ public class PlayerTitleCommand {
     CommandSender sender = ctx.getSource().getSender();
 
     if (!(sender instanceof Player player)) {
-      sender.sendMessage(Joyous.i18n.get("system.command.player_only"));
+      sender.sendMessage(Joyous.i18n.tr("system.command.player_only"));
       return 0;
     }
     try {
@@ -59,7 +59,7 @@ public class PlayerTitleCommand {
       return 0;
     } catch (Exception e) {
       logger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
-      sender.sendMessage(Joyous.i18n.get("titles.set.wrong"));
+      sender.sendMessage(Joyous.i18n.tr("titles.set.wrong"));
       return 0;
     }
     return 1;
@@ -74,7 +74,7 @@ public class PlayerTitleCommand {
       target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
       logger.debug("无法设置为指定玩家设置称号：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.get("system.command.target_loss"));
+      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"));
       return 0;
     }
     try {
@@ -84,7 +84,7 @@ public class PlayerTitleCommand {
       return 0;
     } catch (Exception e) {
       logger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
-      sender.sendMessage(Joyous.i18n.get("titles.set.wrong"));
+      sender.sendMessage(Joyous.i18n.tr("titles.set.wrong"));
       return 0;
     }
     return 1;
