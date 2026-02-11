@@ -8,7 +8,6 @@ import org.bukkit.entity.Player;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.logger;
-import com.github.streackmc.StreackLib.utils.MCColor;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -49,14 +48,14 @@ public class PlayerTitleCommand {
     String titleId = StringArgumentType.getString(ctx, "titleId");
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
-      sender.sendMessage(MCColor.parse("&c该命令只能由玩家执行"));
+      sender.sendMessage(Joyous.i18n.get("system.command.player_only"));
       return 0;
     }
     try {
       PlayerTitleMain.setTitle(player, titleId);
     } catch (Exception e) {
       logger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
-      sender.sendMessage(MCColor.parse("&c设置称号时发生了错误：" + e.getLocalizedMessage()));
+      sender.sendMessage(Joyous.i18n.get("titles.set.wrong", e.getLocalizedMessage()));
       return 0;
     }
     return 1;
@@ -69,7 +68,7 @@ public class PlayerTitleCommand {
       target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
       logger.debug("无法设置为指定玩家设置称号：%s", e.getLocalizedMessage(), e);
-      ctx.getSource().getSender().sendMessage(MCColor.parse("&c找不到指定的玩家"));
+      ctx.getSource().getSender().sendMessage(Joyous.i18n.get("system.command.target_loss"));
       return 0;
     }
     PlayerTitleMain.setTitle(target, titleId);

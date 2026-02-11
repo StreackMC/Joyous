@@ -77,7 +77,7 @@ public class PlayerTitleMain {
 
     // 检查是否过期
     if (checkTitlePermission(player, titleId)) {
-      player.sendMessage(Joyous.i18n.get("titles.outdated"));
+      player.sendMessage(Joyous.i18n.get("titles.status.outdated"));
       logger.info("玩家 [%s] 持有的称号 [%s] 已过期", player.getName(), titleId);
       pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
       return "";
@@ -87,7 +87,7 @@ public class PlayerTitleMain {
     String title = titleList.getString("titles." + titleId, "");
     if (title.isEmpty()) {
       title = "";
-      player.sendMessage(Joyous.i18n.get("titles.missing"), titleId);
+      player.sendMessage(Joyous.i18n.get("titles.status.missing"), titleId);
       logger.warn("找不到玩家 [%s] 持有的称号 [%s]", player.getName(), titleId);
       pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
     } else {
@@ -106,12 +106,12 @@ public class PlayerTitleMain {
 
     // 检查是否持有
     if (checkTitlePermission(player, titleId)) {
-      player.sendMessage(Joyous.i18n.get("titles.not_have_yet"));
+      player.sendMessage(Joyous.i18n.get("titles.status.not_have_yet"));
       return;
     }
 
     pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
-    player.sendMessage(Joyous.i18n.get("titles.set"), getTitle(player));
+    player.sendMessage(Joyous.i18n.get("titles.set.done"), getTitle(player));
   }
 
   /** 判断是否具有权限 <p> 仅检查不移除 */
