@@ -45,7 +45,7 @@ public class PlayerTitleCommand {
       ).build(), "玩家称号管理", Joyous.conf.getListOfString("PlayerTitle.alias", List.of("ptitle")));
   }
 
-  private int help(CommandContext<CommandSourceStack> ctx) {
+  private int help(CommandContext<CommandSourceStack> ctx) {// 显示帮助
     CommandSender sender = ctx.getSource().getSender();
     sender.sendMessage(Joyous.i18n.tr("titles.help"));
     return 1;
@@ -55,10 +55,13 @@ public class PlayerTitleCommand {
     String titleId = StringArgumentType.getString(ctx, "titleId");
     CommandSender sender = ctx.getSource().getSender();
 
+    // 不允许控制台执行
     if (!(sender instanceof Player player)) {
       sender.sendMessage(Joyous.i18n.tr("system.command.player_only"));
       return 0;
     }
+
+    // 设置称号
     try {
       PlayerTitleMain.setTitle(player, titleId, false, false);
     } catch (IllegalArgumentException failure) {
@@ -77,14 +80,15 @@ public class PlayerTitleCommand {
     CommandSender sender = ctx.getSource().getSender();
     Player target;
 
-    try {
+    try {// 读取玩家
       target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
       logger.debug("无法设置为指定玩家设置称号：%s", e.getLocalizedMessage(), e);
       sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
       return 0;
     }
-    try {
+
+    try {// 设置称号
       PlayerTitleMain.setTitle(target, titleId, true, false);
     } catch (IllegalArgumentException failure) {
       sender.sendMessage(failure.getLocalizedMessage());

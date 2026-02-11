@@ -106,7 +106,7 @@ public class PlayerTitleMain {
   public static final void setTitle(Player player,@Nullable String titleId,@Nullable Boolean slience,@Nullable Boolean forced) throws IllegalArgumentException {
     PersistentDataContainer pdc = player.getPersistentDataContainer();
 
-    // 如果是移除
+    // 如果是移除模式
     if (titleId == null || titleId.isEmpty() || titleId.isBlank()) {
       pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
       return;
@@ -114,12 +114,18 @@ public class PlayerTitleMain {
 
     if (forced == null || !forced) {
       // 检查是否存在
-      if (titleList.getString(titleId, null) == null) throw new IllegalArgumentException(Joyous.i18n.tr("titles.set.unknown"));
+      if (titleList.getString(titleId, null) == null)
+        throw new IllegalArgumentException(Joyous.i18n.tr("titles.set.unknown"));
 
       // 检查是否持有
-      if (checkTitlePermission(player, titleId)) throw new IllegalArgumentException(Joyous.i18n.tr("titles.status.not_have_yet"));
+      if (checkTitlePermission(player, titleId))
+        throw new IllegalArgumentException(Joyous.i18n.tr("titles.status.not_have_yet"));
     }
+    
+    // 设置
     pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, titleId);
+
+    // 通知目标玩家
     if (!(slience == null || slience)) player.sendMessage(Joyous.i18n.tr("titles.set.done"), getTitle(player));
   }
 
