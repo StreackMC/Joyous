@@ -6,6 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -22,15 +23,21 @@ public class PlayerTitleCommand {
   }
 
   final void register() {
+    Joyous.addPermissions(
+      PermDef.all("joyous.commands.playertitle.set"),
+      PermDef.op("joyous.commands.playertitle.set.others")
+    );
     Joyous.registerCommand(Commands.literal("playertitle")
       .then(
         Commands.literal("set")
           .then(
             Commands.argument("titleId", StringArgumentType.string())
+            .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.playertitle.set"))
             .executes(this::set_titleId) // /playertitle set <titleId>
             .then(
               Commands.argument("target", ArgumentTypes.player())
               .requires(ctx -> ctx.getSender().hasPermission("minecraft.command.selector"))
+              .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.playertitle.set.others"))
               .executes(this::set_titleId_target) // /playertitle set <titleId> <target>
             )
           )

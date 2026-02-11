@@ -9,6 +9,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 import com.github.streackmc.StreackLib.utils.SConfig;
@@ -44,6 +45,7 @@ public class PlayerTitleMain {
 
   public static final void onEnable() {
     NAMES.PLAYER_USING_TITLE_NAMESPACED = new NamespacedKey(Joyous.plugin, NAMES.PLAYER_USING_TITLE);
+    Joyous.addPermissions(PermDef.none("joyous.titles", "用于决定一个玩家是否具有指定称号"));
     if (Files.notExists(CONF_PATH)) {
       try {
         logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
