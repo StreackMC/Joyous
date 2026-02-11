@@ -47,7 +47,7 @@ public class PlayerTitlePHAPI extends PlaceholderExpansion {
       return ""; // 显然没有玩家就没有称号
 
     // %joyous.title% → 返回玩家称号
-    if (params.equalsIgnoreCase("name")) {
+    if (params.equalsIgnoreCase("title")) {
       return PlayerTitleMain.getTitle(player);
     }
 
