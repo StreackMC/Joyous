@@ -7,20 +7,41 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.Objects;
 
+import javax.annotation.Nullable;
+
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.ApiStatus.Internal;
 
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.SConfig;
+import com.mojang.brigadier.tree.LiteralCommandNode;
+
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 
 public class Joyous {
 
+  // 配置对象
+  /** 用户配置 */
   public static SConfig conf;
+  /** 默认配置 */
   public static SConfig confDefault;
+  /** 构建配置 plugin.yml */
   public static SConfig confBuild;
+  /** 多语言支持 */
   public static i18n i18n;
+
+  // 全局变量
+  /** 插件对象 */
   public static JavaPlugin plugin;
+  /** 生命周期管理器 */
+  public static LifecycleEventManager<Plugin> lifeCycleManager;
+  /** 数据文件夹目录 */
   public static File dataPath;
 
   /**
@@ -78,6 +99,52 @@ public class Joyous {
     Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
     tmp.toFile().deleteOnExit();
     return tmp.toFile();
+  }
+
+  /**
+   * 注册一个命令：
+   * 
+   * <pre>
+   * regisiterCommand(Commands.literal("root")
+   *   .then(
+   *     Commands.literal("animal")
+   *       .then(
+   *         Commands.literal("cat")
+   *       ).then(
+   *         Commands.literal("dog")
+   *       )
+   *   ).then(
+   *     Commands.literal("give")
+   *       .then(
+   *         Commands.argument("player", ArgumentTypes.player())
+   *            .executes(context -> {
+   *              Func1(context)
+   *              return Command.SINGLE_SUCCESS;
+   *            })
+   *         )
+   *       )
+   *   )
+   *   , "描述", List.of("alias"));
+   * </pre>
+   * 
+   * 上例中可以构建命令：
+   * /root
+   *   animal
+   *     cat
+   *     dog
+   *   give <Selector>
+   * 
+   * @param commandNode 命令树
+   * @param description 命令描述，可为空
+   * @param alias       命令别名，可为空
+   */
+  @Internal
+  public static final void regisiterCommand(LiteralCommandNode<CommandSourceStack> commandNode, @Nullable String description, @Nullable List<String> alias) {
+    List<String> aliasFiltered = Objects.requireNonNullElse(alias, List.of());
+    String descriptionFiltered = Objects.requireNonNullElse(description, "Joyous Command");
+    lifeCycleManager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
+      event.registrar().register(commandNode, descriptionFiltered, aliasFiltered);
+    });
   }
 
   private Joyous() {

@@ -27,6 +27,7 @@ public class entry extends JavaPlugin {
     Joyous.plugin = this;
     logger.plugin = this;
     Joyous.dataPath = this.getDataFolder();
+    Joyous.lifeCycleManager = this.getLifecycleManager();
     
     // 初始化配置对象
     saveDefaultConfig();
