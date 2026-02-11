@@ -7,11 +7,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.github.streackmc.Joyous.Joyous.IgnoredException;
 import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.self.manager;
+import com.github.streackmc.StreackLib.types.IgnoredException;
 import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SEventCentral;
 import com.github.streackmc.StreackLib.utils.SFile;
@@ -84,7 +84,7 @@ public class entry extends JavaPlugin {
     }
     try {/* PlayerTitle */
       if (!Joyous.conf.getBoolean("PlayerTitle.enabled", true)) {
-        throw new Joyous.IgnoredException();
+        throw new IgnoredException();
       }
       logger.info("正在启用 PlayerTitle");
       PlayerTitleMain.onEnable();
@@ -104,7 +104,7 @@ public class entry extends JavaPlugin {
     }
     try {/* PlayerTitle */
       if (!Joyous.conf.getBoolean("PlayerTitle.enabled", true)) {
-        throw new Joyous.IgnoredException();
+        throw new IgnoredException();
       }
       logger.info("正在禁用 PlayerTitle");
       PlayerTitleMain.onDisable();

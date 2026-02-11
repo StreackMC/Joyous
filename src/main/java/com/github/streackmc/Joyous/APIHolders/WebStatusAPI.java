@@ -6,8 +6,8 @@ import org.bukkit.Bukkit;
 import org.json.simple.JSONObject;
 
 import com.github.streackmc.Joyous.logger;
-import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.bukkit.SBukkit;
+import com.github.streackmc.StreackLib.utils.MCColor;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -62,7 +62,7 @@ public class WebStatusAPI {
     String rawVersion = server.getVersion();
     version.put("mc", "§f" + rawVersion);
     version.put("text", rawVersion);
-    version.put("html", StreackLib.MColorsToHtml("§f" + rawVersion));
+    version.put("html", MCColor.toHtml("§f" + rawVersion));
     data.put("version", version);
 
     /* 玩家信息 */
@@ -77,8 +77,8 @@ public class WebStatusAPI {
       p.put("uuid", player.getUniqueId().toString());
       p.put("mc", player.getDisplayName());
       JSONObject pn = new JSONObject();
-      pn.put("text", StreackLib.stripMCColors(player.getDisplayName()));
-      pn.put("html", StreackLib.MColorsToHtml(player.getDisplayName()));
+      pn.put("text", MCColor.strip(player.getDisplayName()));
+      pn.put("html", MCColor.toHtml(player.getDisplayName()));
       p.put("name", pn);
       sampleList.add(p);
     });
@@ -89,8 +89,8 @@ public class WebStatusAPI {
     JSONObject motd = new JSONObject();
     String rawMotd = server.getMotd();
     motd.put("mc", rawMotd);
-    motd.put("text", StreackLib.stripMCColors(rawMotd));
-    motd.put("html", StreackLib.MColorsToHtml(rawMotd));
+    motd.put("text", MCColor.strip(rawMotd));
+    motd.put("html", MCColor.toHtml(rawMotd));
     data.put("motd", motd);
 
     /* TPS信息（新增：live, avg_60s, avg_300s） */

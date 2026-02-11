@@ -79,12 +79,6 @@ public class Joyous {
     return tmp.toFile();
   }
 
-  /** 一个没有任何作用、不具备任何含义的 Exception ，常用于跳出 try...catch 块 */
-  public static final class IgnoredException extends Exception {
-    public IgnoredException(String msg) { super(msg); }
-    public IgnoredException() { super(""); }
-  }
-
   private Joyous() {
   }
 }
