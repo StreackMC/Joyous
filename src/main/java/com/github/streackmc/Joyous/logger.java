@@ -165,15 +165,25 @@ public class logger {
   /** 按优先级探测并实例化 Backend */
   private static Backend detectBackend() {
     // 1. Bukkit
-    if (plugin != null)
-      return new BukkitBackend();
-    // 2. SLF4J
+    if (plugin != null) {
+      try {
+        if (org.bukkit.Bukkit.getServer() != null) {
+          return new BukkitBackend();
+        }
+      } catch (Exception ignored) {
+      }
+    }
+
+    // 2. SLF4J - 检查是否有可用 Provider（排除 NOP）
     try {
       Class.forName("org.slf4j.LoggerFactory");
-      return new Slf4jBackend();
-    } catch (ClassNotFoundException ignore) {
-      /* 不存在 */
+      org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Backend.class);
+      if (!logger.getClass().getName().equals("org.slf4j.helpers.NOPLogger")) {
+        return new Slf4jBackend();
+      }
+    } catch (Exception ignored) {
     }
+
     // 3. JUL 保底
     return new JulBackend();
   }
