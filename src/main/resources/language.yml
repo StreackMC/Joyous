@@ -29,6 +29,7 @@ titles:
     done: "&a已将称号设置为 &r%s"
     wrong: "&c设置称号时发生了错误：&f%s"
     unknown: "&c未知的称号"
+  preview: "&a称号样式预览： &r%s"
   help: |
     &6/playertitle set <titleId> [target]
     &f为指定玩家设置称号，玩家需要拥有才能生效。
@@ -39,3 +40,6 @@ titles:
     &r
     &6/playertitle help
     &f展示此消息
+    &r
+    &6/playertitle preview
+    &f预览一个称号，需要权限 joyous.commands.playertitle.preview

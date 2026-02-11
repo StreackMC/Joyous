@@ -24,7 +24,8 @@ public class PlayerTitleCommand {
   final void register() {
     Joyous.addPermissions(
       PermDef.all("joyous.commands.playertitle.set"),
-      PermDef.op("joyous.commands.playertitle.set.others")
+      PermDef.op("joyous.commands.playertitle.set.others"),
+      PermDef.all("joyous.commands.playertitle.preview")
     );
     Joyous.registerCommand(Commands.literal("playertitle")
       .then(
@@ -41,11 +42,11 @@ public class PlayerTitleCommand {
             )
           )
       ).then(
-        Commands.literal("view")
+        Commands.literal("preview")
           .then(
             Commands.argument("titleId", StringArgumentType.string())
-            .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.playertitle.set"))
-            .executes(this::view_titleId) // /playertitle view <titleId>
+            .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.playertitle.preview"))
+            .executes(this::preview_titleId) // /playertitle preview <titleId>
           )
       ).then(
         Commands.literal("help").executes(this::help)
@@ -58,9 +59,9 @@ public class PlayerTitleCommand {
     return 1;
   }
 
-  private int view_titleId(CommandContext<CommandSourceStack> ctx) {
+  private int preview_titleId(CommandContext<CommandSourceStack> ctx) {
     String titleId = StringArgumentType.getString(ctx, "titleId");
-    ctx.getSource().getSender().sendMessage(String.format("称号样式预览：%s", PlayerTitleMain.getTitle(titleId)));;
+    ctx.getSource().getSender().sendMessage(String.format(Joyous.i18n.tr("titles.preview"), PlayerTitleMain.getTitle(titleId)));;
     return 1;
   }
 
@@ -111,6 +112,7 @@ public class PlayerTitleCommand {
       sender.sendMessage(Joyous.i18n.tr("titles.set.wrong"));
       return 0;
     }
+    sender.sendMessage(Joyous.i18n.tr("titles.set.done"), PlayerTitleMain.getTitle(target));
     return 1;
   }
 

@@ -41,7 +41,7 @@ public class i18n extends SConfig {
    * @param args 多余的参数用来 String.format
    * @return
    */
-  public String tr(String key, String... args) {
+  public String tr(String key, Object... args) {
     String result = this.getString(key, "");
     if (result.isEmpty()) {
       result = defaultMap.getString(key, "[MISSING_TRANSLATION]");
@@ -53,7 +53,7 @@ public class i18n extends SConfig {
     }
     // 如果有额外参数，使用 String.format 格式化
     if (args.length > 0) {
-      result = String.format(result, (Object[]) args);
+      result = String.format(result, args);
     }
     return MCColor.parse(result);
   }

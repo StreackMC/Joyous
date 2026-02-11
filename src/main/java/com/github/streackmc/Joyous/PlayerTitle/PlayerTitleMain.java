@@ -72,10 +72,10 @@ public class PlayerTitleMain {
     if (title.isEmpty()) {
       return "";
     } else {
-      return String.format("&r&7%s&r&f%s&r&7%s&r",
+      return MCColor.parse(String.format("&r&7%s&r&f%s&r&7%s&r",
           Joyous.conf.getString("PlayerTitle.prefix", "「"),
           title,
-          Joyous.conf.getString("PlayerTitle.suffix", "」"));
+          Joyous.conf.getString("PlayerTitle.suffix", "」")));
     }
   }
 
