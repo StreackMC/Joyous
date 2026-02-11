@@ -75,7 +75,7 @@ public class PlayerTitleMain {
     }
 
     // 检查是否过期
-    if (!player.hasPermission(NAMES.PERMISSION_PREFIX + titleId)) {
+    if (checkTitlePermission(player, titleId)) {
       player.sendMessage(Joyous.i18n.get("titles.outdated"));
       logger.info("玩家 [%s] 持有的称号 [%s] 已过期", player.getName(), titleId);
       pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
@@ -100,12 +100,16 @@ public class PlayerTitleMain {
   }
 
   /** 设置称号 */
-  public static final void setTitle(Player player, String id) {
+  public static final void setTitle(Player player, String titleId) {
   }
 
-  /** 判断是否具有权限 */
-  public static final boolean checkTitlePermission(Player player, String id) {
-    return false;
+  /** 判断是否具有权限 <p> 仅检查不移除 */
+  public static final boolean checkTitlePermission(Player player, String titleId) {
+    if (!player.hasPermission(NAMES.PERMISSION_PREFIX + titleId)) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   /** PlaceholderAPI注册类 */
