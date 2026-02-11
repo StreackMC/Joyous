@@ -46,7 +46,7 @@ PlayerTitle:
   ## 称号前缀
   prefix: "&7「"
   ## 称号后缀
-  suffix: "」"
+  suffix: "&7」&r"
   ## 命令别名
   # 默认命令为 /playertitle
   alias:
