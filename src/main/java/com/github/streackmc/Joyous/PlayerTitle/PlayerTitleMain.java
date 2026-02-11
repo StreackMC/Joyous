@@ -86,7 +86,7 @@ public class PlayerTitleMain {
     }
 
     // 获取称号
-    String title = titleList.getString("titles." + titleId, "");
+    String title = titleList.getString(titleId, "");
     if (title.isEmpty()) {
       title = "";
       player.sendMessage(Joyous.i18n.tr("titles.status.missing"), titleId);
