@@ -38,10 +38,11 @@ public class i18n extends SConfig {
    * 获取一个翻译
    * 
    * @param key
+   * @param args 多余的参数用来 String.format
    * @return
    */
-  public String get(String key) {
-    String result = this.getString("key", "");
+  public String get(String key, String... args) {
+    String result = this.getString(key, "");
     if (result.isEmpty()) {
       result = defaultMap.getString(key, "[MISSING_TRANSLATION]");
       try {
@@ -49,6 +50,10 @@ public class i18n extends SConfig {
       } catch (Exception e) {
         logger.severe("未能更新翻译文件：" + e.getLocalizedMessage(), e);
       }
+    }
+    // 如果有额外参数，使用 String.format 格式化
+    if (args.length > 0) {
+      result = String.format(result, (Object[]) args);
     }
     return MCColor.parse(result);
   }
