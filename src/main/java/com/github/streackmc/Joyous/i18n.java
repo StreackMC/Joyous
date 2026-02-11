@@ -17,7 +17,7 @@ public class i18n extends SConfig {
 
     // 载入缺省翻译
     try {
-      defaultMap = new SConfig(Joyous.getResourceAsFile("language.yml"), "yml");
+      defaultMap = new SConfig(Joyous.getResourceAsFile("/language.yml"), "yml");
     } catch (Exception e) {
       logger.severe("无法载入默认语言文件：" + e.getLocalizedMessage(), e);
       defaultMap = null;

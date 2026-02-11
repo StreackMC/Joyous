@@ -20,5 +20,6 @@ system:
 
 titles:
   outdated: "&e注意，您的称号已过期，将重置为默认。"
-  set: ""
+  set: "&a已将称号设置为 &r%s"
+  not_have_yet: "&c错误：&r&f您还未持有此称号。"
   missing: "&c错误：&r&f系统找不到您的称号 &b[%s] ，其已被删除？"

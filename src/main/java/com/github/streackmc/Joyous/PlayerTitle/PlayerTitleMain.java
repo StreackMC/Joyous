@@ -50,7 +50,7 @@ public class PlayerTitleMain {
     if (Files.notExists(CONF_PATH)) {
       try {
         logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
-        SFile.mv(Joyous.getResourceAsFile(NAMES.CONF_FILE), CONF_PATH.toFile());
+        SFile.mv(Joyous.getResourceAsFile("/" + NAMES.CONF_FILE), CONF_PATH.toFile());
       } catch (Exception e) {
         logger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
       }
@@ -86,7 +86,7 @@ public class PlayerTitleMain {
     String title = titleList.getString("titles." + titleId, "");
     if (title.isEmpty()) {
       title = "";
-      player.sendMessage(Joyous.i18n.get("titles.missing"));
+      player.sendMessage(Joyous.i18n.get("titles.missing"), titleId);
       logger.warn("找不到玩家 [%s] 持有的称号 [%s]", player.getName(), titleId);
       pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
     } else {
@@ -101,6 +101,16 @@ public class PlayerTitleMain {
 
   /** 设置称号 */
   public static final void setTitle(Player player, String titleId) {
+    PersistentDataContainer pdc = player.getPersistentDataContainer();
+
+    // 检查是否持有
+    if (checkTitlePermission(player, titleId)) {
+      player.sendMessage(Joyous.i18n.get("titles.not_have_yet"));
+      return;
+    }
+
+    pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
+    player.sendMessage(Joyous.i18n.get("titles.set"), getTitle(player));
   }
 
   /** 判断是否具有权限 <p> 仅检查不移除 */
