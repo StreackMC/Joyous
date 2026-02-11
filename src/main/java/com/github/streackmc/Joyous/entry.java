@@ -2,6 +2,7 @@ package com.github.streackmc.Joyous;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -26,7 +27,14 @@ public class entry extends JavaPlugin {
     Joyous.plugin = this;
     logger.plugin = this;
     Joyous.dataPath = this.getDataFolder();
+    
+    // 初始化配置对象
     saveDefaultConfig();
+    Joyous.conf = new SConfig(Joyous.dataPath.toPath().resolve("config.yml").toFile(), "yml");
+    Joyous.i18n = new i18n(Joyous.dataPath);
+    if (Files.exists(Joyous.dataPath.toPath().resolve("language.new.yml"))) {
+      logger.warn(Joyous.i18n.get("system.i18n.update"), Joyous.dataPath.toPath().resolve("language.new.yml").toAbsolutePath());
+    }
     try {
       Joyous.confDefault = new SConfig(Joyous.getResourceAsFile("/config.yml"), "yml");
     } catch (Exception e1) {
@@ -51,7 +59,6 @@ public class entry extends JavaPlugin {
         getServer().getPluginManager().disablePlugin(this);
       }
     }
-    Joyous.conf = new SConfig(Joyous.dataPath.toPath().resolve("config.yml").toFile(), "yml");
 
     /* 检查依赖 */
     try {
@@ -155,6 +162,7 @@ public class entry extends JavaPlugin {
   }
 
   private void AdaptConfigReloadNotification() {
+    Joyous.conf.startAutoReload();
     SEventCentral.addEventListener(SConfig.EVENTS.CHANGED, event -> {
       if (event.CALLER_ID.equals(Joyous.conf.INSTANCE_ID)) {
         logger.info("已重载配置");

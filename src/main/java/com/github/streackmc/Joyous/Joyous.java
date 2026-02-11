@@ -19,6 +19,7 @@ public class Joyous {
   public static SConfig conf;
   public static SConfig confDefault;
   public static SConfig confBuild;
+  public static i18n i18n;
   public static JavaPlugin plugin;
   public static File dataPath;
 

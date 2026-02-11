@@ -1,0 +1,17 @@
+## 多语言支持
+# 需要您手动替换以下所有翻译键值
+# 人手限制默认只提供中文(zh_cn)
+# 键缺失时会使用默认值并新建一个 language.new.yml
+# * 空值也算缺失
+# * 所有翻译键都支持自动重载
+
+## Mutiple Language Support
+# We are so sorry that, on account of lacking developers, we cann't provide official translation except Simplified Chinese (zh_cn).
+# You need to edit the value of those keys to use your own language.
+# When some translations are missing, we would use the default ones and put a new file called language.new.yml , which you need to replace it with manually.
+# * If you set a value to empty, then it will be seen as unset, causing missing translation.
+# * Note: All listed key-value pairs are equipped with auto reload.
+
+system:
+  i18n:
+    update: "您的语言文件需要更新了，请查看 %s"
