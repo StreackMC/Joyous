@@ -35,14 +35,15 @@ public class PlayerTitleMain {
     static NamespacedKey PLAYER_USING_TITLE_NAMESPACED;
   };
 
-  public static PlayerTitlePHAPI PlaceholderService = null;
+  // 服务实例
+  public static final PlayerTitlePHAPI PlaceholderService = new PlayerTitlePHAPI();
+  public static final PlayerTitleCommand CommandService = new PlayerTitleCommand();
+
   /** 称号列表 */
   public static SConfig titleList;
 
   public static final void onEnable() {
-    PlaceholderService = new PlayerTitlePHAPI();
     NAMES.PLAYER_USING_TITLE_NAMESPACED = new NamespacedKey(Joyous.plugin, NAMES.PLAYER_USING_TITLE);
-    PlaceholderService.register();
     if (Files.notExists(CONF_PATH)) {
       try {
         logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
@@ -53,8 +54,10 @@ public class PlayerTitleMain {
     }
     titleList = new SConfig(CONF_PATH, "yml");
     titleList.putString("titles.empty", "");
+    PlaceholderService.register();
+    CommandService.register();
   }
-
+  
   public static final void onDisable() {
     PlaceholderService.unregister();
   }

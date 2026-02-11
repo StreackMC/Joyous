@@ -47,6 +47,10 @@ PlayerTitle:
   prefix: "&7「"
   ## 称号后缀
   suffix: "」"
+  ## 命令别名
+  # 默认命令为 /playertitle
+  alias:
+    - "ptitle"
 
 ## 配置文件版本
 version: 000001

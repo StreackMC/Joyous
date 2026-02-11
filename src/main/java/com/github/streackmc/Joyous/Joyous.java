@@ -124,7 +124,7 @@ public class Joyous {
    *         )
    *       )
    *   )
-   *   , "描述", List.of("alias"));
+   *   .build(), "描述", List.of("alias"));
    * </pre>
    * 
    * 上例中可以构建命令：
@@ -139,7 +139,7 @@ public class Joyous {
    * @param alias       命令别名，可为空
    */
   @Internal
-  public static final void regisiterCommand(LiteralCommandNode<CommandSourceStack> commandNode, @Nullable String description, @Nullable List<String> alias) {
+  public static final void registerCommand(LiteralCommandNode<CommandSourceStack> commandNode, @Nullable String description, @Nullable List<String> alias) {
     List<String> aliasFiltered = Objects.requireNonNullElse(alias, List.of());
     String descriptionFiltered = Objects.requireNonNullElse(description, "Joyous Command");
     lifeCycleManager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
