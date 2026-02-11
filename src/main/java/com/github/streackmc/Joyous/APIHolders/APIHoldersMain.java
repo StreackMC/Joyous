@@ -46,25 +46,25 @@ public class APIHoldersMain {
    */
   public static void onEnable() throws Exception {
     if (httpServer.equals(null)) {// 防止一些nb的情况
-      logger.warn("[APIHolders] StreackLib中的 httpServer 服务器已被禁用，无法继续启用");
+      logger.warn("StreackLib中的 httpServer 服务器已被禁用，无法继续启用");
       return;
     };
     try {
       if (!CONF.phPath().isEmpty()) {
-        logger.info("[APIHolders] 正在启用PlaceholderAPI查询处理器…… @ " + CONF.phPath());
+        logger.info("正在启用PlaceholderAPI查询处理器…… @ " + CONF.phPath());
         WebPhAPI.enablePH(CONF.phPath());
       } else {
-        logger.info("[APIHolders] 没有启用PlaceholderAPI查询处理器");
+        logger.info("没有启用PlaceholderAPI查询处理器");
       }
     } catch (Exception e) {
       throw new Exception("无法注册PlaceholderAPI查询处理器：" + e.getLocalizedMessage(), e);
     }
     try {
       if (!CONF.statusPath().isEmpty()) {
-        logger.info("[APIHolders] 正在启用StatusAPI查询处理器…… @ " + CONF.statusPath());
+        logger.info("正在启用StatusAPI查询处理器…… @ " + CONF.statusPath());
         WebStatusAPI.enableStatus(CONF.statusPath());
       } else {
-        logger.info("[APIHolders] 没有启用StatusAPI查询处理器");
+        logger.info("没有启用StatusAPI查询处理器");
       }
     } catch (Exception e) {
       throw new Exception("无法注册StatusAPI查询处理器：" + e.getLocalizedMessage(), e);
@@ -84,7 +84,7 @@ public class APIHoldersMain {
       httpServer.removeHandler(CONF.phPath());
       httpServer.removeHandler(CONF.statusPath());
     } catch (Exception e) {
-      throw new Exception("[APIHolders] 无法移除事件处理器：" + e.getLocalizedMessage(), e);
+      throw new Exception("无法移除事件处理器：" + e.getLocalizedMessage(), e);
     }
   }
 

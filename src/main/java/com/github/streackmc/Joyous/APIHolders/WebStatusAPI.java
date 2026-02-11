@@ -31,12 +31,12 @@ public class WebStatusAPI {
         rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
         return rsp;
       } catch (Exception e) {
-        logger.err("[APIHolders] 无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
+        logger.err("无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
         return newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR,
             NanoHTTPD.MIME_PLAINTEXT, "500 Internal Server Error: " + e.getLocalizedMessage());
       }
     });
-    logger.info("[APIHolders] 已注册StatusAPI查询处理器： " + path);
+    logger.info("已注册StatusAPI查询处理器： " + path);
   }
 
   /**
@@ -96,7 +96,7 @@ public class WebStatusAPI {
     /* TPS信息（新增：live, avg_60s, avg_300s） */
     data.put("tps", getTPSDataAsJSON());
 
-    logger.debug("[APIHolders] status数据构建完成：" + data.toString());
+    logger.debug("status数据构建完成：" + data.toString());
 
     return data;
   }

@@ -77,11 +77,11 @@ public class WebPhAPI {
           }
         }
       } catch (Exception e) {
-        logger.err("[APIHolders] 无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
+        logger.err("无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
         return newPlaceholderJsonResponse(500, "Internal Server Error: Unknown error emerged.", null, null, null);
       }
     });
-    logger.info("[APIHolders] 已注册PlaceholderAPI查询处理器： " + path);
+    logger.info("已注册PlaceholderAPI查询处理器： " + path);
   }
 
   /**
@@ -104,7 +104,7 @@ public class WebPhAPI {
           try {
             return Pattern.compile(str.substring(6)).matcher(placeholder).find();
           } catch (PatternSyntaxException ignored) {
-            logger.debug("[APIHolders] 忽略一处正则表达式错误：" + ignored.getLocalizedMessage(), ignored);
+            logger.debug("忽略一处正则表达式错误：" + ignored.getLocalizedMessage(), ignored);
             return false;
           }
         }
