@@ -6,17 +6,3 @@ website: https://github.com/StreackMC/Joyous
 api-version: '1.20.6'
 main: com.github.streackmc.Joyous.entry
 depend: ["StreackLib", "PlaceholderAPI"]
-
-commands:
-  joyous:
-    description: "未使用的命令"
-    usage: "/<command>"
-    permission: joyous.unused
-
-permissions:
-  joyous.unused:
-    description: "根权限，目前未使用"
-    default: op
-  joyous.titles:
-    description: "标识玩家是否可以使用某个称号"
-    default: false

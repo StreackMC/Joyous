@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -28,6 +27,7 @@ public class entry extends JavaPlugin {
     logger.plugin = this;
     Joyous.dataPath = this.getDataFolder();
     Joyous.lifeCycleManager = this.getLifecycleManager();
+    Joyous.pluginManager = this.getServer().getPluginManager();
     
     // 初始化配置对象
     saveDefaultConfig();
@@ -45,7 +45,7 @@ public class entry extends JavaPlugin {
       } catch (Exception e2) {
         // 真到这了也没必要继续运行了
         logger.severe("无法载入内联配置文件，也无法使用空配置替代：", e2);
-        getServer().getPluginManager().disablePlugin(this);
+        Joyous.pluginManager.disablePlugin(this);
       }
     }
     try {
@@ -57,7 +57,7 @@ public class entry extends JavaPlugin {
       } catch (Exception e2) {
         // 真到这了也没必要继续运行了
         logger.severe("无法载入构建信息文件，也无法使用空配置替代：", e2);
-        getServer().getPluginManager().disablePlugin(this);
+        Joyous.pluginManager.disablePlugin(this);
       }
     }
 
@@ -66,7 +66,7 @@ public class entry extends JavaPlugin {
       CheckDependencies();
     } catch (RuntimeException e) {
       logger.severe(e.getLocalizedMessage(), e);
-      getServer().getPluginManager().disablePlugin(this);
+      Joyous.pluginManager.disablePlugin(this);
       return;
     }
 
@@ -74,7 +74,7 @@ public class entry extends JavaPlugin {
     APIHoldersMain.httpServer = StreackLib.getHttpServer();
     if (APIHoldersMain.httpServer == null) {
       logger.severe("启用失败：StreackLib的HTTPServer模块未启用或无法与之通信。");
-      getServer().getPluginManager().disablePlugin(this);
+      Joyous.pluginManager.disablePlugin(this);
       return;
     }
 
@@ -146,7 +146,7 @@ public class entry extends JavaPlugin {
 
   private void CheckDependencies() throws RuntimeException {
     /* 检测 StreackLib */
-    Plugin StreackLib_paper = Bukkit.getPluginManager().getPlugin("StreackLib");
+    Plugin StreackLib_paper = Joyous.pluginManager.getPlugin("StreackLib");
     if (StreackLib_paper == null || !StreackLib_paper.isEnabled()) {
       throw new RuntimeException("启用失败：未检测到StreackLib");
     }
@@ -155,10 +155,10 @@ public class entry extends JavaPlugin {
       logger.warn("你正在StreackLib中使用调试模式并已继承到Joyous中，因此会收到更多信息。");
     }
     /* 检测 PlaceholderAPI */
-    if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+    if (!Joyous.pluginManager.isPluginEnabled("PlaceholderAPI")) {
       throw new RuntimeException("启用失败：未检测到PlaceholderAPI");
     } else {
-      logger.debug("检测到PlaceholderAPI，版本：" + Bukkit.getPluginManager().getPlugin("PlaceholderAPI").getDescription().getVersion());
+      logger.debug("检测到PlaceholderAPI，版本：" + Joyous.pluginManager.getPlugin("PlaceholderAPI").getDescription().getVersion());
     }
   }
 

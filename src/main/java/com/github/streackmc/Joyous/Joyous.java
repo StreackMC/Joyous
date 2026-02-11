@@ -12,7 +12,10 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.ApiStatus.Internal;
 
@@ -43,6 +46,8 @@ public class Joyous {
   public static LifecycleEventManager<Plugin> lifeCycleManager;
   /** 数据文件夹目录 */
   public static File dataPath;
+  /* 插件管理器 */
+  public static PluginManager pluginManager;
 
   /**
    * 是否启用调试模式
@@ -145,6 +150,38 @@ public class Joyous {
     lifeCycleManager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
       event.registrar().register(commandNode, descriptionFiltered, aliasFiltered);
     });
+  }
+
+  public record PermDef(String node, PermissionDefault def, String desc) {
+    /** 对非op默认 */
+    public static PermDef notOp(String node) {return new PermDef(node, PermissionDefault.NOT_OP, "");}
+    /** 对所有人默认 */
+    public static PermDef all(String node) {return new PermDef(node, PermissionDefault.TRUE, "");}
+    /** 无人默认 */
+    public static PermDef none(String node) {return new PermDef(node, PermissionDefault.FALSE, "");}
+    /** 对OP默认 */
+    public static PermDef op(String node) {return new PermDef(node, PermissionDefault.OP, "");}
+    /** 对非op默认 */
+    public static PermDef notOp(String node, String desc) {return new PermDef(node, PermissionDefault.NOT_OP, desc);}
+    /** 对所有人默认 */
+    public static PermDef all(String node, String desc) {return new PermDef(node, PermissionDefault.TRUE, desc);}
+    /** 无人默认 */
+    public static PermDef none(String node, String desc) {return new PermDef(node, PermissionDefault.FALSE, desc);}
+    /** 对OP默认 */
+    public static PermDef op(String node, String desc) {return new PermDef(node, PermissionDefault.OP, desc);}
+  }
+
+  /**
+   * 添加权限
+   * 
+   * @param perms
+   */
+  public static void addPermissions(PermDef... perms) {
+    for (PermDef p : perms) {
+      if (pluginManager.getPermission(p.node()) != null)
+        continue;
+      pluginManager.addPermission(new Permission(p.node(), p.desc(), p.def()));
+    }
   }
 
   private Joyous() {
