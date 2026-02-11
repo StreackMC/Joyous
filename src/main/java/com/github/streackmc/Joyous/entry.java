@@ -7,7 +7,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.github.streackmc.Joyous.Joyous.IgnoredException;
 import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
+import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.self.manager;
 import com.github.streackmc.StreackLib.utils.SConfig;
@@ -74,20 +76,38 @@ public class entry extends JavaPlugin {
 
     /* 子模块 */
     logger.info("正在启用子模块...");
-    try {/* 开启HTTPServer */
+    try {/* HTTPServer */
+      logger.info("正在启用 APIHolders");
       APIHoldersMain.onEnable();
     } catch (Exception e) {
       logger.severe("启用失败：" + e.getLocalizedMessage(), e);
     }
-
-    logger.info("Enabled Joyous.");
+    try {/* PlayerTitle */
+      if (!Joyous.conf.getBoolean("PlayerTitle.enabled", true)) {
+        throw new Joyous.IgnoredException();
+      }
+      logger.info("正在启用 PlayerTitle");
+      PlayerTitleMain.onEnable();
+    } catch (IgnoredException e1) {
+    } catch (Exception e2) {
+      logger.severe("启用失败：" + e2.getLocalizedMessage(), e2);
+    }
   }
 
   @Override
   public void onDisable() {
     logger.info("正在禁用子模块...");
-    try {
+    try {/* APIHolders */
+      logger.info("正在禁用 APIHolders");
       APIHoldersMain.onDisable();
+    } catch (Exception ignored) {
+    }
+    try {/* PlayerTitle */
+      if (!Joyous.conf.getBoolean("PlayerTitle.enabled", true)) {
+        throw new Joyous.IgnoredException();
+      }
+      logger.info("正在禁用 PlayerTitle");
+      PlayerTitleMain.onDisable();
     } catch (Exception ignored) {
     }
     logger.info("已尝试禁用全部子模块");
@@ -136,7 +156,10 @@ public class entry extends JavaPlugin {
 
   private void AdaptConfigReloadNotification() {
     SEventCentral.addEventListener(SConfig.EVENTS.CHANGED, event -> {
-      if (event.CALLER_ID.equals(Joyous.conf.INSTANCE_ID)) logger.info("已重载配置");
+      if (event.CALLER_ID.equals(Joyous.conf.INSTANCE_ID)) {
+        logger.info("已重载配置");
+        logger.debug("测试性读取： APIHolders.path.status = %s", APIHoldersMain.CONF.statusPath());
+      };
       if (event.CALLER_ID.equals(Joyous.confDefault.INSTANCE_ID) || event.CALLER_ID.equals(Joyous.confBuild.INSTANCE_ID)) {
         logger.warn("缓存的临时配置文件被修改，这会导致意外的行为！谁干的？ " + manager.getCaller(manager.getCallerMethod.NO_STREACKLIB));
       };

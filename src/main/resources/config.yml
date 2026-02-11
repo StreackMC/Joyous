@@ -1,4 +1,5 @@
 ## APIHolders 模块
+# 用于提供在线查询API
 APIHolders:
   ## 监听路径
   # 必须以 / 开头，ph查询特定Placeholder，status查询服务器状态。
@@ -34,6 +35,18 @@ APIHolders:
   # 不保证上述过滤机制可以正常工作。故不推荐启用
   # 这个参数传入的文本会直接作为一整段「文本」进行处理，而非「Placeholder」
   allow_blurred_ph: false
+
+## PlayerTitle 模块
+# 一个十分轻量、轻量过头的玩家称号系统，基本原理是提供一个 Placeholder ，传入时判断玩家偏好来返回对应称号，并通过权限来控制是否拥有所有权。
+# 参见 playerTitles.yml 来添加称号
+PlayerTitle:
+  ## 是否启用
+  # * 不支持热重载
+  enabled: true
+  ## 称号前缀
+  prefix: "「"
+  ## 称号后缀
+  prefix: "」"
 
 ## 配置文件版本
 version: 000001

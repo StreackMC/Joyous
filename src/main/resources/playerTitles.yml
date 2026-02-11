@@ -1,0 +1,14 @@
+# 基本格式：
+# > id: title
+# 其中 id 需要合法且唯一，用于标识权限名： joyous.titles.<id>
+# title 则是称号内容，支持渐变， & 会自动转义
+# ---
+# 例如，对于下面这个：
+# > 1th: "一周年老登"
+# 那么玩家需要具有权限 joyous.titles.1th 才能使用该称号
+# 玩家设置称号偏向时，使用命令 /joytitle use 1th
+# ---
+# 需要注意，empty为保留id，每次启动服务器都会重置为空
+titles:
+  example1: "HELLO WORLD!"
+  example2: "POWERED BY STREACKMC"
