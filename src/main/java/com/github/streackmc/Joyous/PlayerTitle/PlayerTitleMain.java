@@ -66,6 +66,19 @@ public class PlayerTitleMain {
     PlaceholderService.unregister();
   }
 
+  /** 获取指定称号 */
+  public static String getTitle(String titleId) {
+    String title = titleList.getString(titleId, "");
+    if (title.isEmpty()) {
+      return "";
+    } else {
+      return String.format("&r&7%s&r&f%s&r&7%s&r",
+          Joyous.conf.getString("PlayerTitle.prefix", "「"),
+          title,
+          Joyous.conf.getString("PlayerTitle.suffix", "」"));
+    }
+  }
+
   /** 获取玩家绑定的称号 */
   public static final String getTitle(Player player) {
     PersistentDataContainer pdc = player.getPersistentDataContainer();

@@ -41,6 +41,13 @@ public class PlayerTitleCommand {
             )
           )
       ).then(
+        Commands.literal("view")
+          .then(
+            Commands.argument("titleId", StringArgumentType.string())
+            .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.playertitle.set"))
+            .executes(this::view_titleId) // /playertitle view <titleId>
+          )
+      ).then(
         Commands.literal("help").executes(this::help)
       ).build(), "玩家称号管理", Joyous.conf.getListOfString("PlayerTitle.alias", List.of("ptitle")));
   }
@@ -48,6 +55,12 @@ public class PlayerTitleCommand {
   private int help(CommandContext<CommandSourceStack> ctx) {// 显示帮助
     CommandSender sender = ctx.getSource().getSender();
     sender.sendMessage(Joyous.i18n.tr("titles.help"));
+    return 1;
+  }
+
+  private int view_titleId(CommandContext<CommandSourceStack> ctx) {
+    String titleId = StringArgumentType.getString(ctx, "titleId");
+    ctx.getSource().getSender().sendMessage(String.format("称号样式预览：%s", PlayerTitleMain.getTitle(titleId)));;
     return 1;
   }
 
