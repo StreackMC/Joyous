@@ -43,7 +43,7 @@ public class i18n extends SConfig {
    */
   public String tr(String key, Object... args) {
     String result = this.getString(key, "");
-    if (result.isEmpty()) {
+    if (result.isEmpty() && Files.notExists(Joyous.dataPath.toPath().resolve("language.new.yml"))) {
       result = defaultMap.getString(key, "[MISSING_TRANSLATION]");
       try {
         SFile.cp(defaultMap.getFile(), Joyous.dataPath.toPath().resolve("language.new.yml").toFile());
