@@ -28,6 +28,9 @@ entroprix:
     missing_guarantee: "&c卡池&f %s &c没有配置保底"
     missing_up: "大保底状态但卡池未配置任何大保底奖励"
     missing_normal: "小保底触发但卡池未配置任何小保底奖励"
+  set:
+    tries: "&f将 %s 的保底内抽数设为 %s"
+    counts: "&f将 %s 的保底计数设为 %s"
 titles:
   status:
     outdated: "&e注意，您的称号已过期，将重置为默认。"

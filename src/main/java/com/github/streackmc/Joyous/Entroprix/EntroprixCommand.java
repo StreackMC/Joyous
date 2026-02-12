@@ -2,15 +2,21 @@ package com.github.streackmc.Joyous.Entroprix;
 
 import java.util.List;
 
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
+import com.github.streackmc.Joyous.logger;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
+import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
 
 public class EntroprixCommand {
   EntroprixCommand() {
@@ -87,8 +93,32 @@ public class EntroprixCommand {
     final static String TRIES = "tries";
     final static String COUNTS = "counts";
   }
+
   int guarantee_set(CommandContext<CommandSourceStack> ctx, String type, int times) {
-    return 1;
+    String name = StringArgumentType.getString(ctx, "id");
+    CommandSender sender = ctx.getSource().getSender();
+    Player target;
+
+    try {// 读取玩家
+      target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
+    } catch (CommandSyntaxException e) {
+      logger.debug("无法设置为指定玩家设置保底状态：%s", e.getLocalizedMessage(), e);
+      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
+      return 0;
+    }
+
+    switch (type) {
+      case SET_TYPE.COUNTS:
+        EntroprixMain.Guarantee.setCounts(target, name, times);
+        sender.sendMessage(Joyous.i18n.tr("entroprix.set.tries", target.getDisplayName(), times));
+        return 1;
+      case SET_TYPE.TRIES:
+        EntroprixMain.Guarantee.setTries(target, name, times);
+        sender.sendMessage(Joyous.i18n.tr("entroprix.set.counts", target.getDisplayName(), times));
+        return 1;
+      default:
+        return 0;
+    }
   }
 
   int guarantee_reset(CommandContext<CommandSourceStack> ctx) {
