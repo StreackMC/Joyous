@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.logger;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
@@ -15,7 +16,7 @@ public class PlayerTitlePHAPI extends PlaceholderExpansion {
   @Override
   @NotNull
   public String getIdentifier() {
-    return "joyous"; // %joyous.xxx% 的前缀
+    return "joyous"; // %joyous_xxx% 的前缀
   }
 
   @Override
@@ -46,8 +47,9 @@ public class PlayerTitlePHAPI extends PlaceholderExpansion {
     if (player == null)
       return ""; // 显然没有玩家就没有称号
 
-    // %joyous.title% → 返回玩家称号
-    if (params.equalsIgnoreCase("title")) {
+    // %joyous_title% → 返回玩家称号
+    if (params.toLowerCase().startsWith("title")) {
+      logger.debug("PHAPI请求寻找玩家的称号%s", params);
       return PlayerTitleMain.getTitle(player);
     }
 

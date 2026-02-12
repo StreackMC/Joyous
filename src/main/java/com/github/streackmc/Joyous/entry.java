@@ -194,5 +194,5 @@ public class entry extends JavaPlugin {
     });
   }
 
-  private entry() {}
+  public entry() {}
 }

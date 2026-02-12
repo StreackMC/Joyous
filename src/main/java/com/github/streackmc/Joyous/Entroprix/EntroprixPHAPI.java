@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.logger;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
@@ -48,11 +49,13 @@ public class EntroprixPHAPI extends PlaceholderExpansion {
 
     // %joyous_entroprix_guarntee_counts_% → 返回玩家保底计数
     if (params.toLowerCase().startsWith("entroprix_guarantee_counts_")) {
+      logger.debug("PHAPI返回 Entroprix 的保底[%s]计数", params.substring(26));
       return String.format("%s", EntroprixMain.Guarantee.getCounts(player, params.substring(26)));
     }
-
+    
     // %joyous_entroprix_guarntee_tries_% → 返回玩家保底内抽数
     if (params.toLowerCase().startsWith("entroprix_guarantee_tries_")) {
+      logger.debug("PHAPI返回 Entroprix 的保底[%s]内抽数", params.substring(26));
       return String.format("%s", EntroprixMain.Guarantee.getTries(player, params.substring(25)));
     }
 
