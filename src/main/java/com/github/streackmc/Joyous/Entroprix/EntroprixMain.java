@@ -1,5 +1,6 @@
 package com.github.streackmc.Joyous.Entroprix;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,7 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -142,7 +146,7 @@ public class EntroprixMain {
       executeCommands(player, result.getSelectedReward().getCommands());
 
       // 8. 记录日志
-      logRoll(player.getName(), poolName,
+      AsyncLogger.log(player.getName(), poolName,
           guarantee.getCounts(), guarantee.getTries(),
           result.getSelectedReward().name, result.getResultType());
     }
@@ -617,29 +621,91 @@ public class EntroprixMain {
     return;
   }
 
-  /**
-   * 记录抽卡日志
-   */
-  private static void logRoll(String playerName, String poolName,
-      int counts, int tries,
-      String commands, int resultType) {
-    try {
-      LocalDate now = LocalDate.now();
-      Path logDir = LOG_DIR.resolve(String.valueOf(now.getYear()))
-          .resolve(String.valueOf(now.getMonthValue()));
-      Files.createDirectories(logDir);
-      Path logFile = logDir.resolve(now.getDayOfMonth() + ".txt");
+  class AsyncLogger {
+    // 单线程已保证顺序，无需 synchronized
+    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor(r -> {
+      Thread t = new Thread(r, "gacha-log");
+      t.setDaemon(true);
+      return t;
+    });
 
-      String timeStr = StreackLib.formatTime(null, "yyyy-MM-dd HH:mm:ss");
-      String typeStr = resultType == 2 ? "[UP]" : (resultType == 1 ? "[NORMAL]" : "[COMMON]");
+    // 缓存当天的 Writer，避免重复打开文件
+    private static volatile BufferedWriter currentWriter;
+    private static volatile LocalDate currentDate;
 
-      String logLine = String.format("%s | %s | %s | %d/%d | %s %s%n",
-          timeStr, playerName, poolName, counts, tries, typeStr, commands);
+    static {
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        closeWriter();
+        EXECUTOR.shutdown();
+        try {
+          if (!EXECUTOR.awaitTermination(5, TimeUnit.SECONDS)) {
+            EXECUTOR.shutdownNow();
+          }
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt(); // ✅ 恢复中断标志
+        }
+      }));
+    }
 
-      Files.writeString(logFile, logLine,
-          StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-    } catch (Exception e) {
-      logger.err("无法写入抽卡日志: %s", e.getLocalizedMessage());
+    public static void log(String player, String pool, int count, int tries,
+        String reward, int type) {
+      EXECUTOR.submit(() -> doLog(player, pool, count, tries, reward, type));
+    }
+
+    private static void doLog(String player, String pool, int count, int tries,
+        String reward, int type) {
+      try {
+        BufferedWriter writer = getWriter(LocalDate.now());
+        String time = StreackLib.formatTime(null, "yyyy-MM-dd HH:mm:ss");
+        String typeStr = switch (type) {
+          case 2 -> "[UP]";
+          case 1 -> "[NORMAL]";
+          default -> "[COMMON]";
+        };
+
+        String line = String.format("%s | %s | %s | %d/%d | %s %s",
+            time, player, pool, count, tries, typeStr, reward);
+
+        writer.write(line);
+        writer.newLine();
+        writer.flush(); // 确保落盘，或改用定时批量刷盘
+
+      } catch (Exception e) {
+        // 降级：控制台输出，避免递归调用日志
+        logger.err("无法保存抽卡日志：" + e.getLocalizedMessage(), e);
+      }
+    }
+
+    // 单线程内操作，无需 synchronized，volatile 保证可见性即可
+    private static BufferedWriter getWriter(LocalDate date) throws IOException {
+      if (!date.equals(currentDate) || currentWriter == null) {
+        closeWriter(); // 关闭旧日期文件
+
+        Path dir = LOG_DIR.resolve(String.valueOf(date.getYear()))
+            .resolve(String.valueOf(date.getMonthValue()));
+        Files.createDirectories(dir);
+
+        Path file = dir.resolve(date.getDayOfMonth() + ".txt");
+        currentWriter = Files.newBufferedWriter(file,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.APPEND,
+            StandardOpenOption.WRITE);
+        currentDate = date;
+      }
+      return currentWriter;
+    }
+
+    private static void closeWriter() {
+      try {
+        if (currentWriter != null) {
+          currentWriter.flush();
+          currentWriter.close();
+          currentWriter = null;
+          currentDate = null;
+        }
+      } catch (IOException e) {
+        logger.err("无法关闭抽卡日志保存线程: " + e.getMessage(), e);
+      }
     }
   }
 }
