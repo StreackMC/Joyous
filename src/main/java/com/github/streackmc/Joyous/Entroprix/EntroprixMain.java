@@ -93,13 +93,16 @@ public class EntroprixMain {
   // ------------------------------------------------------------------------
 
   /**
-   * 为指定玩家执行一次抽卡
+   * 为指定玩家执行抽卡
    *
    * @param player   目标玩家
    * @param poolName 卡池标识
-   * @throws IllegalArgumentException 卡池/保底配置错误
+   * @param times    抽取次数
+   * @throws IllegalArgumentException 卡池/保底配置错误，或指定了非法的抽取次数
    */
-  public static void roll(Player player, String poolName) {
+  public static void roll(Player player, String poolName, int times) throws IllegalArgumentException {
+    if (times <= 0) throw new IllegalArgumentException("次数不能为非整数，但发现了" + times);
+
     // 1. 获取卡池配置
     if (!poolList.getSection("pools").containsKey(poolName)) {
       throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.unknown", poolName));
@@ -119,28 +122,30 @@ public class EntroprixMain {
       throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.missing_guarantee", poolName));
     }
 
-    // 3. 加载玩家当前保底状态
-    Guarantee guarantee = new Guarantee(player, guaranteeName);
-
-    // 4. 解析奖励列表
+    // 3. 解析奖励列表
     RewardSet rewardSet = RewardSet.fromConfig(rewardsConfig);
 
-    // 5. 使用概率计算器执行抽卡
-    RollResult result = RateCalculator.roll(
-        guarantee,
-        guaranteeConfig,
-        rewardSet);
+    for (int i = 1; i <= times; i++) { //TODO: 连续读写PDC,性能还可优化
+      // 4. 加载玩家当前保底状态
+      Guarantee guarantee = new Guarantee(player, guaranteeName);
 
-    // 6. 更新保底状态（原子操作）
-    result.applyTo(guarantee);
+      // 5. 使用概率计算器执行抽卡
+      RollResult result = RateCalculator.roll(
+          guarantee,
+          guaranteeConfig,
+          rewardSet);
 
-    // 7. 执行奖励命令
-    executeCommands(player, result.getSelectedReward().getCommands());
+      // 6. 更新保底状态（原子操作）
+      result.applyTo(guarantee);
 
-    // 8. 记录日志
-    logRoll(player.getName(), poolName,
-        guarantee.getCounts(), guarantee.getTries(),
-        result.getSelectedReward().name, result.getResultType());
+      // 7. 执行奖励命令
+      executeCommands(player, result.getSelectedReward().getCommands());
+
+      // 8. 记录日志
+      logRoll(player.getName(), poolName,
+          guarantee.getCounts(), guarantee.getTries(),
+          result.getSelectedReward().name, result.getResultType());
+    }
   }
 
   // ------------------------------------------------------------------------
