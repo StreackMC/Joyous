@@ -168,11 +168,15 @@ public class EntroprixMain {
     public static RollResult roll(Guarantee guarantee,
         Map<String, Object> guaranteeConfig,
         RewardSet rewardSet) {
+      /** 保底所需抽数 */
       int every = ((Number) guaranteeConfig.getOrDefault("every", 90)).intValue();
+      /** 大保底是第几个保底 */
       int max = ((Number) guaranteeConfig.getOrDefault("max", 2)).intValue();
+      /** 概率提升所需剩余抽数 */
       int left = ((Number) guaranteeConfig.getOrDefault("left", 0)).intValue();
-
+      /** 已经抽了多少发 */
       int tries = guarantee.getTries();
+      /** 已触发几个保底 */
       int counts = guarantee.getCounts();
       boolean isNextUp = counts >= max - 1;
 
@@ -181,12 +185,14 @@ public class EntroprixMain {
         return forcePity(rewardSet, isNextUp, true);
       }
 
-      // 计算剩余抽数（当前这次之后）
+      /** 剩余抽数（当前这次之后）*/
       int remaining = every - tries - 1;
 
       // 动态概率提升
       double boost = 0.0;
-      if (remaining <= left && remaining >= 0 && rewardSet.commonTotalWeight > 0) {
+      if (remaining <= left/* 达到标准 */
+          && remaining >= 0 /* 防止除0错误 */
+          && rewardSet.commonTotalWeight > 0) {
         // 普通奖励的总概率 = 普通总权重 / 总权重
         double commonProb = rewardSet.commonTotalWeight / (double) rewardSet.totalWeight;
         // 每抽提升概率 = 普通总概率 / (剩余+1)
@@ -364,6 +370,15 @@ public class EntroprixMain {
     private final boolean resetCounts;
     private final boolean incrementCounts;
 
+    /**
+     * 新建一个结果
+     * 
+     * @param selected 抽到的奖励
+     * @param type     结果类型，0普通 1小保底 2大保底
+     * @param resetT   要重置保底内抽数吗（出货了）
+     * @param resetC   要重置保底计数吗（大保底或者小保底没歪）
+     * @param incC     要增加保底计数吗（小保底歪了）
+     */
     RollResult(Reward selected, int type, boolean resetT, boolean resetC, boolean incC) {
       this.selectedReward = selected;
       this.resultType = type;
@@ -423,7 +438,7 @@ public class EntroprixMain {
   }
 
   // ------------------------------------------------------------------------
-  // 保底管理器（合并原 Guarantee + GuaranteeManager）
+  // 保底管理器
   // ------------------------------------------------------------------------
 
   /**
@@ -459,11 +474,20 @@ public class EntroprixMain {
     // 查询方法
     // --------------------------------------------------------------------
 
+    /**
+     * 获取玩家的保底内抽数
+     * 
+     * @return
+     */
     public int getTries() {
       return player.getPersistentDataContainer()
           .getOrDefault(triesKey, PersistentDataType.INTEGER, 0);
     }
 
+    /**
+     * 获取玩家的保底计数
+     * @return
+     */
     public int getCounts() {
       return player.getPersistentDataContainer()
           .getOrDefault(countsKey, PersistentDataType.INTEGER, 0);
@@ -500,14 +524,25 @@ public class EntroprixMain {
     // 公开修改接口（原 GuaranteeManager 静态方法迁移至此）
     // --------------------------------------------------------------------
 
+    /**
+     * 设置保底内抽数
+     * @param value
+     */
     public void setTries(int value) {
       player.getPersistentDataContainer().set(triesKey, PersistentDataType.INTEGER, value);
     }
 
+    /**
+     * 设置保底计数
+     * @param value
+     */
     public void setCounts(int value) {
       player.getPersistentDataContainer().set(countsKey, PersistentDataType.INTEGER, value);
     }
 
+    /**
+     * 重置全部保底
+     */
     public void reset() {
       setTries(0);
       setCounts(0);
