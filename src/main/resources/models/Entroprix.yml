@@ -63,12 +63,13 @@ pools:
           # 抽中后执行什么命令
           # [player] 可以插入玩家名
           # 支持 Placeholders
-          - "/give [player] apple"
+          # 不能加 / ！
+          - "give [player] apple"
       -
         name: "稀有的苹果"
         rate: 1
         commands:
-          - "/give [player] golden_apple"
+          - "give [player] golden_apple"
         # 0或不存在此项表示不保底
         # 1表示小保底的指定奖励
         # 2表示大保底的指定奖励，也计入小保底
@@ -85,12 +86,12 @@ pools:
         # 概率会自动拉平，不用保持和为100之类的
         rate: 3000
         commands:
-          - "/give [player] diamond"
+          - "give [player] diamond"
       -
         name: "稀有的钻石"
         rate: 543
         commands:
-          - "/give [player] diamond_block 1"
+          - "give [player] diamond_block 1"
         # 大保底小保底可以任意搭配
         # 但不推荐只有大保底的搭配（不推荐，不是不能用）
         guarantee: 1
@@ -98,7 +99,7 @@ pools:
         name: "Au999"
         rate: 100
         commands:
-          - "/give [player] gold_ingot 1"
+          - "give [player] gold_ingot 1"
         # 大保底小保底可以任意搭配
         # 但不推荐只有大保底的搭配（不推荐，不是不能用）
         guarantee: 2
