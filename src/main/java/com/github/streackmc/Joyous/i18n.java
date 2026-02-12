@@ -43,12 +43,14 @@ public class i18n extends SConfig {
    */
   public String tr(String key, Object... args) {
     String result = this.getString(key, "");
-    if (result.isEmpty() && Files.notExists(Joyous.dataPath.toPath().resolve("language.new.yml"))) {
+    if (result.isEmpty()) {
       result = defaultMap.getString(key, "[MISSING_TRANSLATION]");
-      try {
-        SFile.cp(defaultMap.getFile(), Joyous.dataPath.toPath().resolve("language.new.yml").toFile());
-      } catch (Exception e) {
-        logger.severe("未能更新翻译文件：" + e.getLocalizedMessage(), e);
+      if (Files.notExists(Joyous.dataPath.toPath().resolve("language.new.yml"))) {
+        try {
+          SFile.cp(defaultMap.getFile(), Joyous.dataPath.toPath().resolve("language.new.yml").toFile());
+        } catch (Exception e) {
+          logger.severe("未能更新翻译文件：" + e.getLocalizedMessage(), e);
+        }
       }
     }
     // 如果有额外参数，使用 String.format 格式化
