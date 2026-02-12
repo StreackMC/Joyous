@@ -107,8 +107,9 @@ public class EntroprixMain {
    * @throws IllegalArgumentException 卡池/保底配置错误，或指定了非法的抽取次数
    */
   public static void roll(Player player, String poolName, int times) throws IllegalArgumentException {
-    if (times <= 0) throw new IllegalArgumentException("次数不能为非整数，但发现了" + times);
-    if (times > 1000 || times > Joyous.conf.getInt("Entroprix.max", 100)) throw new IllegalArgumentException("次数太大了，这会导致服务器卡顿，已，为" + times);
+    if (times <= 0 || times > 1000 || times > Joyous.conf.getInt("Entroprix.max", 100)) {
+      throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.invaild_times", 1, Math.min(1000, Joyous.conf.getInt("Entroprix.max", 100))));
+    };
 
     // 1. 获取卡池配置
     if (!poolList.getSection("pools").containsKey(poolName)) {

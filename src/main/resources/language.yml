@@ -26,9 +26,10 @@ entroprix:
   pool:
     unknown: "&c卡池&f %s &c不存在"
     invaild: "&c卡池&f %s &c的配置无效"
+    invaild_times: "&c无效的抽取次数，应介于 %s 和 %s 间"
     missing_guarantee: "&c卡池&f %s &c没有配置保底"
-    missing_up: "&c大保底状态但卡池未配置任何大保底奖励"
-    missing_normal: "&c小保底触发但卡池未配置任何小保底奖励"
+    missing_up: "大保底状态但卡池未配置任何大保底奖励"
+    missing_normal: "小保底触发但卡池未配置任何小保底奖励"
   get:
     normal: "&f%s已触发%s个[%s]保底，当前位于保底内第%s发"
     tries: "&f%s的保底[%s]内抽数为 %s"
