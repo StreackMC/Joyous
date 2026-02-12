@@ -36,9 +36,22 @@ APIHolders:
   # 这个参数传入的文本会直接作为一整段「文本」进行处理，而非「Placeholder」
   allow_blurred_ph: false
 
+## Entroprix（熵流） 模块
+# 随机抽卡系统，允许定义 保底 多金 up 等数据
+# 相较于数据包的战利品表而言更简洁易用
+# 参见 entroprix.yml
+Entroprix:
+  ## 是否启用
+  # * 不支持热重载
+  enabled: true
+  ## 命令别名
+  # 默认命令为 /entroprix
+  alias:
+    - "gacha"
+
 ## PlayerTitle 模块
 # 一个十分轻量、轻量过头的玩家称号系统，基本原理是提供一个 Placeholder ，传入时判断玩家偏好来返回对应称号，并通过权限来控制是否拥有所有权。
-# 参见 playerTitles.yml 来添加称号
+# 参见 models/playerTitles.yml 来添加称号
 PlayerTitle:
   ## 是否启用
   # * 不支持热重载
