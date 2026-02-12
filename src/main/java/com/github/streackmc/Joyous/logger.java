@@ -52,7 +52,7 @@ public class logger {
    *             若最后一个参数为 Throwable，则对 severe/error 系列方法会将其作为异常输出；其它级别会将堆栈附加到消息。
    */
   public static void debug(@NotNull Object... args) {
-    if (!Joyous.conf.getBoolean("debug", false)) {
+    if (!Joyous.isDebugMode()) {
       return;
     }
     Payload p = extract(args);
