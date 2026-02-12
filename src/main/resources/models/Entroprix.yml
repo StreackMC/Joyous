@@ -54,6 +54,9 @@ pools:
     rewards:
       # 每一项表示一个可能的奖励
       -
+        # 此奖励的名字
+        # 仅用于日志标识，实际执行你需要自行处理提示玩家
+        name: "苹果"
         # 抽中此项的概率
         # 最终概率是 此概率 / 所有奖励概率之和
         rate: 99
@@ -68,6 +71,7 @@ pools:
         # 如果不设置大保底则 max 项无效
         guarantee: 1
       -
+        name: "稀有的苹果"
         rate: 1
         commands:
           - "/give [player] apple"

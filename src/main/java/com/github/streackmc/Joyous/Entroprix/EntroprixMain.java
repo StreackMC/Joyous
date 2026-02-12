@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -134,12 +135,12 @@ public class EntroprixMain {
     result.applyTo(guarantee);
 
     // 7. 执行奖励命令
-    String commandSummary = executeCommands(player, result.getSelectedReward().getCommands());
+    executeCommands(player, result.getSelectedReward().getCommands());
 
     // 8. 记录日志
     logRoll(player.getName(), poolName,
         guarantee.getCounts(), guarantee.getTries(),
-        commandSummary, result.getResultType());
+        result.getSelectedReward().name, result.getResultType());
   }
 
   // ------------------------------------------------------------------------
@@ -303,7 +304,7 @@ public class EntroprixMain {
      */
     private static Reward selectRewardByWeight(List<Reward> rewards) {
       if (rewards.isEmpty()) {
-        return new Reward(0, Collections.emptyList(), 0);
+        return new Reward(0, Collections.emptyList(), 0, "");
       }
       double total = rewards.stream().mapToInt(Reward::getRate).sum();
       double roll = RANDOM.nextDouble() * total;
@@ -342,9 +343,10 @@ public class EntroprixMain {
         int rate = ((Number) map.getOrDefault("rate", 0)).intValue();
         @SuppressWarnings("unchecked")
         List<String> commands = (List<String>) map.getOrDefault("commands", Collections.emptyList());
+        String name = (String) map.getOrDefault("name", "");
         int gType = ((Number) map.getOrDefault("guarantee", 0)).intValue();
 
-        Reward reward = new Reward(rate, commands, gType);
+        Reward reward = new Reward(rate, commands, gType, name);
         if (gType == 2) {
           rs.upRewards.add(reward);
           rs.upTotalWeight += rate;
@@ -418,12 +420,14 @@ public class EntroprixMain {
   private static class Reward {
     private final int rate;
     private final List<String> commands;
+    private final String name;
     private final int guaranteeType;
 
-    Reward(int rate, List<String> commands, int guaranteeType) {
+    Reward(int rate, List<String> commands, int guaranteeType, String name) {
       this.rate = rate;
       this.commands = new ArrayList<>(commands);
       this.guaranteeType = guaranteeType;
+      this.name = Objects.requireNonNullElse(name, "");
     }
 
     int getRate() {
@@ -588,8 +592,7 @@ public class EntroprixMain {
   /**
    * 执行奖励命令，返回命令摘要用于日志
    */
-  private static String executeCommands(Player player, List<String> commands) {
-    StringBuilder summary = new StringBuilder();
+  private static void executeCommands(Player player, List<String> commands) {
     for (int i = 0; i < commands.size(); i++) {
       String cmd = commands.get(i)
           .replace("[player]", player.getName());
@@ -605,16 +608,8 @@ public class EntroprixMain {
         logger.err(Joyous.i18n.tr("system.command.unexpected"), cmd, e.getLocalizedMessage());
       }
       String clean = cmd.replaceAll("\\s+", " ").trim();
-      if (i > 0)
-        summary.append(" & ");
-      summary.append(clean);
-      if (summary.length() > 100) {
-        summary.setLength(100);
-        summary.append("...");
-        break;
-      }
     }
-    return summary.toString();
+    return;
   }
 
   /**
