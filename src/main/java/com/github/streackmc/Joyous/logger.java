@@ -9,6 +9,8 @@ import java.util.logging.Logger;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
+import com.github.streackmc.StreackLib.utils.MCColor;
+
 /**
  * 全局静态日志工具，自动根据运行环境选择日志后端。
  * * 引用自Joyous
@@ -179,7 +181,9 @@ public class logger {
       Class.forName("org.slf4j.LoggerFactory");
       org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Backend.class);
       if (!logger.getClass().getName().equals("org.slf4j.helpers.NOPLogger")) {
-        return new Slf4jBackend();
+        Slf4jBackend b = new Slf4jBackend();
+        b.debug("没有检查到 Bukkit 的日志实现？环境不正确或插件初始化有误。");
+        return b;
       }
     } catch (Exception ignored) {
     }
@@ -197,19 +201,19 @@ public class logger {
     }
 
     public void debug(String msg) {
-      log().info(msg);
+      log().info(MCColor.strip(msg));
     }
 
     public void info(String msg) {
-      log().info(msg);
+      log().info(MCColor.strip(msg));
     }
 
     public void warn(String msg) {
-      log().warning(msg);
+      log().warning(MCColor.strip(msg));
     }
 
     public void error(String msg, Throwable t) {
-      log().log(Level.SEVERE, msg, t);
+      log().log(Level.SEVERE, MCColor.strip(msg), t);
     }
   }
 
@@ -218,19 +222,19 @@ public class logger {
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(logger.class);
 
     public void debug(String msg) {
-      LOG.info(msg);
+      LOG.info(MCColor.strip(msg));
     }
 
     public void info(String msg) {
-      LOG.info(msg);
+      LOG.info(MCColor.strip(msg));
     }
 
     public void warn(String msg) {
-      LOG.warn(msg);
+      LOG.warn(MCColor.strip(msg));
     }
 
     public void error(String msg, Throwable t) {
-      LOG.error(msg, t);
+      LOG.error(MCColor.strip(msg), t);
     }
   }
 
@@ -239,19 +243,19 @@ public class logger {
     private static final Logger LOG = Logger.getLogger(logger.class.getName());
 
     public void debug(String msg) {
-      LOG.info(msg);
+      LOG.info(MCColor.strip(msg));
     }
 
     public void info(String msg) {
-      LOG.info(msg);
+      LOG.info(MCColor.strip(msg));
     }
 
     public void warn(String msg) {
-      LOG.warning(msg);
+      LOG.warning(MCColor.strip(msg));
     }
 
     public void error(String msg, Throwable t) {
-      LOG.log(Level.SEVERE, msg, t);
+      LOG.log(Level.SEVERE, MCColor.strip(msg), t);
     }
   }
 
