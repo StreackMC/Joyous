@@ -213,13 +213,14 @@ public class EntroprixMain {
       double adjustedNormalWeight = rewardSet.normalTotalWeight;
       double adjustedCommonWeight = rewardSet.commonTotalWeight;
 
+      // 修正状态，防止未配置大保底
+      if (adjustedUpWeight == 0.0) isNextUp = false;
+
       // 硬保底：已达保底上限，强制触发保底
       if (tries + 1 >= every) {
         return forcePity(rewardSet, isNextUp, true);
       }
 
-      // 修正状态，防止未配置大保底
-      if (adjustedUpWeight == 0.0) isNextUp = false;
 
       if (boost > 0 && rewardSet.specialTotalWeight > 0) {
         // 将提升的概率转换为权重增量
