@@ -47,13 +47,13 @@ public class EntroprixPHAPI extends PlaceholderExpansion {
       return ""; // 显然没有玩家怎么读
 
     // %joyous_entroprix_guarntee_counts_% → 返回玩家保底计数
-    if (params.equalsIgnoreCase("entroprix_guarntee_counts_")) {
+    if (params.toLowerCase().startsWith("entroprix_guarntee_counts_")) {
       return String.format("%s", EntroprixMain.Guarantee.getCounts(player, params.substring(26)));
     }
 
     // %joyous_entroprix_guarntee_tries_% → 返回玩家保底内抽数
-    if (params.equalsIgnoreCase("entroprix_guarntee_tries_")) {
-      return String.format("%s", EntroprixMain.Guarantee.getCounts(player, params.substring(25)));
+    if (params.toLowerCase().startsWith("entroprix_guarntee_tries_")) {
+      return String.format("%s", EntroprixMain.Guarantee.getTries(player, params.substring(25)));
     }
 
     // 这里是没删掉的教程示例代码，懒就没删
