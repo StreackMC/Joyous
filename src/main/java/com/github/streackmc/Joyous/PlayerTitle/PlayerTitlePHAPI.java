@@ -44,12 +44,13 @@ public class PlayerTitlePHAPI extends PlaceholderExpansion {
   @Override
   @Nullable
   public String onPlaceholderRequest(Player player, @NotNull String params) {
+    logger.debug("PHAPI请求: %s", params);
     if (player == null)
       return ""; // 显然没有玩家就没有称号
 
     // %joyous_title% → 返回玩家称号
     if (params.toLowerCase().startsWith("title")) {
-      logger.debug("PHAPI请求寻找玩家的称号%s", params);
+      logger.debug("PHAPI请求寻找玩家的称号");
       return PlayerTitleMain.getTitle(player);
     }
 
