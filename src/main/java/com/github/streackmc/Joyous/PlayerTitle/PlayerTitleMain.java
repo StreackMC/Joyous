@@ -29,7 +29,7 @@ public class PlayerTitleMain {
 
   public final static class NAMES {
     /** 配置文件名 */
-    public final static String CONF_FILE = "playerTitles.yml";
+    public final static String CONF_FILE = "models/playerTitles.yml";
     /** 权限前缀 */
     public final static String PERMISSION_PREFIX = "joyous.titles.";
     /** 玩家正在使用的称号 */
