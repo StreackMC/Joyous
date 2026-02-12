@@ -4,12 +4,10 @@
 ## 命令
 # 游戏内没有命令帮助和补全。
 # 默认命令是/entroprix， 可以在config.yml里面设置别名
-# > /entroprix roll <player> <poolName>
-# 为指定玩家进行一次抽卡
-# > /entroprix guarantee <player> get <name>
-# 获取指定玩家的保底情况
-# > /entroprix guarantee <player> set <name> [value]
-# 修改保底情况
+# > /entroprix <player> guarantee [id] get
+# > /entroprix <player> guarantee [id] set <tries|count> <value>
+# > /entroprix <player> guarantee [id] reset
+# > /entroprix <player> roll <poolName> [times]
 
 ## 卡池 (pool)
 # 每个卡池有一个 标识符(poolName) ，每次使用命令 roll 时就会根据卡池配置来进行抽取。
