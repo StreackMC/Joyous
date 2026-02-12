@@ -74,4 +74,4 @@ pools:
         name: "稀有的苹果"
         rate: 1
         commands:
-          - "/give [player] apple"
+          - "/give [player] golden_apple"
