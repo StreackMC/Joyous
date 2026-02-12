@@ -171,7 +171,7 @@ public class EntroprixCommand {
 
     switch (type) {
       case "":
-        sender.sendMessage(Joyous.i18n.tr("entroprix.get.tries", who, counts_times, name, tries_times));
+        sender.sendMessage(Joyous.i18n.tr("entroprix.get.normal", who, counts_times, name, tries_times));
         return 1;
       case GUARANTEE_TYPE.COUNTS:
         sender.sendMessage(Joyous.i18n.tr("entroprix.get.tries", who, name, counts_times));
