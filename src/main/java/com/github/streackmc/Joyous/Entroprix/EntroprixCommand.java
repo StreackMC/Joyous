@@ -110,7 +110,7 @@ public class EntroprixCommand {
       EntroprixMain.roll(player, name, times);
     } catch (Exception e) {
       sender.sendMessage(e.getLocalizedMessage());
-      logger.severe("无法为 %s 在卡池 [%s] 中抽卡：%s", player.getName(), name, e);
+      logger.severe("无法为 %s 在卡池 [%s] 中抽卡：%s", player.getName(), name, e.getLocalizedMessage(), e);
       return 0;
     }
     return 1;
