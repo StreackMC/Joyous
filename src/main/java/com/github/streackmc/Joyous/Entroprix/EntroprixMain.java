@@ -104,7 +104,7 @@ public class EntroprixMain {
       throw new IllegalArgumentException("卡池不存在: " + poolName);
     }
     Map<String, Object> poolConfig = poolList.getSection("pools." + poolName);
-    String guaranteeName = (String) poolConfig.get("guarntee");
+    String guaranteeName = (String) poolConfig.get("guarantee");
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> rewardsConfig = (List<Map<String, Object>>) poolConfig.get("rewards");
 
@@ -113,7 +113,7 @@ public class EntroprixMain {
     }
 
     // 2. 获取保底配置
-    Map<String, Object> guaranteeConfig = poolList.getSection("guarntee." + guaranteeName);
+    Map<String, Object> guaranteeConfig = poolList.getSection("guarantee." + guaranteeName);
     if (guaranteeConfig == null || guaranteeConfig.isEmpty()) {
       throw new IllegalArgumentException("保底配置不存在: " + guaranteeName);
     }
@@ -334,7 +334,7 @@ public class EntroprixMain {
         int rate = ((Number) map.getOrDefault("rate", 0)).intValue();
         @SuppressWarnings("unchecked")
         List<String> commands = (List<String>) map.getOrDefault("commands", Collections.emptyList());
-        int gType = ((Number) map.getOrDefault("guarntee", 0)).intValue();
+        int gType = ((Number) map.getOrDefault("guarantee", 0)).intValue();
 
         Reward reward = new Reward(rate, commands, gType);
         if (gType == 2) {
@@ -471,7 +471,7 @@ public class EntroprixMain {
 
     /** 判断下一次保底是否为大保底 */
     public boolean isNextUpGuaranteed() {
-      Map<String, Object> cfg = poolList.getSection("guarntee." + name);
+      Map<String, Object> cfg = poolList.getSection("guarantee." + name);
       int max = ((Number) cfg.getOrDefault("max", 2)).intValue();
       return getCounts() >= max - 1;
     }

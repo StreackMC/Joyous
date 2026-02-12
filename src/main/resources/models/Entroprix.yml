@@ -6,16 +6,16 @@
 # 默认命令是/entroprix， 可以在config.yml里面设置别名
 # > /entroprix roll <player> <poolName>
 # 为指定玩家进行一次抽卡
-# > /entroprix guarntee <player> get <name>
+# > /entroprix guarantee <player> get <name>
 # 获取指定玩家的保底情况
-# > /entroprix guarntee <player> set <name> [value]
+# > /entroprix guarantee <player> set <name> [value]
 # 修改保底情况
 
 ## 卡池 (pool)
 # 每个卡池有一个 标识符(poolName) ，每次使用命令 roll 时就会根据卡池配置来进行抽取。
 # 例如示例中的 example 就是 poolName
 
-## 保底 (guarntee)
+## 保底 (guarantee)
 # 保底是一个机制，指玩家必定会在多少发内获取指定类别奖励（比如A、B、C，可以为多个）
 # 保底需要设置一个名称，同名称保底互通计数
 # 
@@ -39,7 +39,7 @@
 # 第50发，剩余0发，满足提升概率条件
 # 则指定奖励概率由 10% 变成 10% + (90% / 0 + 1) = 100% （保底吃满必出）
 
-guarntee:
+guarantee:
   # 这里是保底名称
   baodi:
     # 保底所需最大抽数
@@ -52,7 +52,7 @@ guarntee:
 pools:
   # poolName
   example:
-    guarntee: "baodi"
+    guarantee: "baodi"
     rewards:
       # 每一项表示一个可能的奖励
       -
@@ -68,7 +68,7 @@ pools:
         # 1表示小保底的指定奖励
         # 2表示大保底的指定奖励，也计入小保底
         # 如果不设置大保底则 max 项无效
-        guarntee: 1
+        guarantee: 1
       -
         rate: 1
         commands:
