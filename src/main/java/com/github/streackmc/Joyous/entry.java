@@ -111,6 +111,10 @@ public class entry extends JavaPlugin {
     } catch (Exception e2) {
       logger.severe("启用失败：" + e2.getLocalizedMessage(), e2);
     }
+
+    /* 配置PHAPI */
+    Joyous.PlaceholderService = new PHAPI();
+    Joyous.PlaceholderService.register();
   }
 
   @Override

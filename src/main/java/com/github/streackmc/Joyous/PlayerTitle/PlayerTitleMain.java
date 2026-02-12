@@ -39,7 +39,7 @@ public class PlayerTitleMain {
   };
 
   // 服务实例
-  public static final PlayerTitlePHAPI PlaceholderService = new PlayerTitlePHAPI();
+  public static PlayerTitlePHAPI PlaceholderService = null;
   public static final PlayerTitleCommand CommandService = new PlayerTitleCommand();
 
   /** 称号列表 */
@@ -59,12 +59,12 @@ public class PlayerTitleMain {
     titleList = new SConfig(CONF_PATH, "yml");
     titleList.putString("titles.empty", "");
     titleList.startAutoReload();
-    PlaceholderService.register();
+    PlaceholderService = new PlayerTitlePHAPI();
     CommandService.register();
   }
   
   public static final void onDisable() {
-    PlaceholderService.unregister();
+    PlaceholderService = null;
   }
 
   /** 获取指定称号 */

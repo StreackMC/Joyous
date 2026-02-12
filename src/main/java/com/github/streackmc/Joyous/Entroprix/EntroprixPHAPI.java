@@ -2,50 +2,17 @@ package com.github.streackmc.Joyous.Entroprix;
 
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.PHAPI;
 import com.github.streackmc.Joyous.logger;
 
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-
-public class EntroprixPHAPI extends PlaceholderExpansion {
-  public EntroprixPHAPI() {
+public class EntroprixPHAPI implements PHAPI.ModelsPHAPI {
+  EntroprixPHAPI() {
   }
 
-  @Override
-  @NotNull
-  public String getIdentifier() {
-    return "joyous"; // %joyous_xxx% 的前缀
-  }
-
-  @Override
-  @NotNull
-  public String getAuthor() {
-    return "kdxiaoyi & StreackMC Team";
-  }
-
-  @Override
-  @NotNull
-  public String getVersion() {
-    return Joyous.getVersion();
-  }
-
-  @Override
-  public boolean persist() {
-    return true; // 插件重载时不卸载此占位符
-  }
-
-  @Override
-  public boolean canRegister() {
-    return true; // 是否可以注册
-  }
-
-  @Override
-  @Nullable
   public String onPlaceholderRequest(Player player, @NotNull String params) {
     if (player == null)
-      return ""; // 显然没有玩家怎么读
+      return null; // 显然没有玩家怎么读
 
     // %joyous_entroprix_guarntee_counts_% → 返回玩家保底计数
     if (params.toLowerCase().startsWith("entroprix_guarantee_counts_")) {

@@ -46,8 +46,10 @@ public class Joyous {
   public static LifecycleEventManager<Plugin> lifeCycleManager;
   /** 数据文件夹目录 */
   public static File dataPath;
-  /* 插件管理器 */
+  /** 插件管理器 */
   public static PluginManager pluginManager;
+  /** PlaceholderAPI Service */
+  public static PHAPI PlaceholderService;
 
   /**
    * 是否启用调试模式

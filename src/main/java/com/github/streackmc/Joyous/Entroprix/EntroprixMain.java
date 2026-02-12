@@ -60,7 +60,7 @@ public class EntroprixMain {
   }
 
   // 服务实例
-  public static final EntroprixPHAPI PlaceholderService = new EntroprixPHAPI();
+  public static EntroprixPHAPI PlaceholderService = null;
   public static final EntroprixCommand CommandService = new EntroprixCommand();
 
   /** 卡池主配置文件 */
@@ -86,12 +86,12 @@ public class EntroprixMain {
     } catch (IOException e) {
       logger.err("无法创建日志目录: %s", e.getLocalizedMessage());
     }
-    PlaceholderService.register();
+    PlaceholderService = new EntroprixPHAPI();
     CommandService.register();
   }
 
   public static void onDisable() {
-    PlaceholderService.unregister();
+    PlaceholderService = null;
   }
 
   // ------------------------------------------------------------------------
