@@ -101,21 +101,21 @@ public class EntroprixMain {
   public static void roll(Player player, String poolName) {
     // 1. 获取卡池配置
     if (!poolList.getSection("pools").containsKey(poolName)) {
-      throw new IllegalArgumentException("卡池不存在: " + poolName);
+      throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.unknown", poolName));
     }
     Map<String, Object> poolConfig = poolList.getSection("pools." + poolName);
     String guaranteeName = (String) poolConfig.get("guarantee");
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> rewardsConfig = (List<Map<String, Object>>) poolConfig.get("rewards");
-
+    
     if (guaranteeName == null || rewardsConfig == null || rewardsConfig.isEmpty()) {
-      throw new IllegalArgumentException("卡池配置无效: " + poolName);
+      throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.invaild", poolName));
     }
-
+    
     // 2. 获取保底配置
     Map<String, Object> guaranteeConfig = poolList.getSection("guarantee." + guaranteeName);
     if (guaranteeConfig == null || guaranteeConfig.isEmpty()) {
-      throw new IllegalArgumentException("保底配置不存在: " + guaranteeName);
+      throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.missing_guarantee", poolName));
     }
 
     // 3. 加载玩家当前保底状态
@@ -165,6 +165,7 @@ public class EntroprixMain {
      * @param rewardSet       解析后的奖励集合
      * @return 包含选中奖励、结果类型及状态变更的完整结果
      */
+    @SuppressWarnings("unused")
     public static RollResult roll(Guarantee guarantee,
         Map<String, Object> guaranteeConfig,
         RewardSet rewardSet) {
@@ -284,13 +285,13 @@ public class EntroprixMain {
 
       if (forceUp) {
         if (rewardSet.upRewards.isEmpty()) {
-          throw new IllegalStateException("大保底状态但卡池未配置任何大保底奖励");
+          throw new IllegalStateException(Joyous.i18n.tr("entroprix.pool.missing_up"));
         }
         Reward selected = selectRewardByWeight(rewardSet.upRewards);
         return new RollResult(selected, 2, true, true, false);
       } else {
         if (rewardSet.normalRewards.isEmpty()) {
-          throw new IllegalStateException("小保底触发但卡池未配置任何小保底奖励");
+          throw new IllegalStateException(Joyous.i18n.tr("entroprix.pool.missing_normal"));
         }
         Reward selected = selectRewardByWeight(rewardSet.normalRewards);
         return new RollResult(selected, 1, true, false, true);
@@ -598,10 +599,10 @@ public class EntroprixMain {
       }
       try {
         if (!Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd)) {
-          logger.warn("命令执行失败: %s", cmd);
+          logger.warn(Joyous.i18n.tr("system.command.failed"), cmd);
         }
       } catch (Exception e) {
-        logger.err("执行命令异常: %s - %s", cmd, e.getLocalizedMessage());
+        logger.err(Joyous.i18n.tr("system.command.unexpected"), cmd, e.getLocalizedMessage());
       }
       String clean = cmd.replaceAll("\\s+", " ").trim();
       if (i > 0)

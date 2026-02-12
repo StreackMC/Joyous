@@ -19,7 +19,15 @@ system:
     no_premission: "&c未知或不完整的命令"
     player_only: "&c该命令只能由玩家执行"
     target_loss: "&c找不到指定的目标"
-
+    failed: "&c无法执行命令：\n&r&c&n%s &r&c&o<- [HERE]"
+    unexpected: "&c执行命令时发生意外：\n&r&c&n%s &r&c&o<- [HERE]\n&r&c%s"
+entroprix:
+  pool:
+    unknown: "&c卡池&f %s &c不存在"
+    invaild: "&c卡池&f %s &c的配置无效"
+    missing_guarantee: "&c卡池&f %s &c没有配置保底"
+    missing_up: "大保底状态但卡池未配置任何大保底奖励"
+    missing_normal: "小保底触发但卡池未配置任何小保底奖励"
 titles:
   status:
     outdated: "&e注意，您的称号已过期，将重置为默认。"
