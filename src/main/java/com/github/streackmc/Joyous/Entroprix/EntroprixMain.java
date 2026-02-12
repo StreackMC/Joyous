@@ -194,11 +194,6 @@ public class EntroprixMain {
       /** 是否在大保底内 */
       boolean isNextUp = guarantee.isNextUpGuaranteed();
 
-      // 硬保底：已达保底上限，强制触发保底
-      if (tries + 1 >= every) {
-        return forcePity(rewardSet, isNextUp, true);
-      }
-
       /** 剩余抽数（当前这次之后）*/
       int remaining = every - tries - 1;
 
@@ -217,6 +212,11 @@ public class EntroprixMain {
       double adjustedUpWeight = rewardSet.upTotalWeight;
       double adjustedNormalWeight = rewardSet.normalTotalWeight;
       double adjustedCommonWeight = rewardSet.commonTotalWeight;
+
+      // 硬保底：已达保底上限，强制触发保底
+      if (tries + 1 >= every) {
+        return forcePity(rewardSet, isNextUp, true);
+      }
 
       // 修正状态，防止未配置大保底
       if (adjustedUpWeight == 0.0) isNextUp = false;
