@@ -95,6 +95,18 @@ public class EntroprixCommand {
   }
   
   int roll(CommandContext<CommandSourceStack> ctx, int times) {
+    String name = StringArgumentType.getString(ctx, "poolName");
+    CommandSender sender = ctx.getSource().getSender();
+    Player player;
+
+    try {// 读取玩家
+      player = ctx.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
+    } catch (CommandSyntaxException e) {
+      logger.debug("无法设置为指定玩家触发抽卡：%s", e.getLocalizedMessage(), e);
+      sender.sendMessage(Joyous.i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
+      return 0;
+    }
+    EntroprixMain.roll(player, name, times);
     return 1;
   }
 
