@@ -58,6 +58,7 @@ public class PlayerTitleMain {
     }
     titleList = new SConfig(CONF_PATH, "yml");
     titleList.putString("titles.empty", "");
+    titleList.startAutoReload();
     PlaceholderService.register();
     CommandService.register();
   }
