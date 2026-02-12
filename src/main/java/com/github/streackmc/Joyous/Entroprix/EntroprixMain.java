@@ -217,6 +217,9 @@ public class EntroprixMain {
       double adjustedNormalWeight = rewardSet.normalTotalWeight;
       double adjustedCommonWeight = rewardSet.commonTotalWeight;
 
+      // 修正状态，防止未配置大保底
+      if (adjustedUpWeight == 0.0) isNextUp = false;
+
       if (boost > 0 && rewardSet.specialTotalWeight > 0) {
         // 将提升的概率转换为权重增量
         double boostWeight = boost * rewardSet.totalWeight; // 提升部分对应的权重值
@@ -233,8 +236,7 @@ public class EntroprixMain {
       }
 
       // 大保底状态强制：若下一次保底必为大保底，则本次抽卡一旦触发保底类别，只能抽取大保底奖励
-      if (isNextUp
-          && adjustedUpWeight != 0.0/* 需要有大保底项 */) {
+      if (isNextUp) {
         // 小保底概率合并至大保底
         adjustedUpWeight += adjustedNormalWeight;
         adjustedNormalWeight = 0;
@@ -263,7 +265,7 @@ public class EntroprixMain {
         // 小保底：如果本次是大保底状态，理论上不应进入此分支，但防御性处理
         if (isNextUp) {
           // 异常情况：配置错误或概率溢出，强制重置大保底并警告
-          logger.severe("玩家 %s 处于大保底状态却抽到了小保底奖励，强制重置保底计数", guarantee.player.getName());
+          logger.warn("玩家 %s 处于大保底状态却抽到了小保底奖励，强制重置保底计数", guarantee.player.getName());
           resetCounts = true;
           incrementCounts = false;
         } else {
