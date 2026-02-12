@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -610,7 +611,7 @@ public class EntroprixMain {
         cmd = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, cmd);
       }
       try {
-        if (!Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd)) {
+        if (!Bukkit.dispatchCommand(Joyous.plugin.getServer().getConsoleSender(), cmd)) {
           logger.warn(Joyous.i18n.tr("system.command.failed"), cmd);
         }
       } catch (Exception e) {
@@ -656,7 +657,7 @@ public class EntroprixMain {
         String reward, int type) {
       try {
         BufferedWriter writer = getWriter(LocalDate.now());
-        String time = StreackLib.formatTime(null, "yyyy-MM-dd HH:mm:ss");
+        String time = StreackLib.formatTime(null, "HH:mm:ss");
         String typeStr = switch (type) {
           case 2 -> "[UP]";
           case 1 -> "[NORMAL]";
@@ -681,11 +682,10 @@ public class EntroprixMain {
       if (!date.equals(currentDate) || currentWriter == null) {
         closeWriter(); // 关闭旧日期文件
 
-        Path dir = LOG_DIR.resolve(String.valueOf(date.getYear()))
-            .resolve(String.valueOf(date.getMonthValue()));
+        Path dir = LOG_DIR.resolve(date.format(DateTimeFormatter.ofPattern("yyyy-MM")));
         Files.createDirectories(dir);
 
-        Path file = dir.resolve(date.getDayOfMonth() + ".txt");
+        Path file = dir.resolve(date.format(DateTimeFormatter.ofPattern("dd")) + ".txt");
         currentWriter = Files.newBufferedWriter(file,
             StandardOpenOption.CREATE,
             StandardOpenOption.APPEND,
