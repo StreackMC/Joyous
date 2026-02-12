@@ -47,9 +47,9 @@ public class EntroprixPHAPI extends PlaceholderExpansion {
       return ""; // 显然没有玩家怎么读
 
     // %joyous_entroprix_guarntee% → 返回玩家保底数
-    if (params.equalsIgnoreCase("entroprix_guarntee")) {
-      return String.format("%s", EntroprixMain.guarntee.get(player));
-    }
+    // if (params.equalsIgnoreCase("entroprix_guarntee")) {
+    //   return String.format("%s", EntroprixMain.guarntee.get(player));
+    // }
 
     // 这里是没删掉的教程示例代码，懒就没删
     // %joyous.kills_<type>% → 带参数
