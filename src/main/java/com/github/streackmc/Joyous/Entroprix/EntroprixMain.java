@@ -108,6 +108,7 @@ public class EntroprixMain {
    */
   public static void roll(Player player, String poolName, int times) throws IllegalArgumentException {
     if (times <= 0) throw new IllegalArgumentException("次数不能为非整数，但发现了" + times);
+    if (times > 1000 || times > Joyous.conf.getInt("Entroprix.max", 100)) throw new IllegalArgumentException("次数太大了，这会导致服务器卡顿，已，为" + times);
 
     // 1. 获取卡池配置
     if (!poolList.getSection("pools").containsKey(poolName)) {
