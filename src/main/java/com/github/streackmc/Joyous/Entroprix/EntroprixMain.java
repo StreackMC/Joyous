@@ -178,7 +178,8 @@ public class EntroprixMain {
       int tries = guarantee.getTries();
       /** 已触发几个保底 */
       int counts = guarantee.getCounts();
-      boolean isNextUp = counts >= max - 1;
+      /** 是否在大保底内 */
+      boolean isNextUp = guarantee.isNextUpGuaranteed();
 
       // 硬保底：已达保底上限，强制触发保底
       if (tries + 1 >= every) {
@@ -249,7 +250,7 @@ public class EntroprixMain {
         // 小保底：如果本次是大保底状态，理论上不应进入此分支，但防御性处理
         if (isNextUp) {
           // 异常情况：配置错误或概率溢出，强制重置大保底并警告
-          logger.warn("玩家 %s 处于大保底状态却抽到了小保底奖励，强制重置保底计数", guarantee.player.getName());
+          logger.severe("玩家 %s 处于大保底状态却抽到了小保底奖励，强制重置保底计数", guarantee.player.getName());
           resetCounts = true;
           incrementCounts = false;
         } else {
