@@ -110,11 +110,11 @@ public class EntroprixCommand {
     switch (type) {
       case SET_TYPE.COUNTS:
         EntroprixMain.Guarantee.setCounts(target, name, times);
-        sender.sendMessage(Joyous.i18n.tr("entroprix.set.tries", target.getDisplayName(), times));
+        sender.sendMessage(Joyous.i18n.tr("entroprix.set.tries", target.getDisplayName(), name, times));
         return 1;
       case SET_TYPE.TRIES:
         EntroprixMain.Guarantee.setTries(target, name, times);
-        sender.sendMessage(Joyous.i18n.tr("entroprix.set.counts", target.getDisplayName(), times));
+        sender.sendMessage(Joyous.i18n.tr("entroprix.set.counts", target.getDisplayName(), name, times));
         return 1;
       default:
         return 0;
@@ -122,6 +122,20 @@ public class EntroprixCommand {
   }
 
   int guarantee_reset(CommandContext<CommandSourceStack> ctx) {
+        String name = StringArgumentType.getString(ctx, "id");
+    CommandSender sender = ctx.getSource().getSender();
+    Player target;
+
+    try {// 读取玩家
+      target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
+    } catch (CommandSyntaxException e) {
+      logger.debug("无法设置为指定玩家设置保底状态：%s", e.getLocalizedMessage(), e);
+      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
+      return 0;
+    }
+    EntroprixMain.Guarantee.setCounts(target, name, 0);
+    EntroprixMain.Guarantee.setTries(target, name, 0);
+    sender.sendMessage(Joyous.i18n.tr("entroprix.set.reset", target.getDisplayName(), name));
     return 1;
   }
 
