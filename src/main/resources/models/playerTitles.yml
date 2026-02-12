@@ -9,5 +9,7 @@
 # 玩家设置称号偏向时，使用命令 /joytitle use 1th
 # ---
 # 需要注意，empty为保留id，每次启动服务器都会重置为空
+# ---
+# 使用 %joyous.title% 来读取称号
 example1: "HELLO WORLD!"
 example2: "POWERED BY STREACKMC"
