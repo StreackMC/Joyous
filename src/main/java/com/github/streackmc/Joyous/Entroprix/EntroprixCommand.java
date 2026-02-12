@@ -106,24 +106,24 @@ public class EntroprixCommand {
   int guarantee_set(CommandContext<CommandSourceStack> ctx, String type, int times) {
     String name = StringArgumentType.getString(ctx, "id");
     CommandSender sender = ctx.getSource().getSender();
-    Player target;
+    Player player;
 
     try {// 读取玩家
-      target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
+      player = ctx.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
       logger.debug("无法设置为指定玩家设置保底状态：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
+      sender.sendMessage(Joyous.i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
       return 0;
     }
 
     switch (type) {
       case GUARANTEE_TYPE.COUNTS:
-        EntroprixMain.Guarantee.setCounts(target, name, times);
-        sender.sendMessage(Joyous.i18n.tr("entroprix.set.tries", target.getDisplayName(), name, times));
+        EntroprixMain.Guarantee.setCounts(player, name, times);
+        sender.sendMessage(Joyous.i18n.tr("entroprix.set.tries", player.getDisplayName(), name, times));
         return 1;
       case GUARANTEE_TYPE.TRIES:
-        EntroprixMain.Guarantee.setTries(target, name, times);
-        sender.sendMessage(Joyous.i18n.tr("entroprix.set.counts", target.getDisplayName(), name, times));
+        EntroprixMain.Guarantee.setTries(player, name, times);
+        sender.sendMessage(Joyous.i18n.tr("entroprix.set.counts", player.getDisplayName(), name, times));
         return 1;
       default:
         return 0;
@@ -133,40 +133,40 @@ public class EntroprixCommand {
   int guarantee_reset(CommandContext<CommandSourceStack> ctx) {
     String name = StringArgumentType.getString(ctx, "id");
     CommandSender sender = ctx.getSource().getSender();
-    Player target;
+    Player player;
 
     try {// 读取玩家
-      target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
+      player = ctx.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
       logger.debug("无法设置为指定玩家设置保底状态：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
+      sender.sendMessage(Joyous.i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
       return 0;
     }
-    EntroprixMain.Guarantee.setCounts(target, name, 0);
-    EntroprixMain.Guarantee.setTries(target, name, 0);
-    sender.sendMessage(Joyous.i18n.tr("entroprix.set.reset", target.getDisplayName(), name));
+    EntroprixMain.Guarantee.setCounts(player, name, 0);
+    EntroprixMain.Guarantee.setTries(player, name, 0);
+    sender.sendMessage(Joyous.i18n.tr("entroprix.set.reset", player.getDisplayName(), name));
     return 1;
   }
 
   int guarantee_get(CommandContext<CommandSourceStack> ctx, String type) {
     String name = StringArgumentType.getString(ctx, "id");
     CommandSender sender = ctx.getSource().getSender();
-    Player target;
+    Player player;
 
     try {// 读取玩家
-      target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
+      player = ctx.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
       logger.debug("无法获取玩家的保底状态：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
+      sender.sendMessage(Joyous.i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
       return 0;
     }
 
     // 读取数据
-    Integer counts_times = EntroprixMain.Guarantee.getCounts(target, name);
-    Integer tries_times = EntroprixMain.Guarantee.getTries(target, name);
+    Integer counts_times = EntroprixMain.Guarantee.getCounts(player, name);
+    Integer tries_times = EntroprixMain.Guarantee.getTries(player, name);
     String who = Joyous.i18n.tr("system.i18n.you");
-    if (!sender.equals(target)) {
-      who = target.getDisplayName();
+    if (!sender.equals(player)) {
+      who = player.getDisplayName();
     }
 
     switch (type) {
