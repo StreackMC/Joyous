@@ -233,7 +233,8 @@ public class EntroprixMain {
       }
 
       // 大保底状态强制：若下一次保底必为大保底，则本次抽卡一旦触发保底类别，只能抽取大保底奖励
-      if (isNextUp) {
+      if (isNextUp
+          && adjustedUpWeight != 0.0/* 需要有大保底项 */) {
         // 小保底概率合并至大保底
         adjustedUpWeight += adjustedNormalWeight;
         adjustedNormalWeight = 0;
