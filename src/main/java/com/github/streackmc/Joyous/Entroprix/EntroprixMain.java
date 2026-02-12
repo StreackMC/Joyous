@@ -1,45 +1,70 @@
 package com.github.streackmc.Joyous.Entroprix;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
 
+/**
+ * 熵流抽卡系统主类
+ * <p>
+ * 基于 Paper 1.20.6 的随机抽卡插件。
+ * 所有概率计算均基于权重动态进行，支持多保底规则、独立状态持久化。
+ *
+ * @author KimiAI 编写
+ * @author Deepseek 审计
+ * @author kdxiaoyi 编写提示词与审计
+ */
 public class EntroprixMain {
-  final static Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
+  private static final Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
+  private static final Path LOG_DIR = Joyous.dataPath.toPath().resolve(NAMES.LOG_FILE);
+  private static final Random RANDOM = ThreadLocalRandom.current();
 
-  public final static class NAMES {
-    /** 配置文件名 */
-    public final static String CONF_FILE = "models/Entroprix.yml";
-    /** 权限前缀 */
-    public final static String PERMISSION_PREFIX = "joyous.entroprix.";
-    /** 附加权限前缀 */
-    public final static String PERMISSION_PREFIX(String txt) {
+  public static final class NAMES {
+    public static final String CONF_FILE = "models/Entroprix.yml";
+    public static final String LOG_FILE = "logs/Entroprix";
+    public static final String PERMISSION_PREFIX = "joyous.entroprix.";
+    public static final String PLAYER_GUARANTEE_PREFIX = "entroprix.guarantee.";
+
+    public static String PERMISSION_PREFIX(String txt) {
       return PERMISSION_PREFIX + txt;
-    };
-    /** 玩家正在使用的称号 */
-    public final static String PLAYER_GUARNTEE = "entroprix.guarntee";
-    /** 玩家正在使用的称号 */
-    static NamespacedKey PLAYER_GUARNTEE_NAMESPACED;
-  };
+    }
+
+    public static NamespacedKey getGuaranteeKey(String guaranteeName) {
+      return new NamespacedKey(Joyous.plugin, PLAYER_GUARANTEE_PREFIX + guaranteeName);
+    }
+  }
 
   // 服务实例
   public static final EntroprixPHAPI PlaceholderService = new EntroprixPHAPI();
   public static final EntroprixCommand CommandService = new EntroprixCommand();
 
-  /** 卡池列表 */
+  /** 卡池主配置文件 */
   public static SConfig poolList;
 
-  public static final void onEnable() {
-    NAMES.PLAYER_GUARNTEE_NAMESPACED = new NamespacedKey(Joyous.plugin, NAMES.PLAYER_GUARNTEE);
-    Joyous.addPermissions(PermDef.none("joyous.titles", "用于决定一个玩家是否具有指定称号"));
+  // ------------------------------------------------------------------------
+  // 生命周期
+  // ------------------------------------------------------------------------
+
+  public static void onEnable() {
     if (Files.notExists(CONF_PATH)) {
       try {
         logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
@@ -49,30 +74,535 @@ public class EntroprixMain {
       }
     }
     poolList = new SConfig(CONF_PATH, "yml");
-    poolList.putString("titles.empty", "");
+    try {
+      Files.createDirectories(LOG_DIR);
+    } catch (IOException e) {
+      logger.err("无法创建日志目录: %s", e.getLocalizedMessage());
+    }
     PlaceholderService.register();
     CommandService.register();
   }
 
-  public static final void onDisable() {
+  public static void onDisable() {
     PlaceholderService.unregister();
   }
 
+  // ------------------------------------------------------------------------
+  // 核心抽卡方法
+  // ------------------------------------------------------------------------
+
+  /**
+   * 为指定玩家执行一次抽卡
+   *
+   * @param player   目标玩家
+   * @param poolName 卡池标识
+   * @throws IllegalArgumentException 卡池/保底配置错误
+   */
   public static void roll(Player player, String poolName) {
+    // 1. 获取卡池配置
+    if (!poolList.getSection("pools").containsKey(poolName)) {
+      throw new IllegalArgumentException("卡池不存在: " + poolName);
+    }
+    Map<String, Object> poolConfig = poolList.getSection("pools." + poolName);
+    String guaranteeName = (String) poolConfig.get("guarntee");
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> rewardsConfig = (List<Map<String, Object>>) poolConfig.get("rewards");
+
+    if (guaranteeName == null || rewardsConfig == null || rewardsConfig.isEmpty()) {
+      throw new IllegalArgumentException("卡池配置无效: " + poolName);
+    }
+
+    // 2. 获取保底配置
+    Map<String, Object> guaranteeConfig = poolList.getSection("guarntee." + guaranteeName);
+    if (guaranteeConfig == null || guaranteeConfig.isEmpty()) {
+      throw new IllegalArgumentException("保底配置不存在: " + guaranteeName);
+    }
+
+    // 3. 加载玩家当前保底状态
+    Guarantee guarantee = new Guarantee(player, guaranteeName);
+
+    // 4. 解析奖励列表
+    RewardSet rewardSet = RewardSet.fromConfig(rewardsConfig);
+
+    // 5. 使用概率计算器执行抽卡
+    RollResult result = RateCalculator.roll(
+        guarantee,
+        guaranteeConfig,
+        rewardSet);
+
+    // 6. 更新保底状态（原子操作）
+    result.applyTo(guarantee);
+
+    // 7. 执行奖励命令
+    String commandSummary = executeCommands(player, result.getSelectedReward().getCommands());
+
+    // 8. 记录日志
+    logRoll(player.getName(), poolName,
+        guarantee.getCounts(), guarantee.getTries(),
+        commandSummary, result.getResultType());
   }
 
-  public static class guarntee {
-    public static void add(Player player, Integer i) {
+  // ------------------------------------------------------------------------
+  // 概率计算引擎（独立子类，完全基于权重）
+  // ------------------------------------------------------------------------
+
+  /**
+   * 概率计算器：根据当前状态与卡池配置，决定本次抽卡的奖励与保底变更。
+   * <p>
+   * 严格遵循「米池」规则：
+   * - 权重制概率，非硬编码100
+   * - 动态概率提升：剩余抽数 ≤ left 时，普通奖励概率按剩余次数均分给保底奖励
+   * - 大小保底独立计数，仅抽取到大保底奖励才重置大保底计数
+   * - 大保底状态下触发保底时强制抽取大保底奖励
+   */
+  private static class RateCalculator {
+
+    /**
+     * 执行一次概率判定
+     *
+     * @param guarantee       玩家保底状态
+     * @param guaranteeConfig 保底规则配置
+     * @param rewardSet       解析后的奖励集合
+     * @return 包含选中奖励、结果类型及状态变更的完整结果
+     */
+    public static RollResult roll(Guarantee guarantee,
+        Map<String, Object> guaranteeConfig,
+        RewardSet rewardSet) {
+      int every = ((Number) guaranteeConfig.getOrDefault("every", 90)).intValue();
+      int max = ((Number) guaranteeConfig.getOrDefault("max", 2)).intValue();
+      int left = ((Number) guaranteeConfig.getOrDefault("left", 0)).intValue();
+
+      int tries = guarantee.getTries();
+      int counts = guarantee.getCounts();
+      boolean isNextUp = counts >= max - 1;
+
+      // 硬保底：已达保底上限，强制触发保底
+      if (tries + 1 >= every) {
+        return forcePity(rewardSet, isNextUp, true);
+      }
+
+      // 计算剩余抽数（当前这次之后）
+      int remaining = every - tries - 1;
+
+      // 动态概率提升
+      double boost = 0.0;
+      if (remaining <= left && remaining >= 0 && rewardSet.commonTotalWeight > 0) {
+        // 普通奖励的总概率 = 普通总权重 / 总权重
+        double commonProb = rewardSet.commonTotalWeight / (double) rewardSet.totalWeight;
+        // 每抽提升概率 = 普通总概率 / (剩余+1)
+        boost = commonProb / (remaining + 1);
+      }
+
+      // 调整后的权重
+      double adjustedUpWeight = rewardSet.upTotalWeight;
+      double adjustedNormalWeight = rewardSet.normalTotalWeight;
+      double adjustedCommonWeight = rewardSet.commonTotalWeight;
+
+      if (boost > 0 && rewardSet.specialTotalWeight > 0) {
+        // 将提升的概率转换为权重增量
+        double boostWeight = boost * rewardSet.totalWeight; // 提升部分对应的权重值
+        // 按原有权重比例分配给大小保底
+        double upRatio = rewardSet.upTotalWeight / (double) rewardSet.specialTotalWeight;
+        double normalRatio = rewardSet.normalTotalWeight / (double) rewardSet.specialTotalWeight;
+
+        adjustedUpWeight = rewardSet.upTotalWeight + boostWeight * upRatio;
+        adjustedNormalWeight = rewardSet.normalTotalWeight + boostWeight * normalRatio;
+        // 普通奖励权重等比压缩
+        adjustedCommonWeight = rewardSet.totalWeight - adjustedUpWeight - adjustedNormalWeight;
+        if (adjustedCommonWeight < 0)
+          adjustedCommonWeight = 0;
+      }
+
+      // 大保底状态强制：若下一次保底必为大保底，则本次抽卡一旦触发保底类别，只能抽取大保底奖励
+      if (isNextUp) {
+        // 小保底概率合并至大保底
+        adjustedUpWeight += adjustedNormalWeight;
+        adjustedNormalWeight = 0;
+      }
+
+      // 第一步：决定抽卡类别（大保底/小保底/普通）
+      double roll = RANDOM.nextDouble() * rewardSet.totalWeight;
+      Reward selected;
+      int resultType; // 2=大保底, 1=小保底, 0=普通
+      boolean resetTries; // 是否重置抽数计数器
+      boolean resetCounts; // 是否重置大保底计数器
+      boolean incrementCounts; // 是否增加大保底计数（仅小保底且非大保底状态）
+
+      if (roll < adjustedUpWeight) {
+        // 命中大保底类别
+        selected = selectRewardByWeight(rewardSet.upRewards);
+        resultType = 2;
+        resetTries = true;
+        resetCounts = true; // 抽到大保底奖励，重置大保底计数
+        incrementCounts = false;
+      } else if (roll < adjustedUpWeight + adjustedNormalWeight) {
+        // 命中保底类别，但此时只有小保底（若大保底状态，此处不会执行）
+        selected = selectRewardByWeight(rewardSet.normalRewards);
+        resultType = 1;
+        resetTries = true;
+        // 小保底：如果本次是大保底状态，理论上不应进入此分支，但防御性处理
+        if (isNextUp) {
+          // 异常情况：配置错误或概率溢出，强制重置大保底并警告
+          logger.warn("玩家 %s 处于大保底状态却抽到了小保底奖励，强制重置保底计数", guarantee.player.getName());
+          resetCounts = true;
+          incrementCounts = false;
+        } else {
+          resetCounts = false;
+          incrementCounts = true; // 普通小保底，增加大保底计数
+        }
+      } else {
+        // 普通奖励
+        selected = selectRewardByWeight(rewardSet.commonRewards);
+        resultType = 0;
+        resetTries = false;
+        resetCounts = false;
+        incrementCounts = false;
+      }
+
+      return new RollResult(selected, resultType, resetTries, resetCounts, incrementCounts);
     }
 
-    public static Integer get(Player player) {
+    /**
+     * 强制触发保底（硬保底或概率提升至100%时的后备）
+     *
+     * @param rewardSet  奖励集
+     * @param forceUp    是否强制为大保底
+     * @param isHardPity 是否为硬保底（日志警告用）
+     * @return 保底抽取结果
+     */
+    private static RollResult forcePity(RewardSet rewardSet, boolean forceUp, boolean isHardPity) {
+      if (isHardPity) {
+        logger.debug("强制保底触发");
+      }
+
+      if (forceUp) {
+        if (rewardSet.upRewards.isEmpty()) {
+          throw new IllegalStateException("大保底状态但卡池未配置任何大保底奖励");
+        }
+        Reward selected = selectRewardByWeight(rewardSet.upRewards);
+        return new RollResult(selected, 2, true, true, false);
+      } else {
+        if (rewardSet.normalRewards.isEmpty()) {
+          throw new IllegalStateException("小保底触发但卡池未配置任何小保底奖励");
+        }
+        Reward selected = selectRewardByWeight(rewardSet.normalRewards);
+        return new RollResult(selected, 1, true, false, true);
+      }
     }
 
-    public static void remove(Player player) {
-    }
-
-    public static void remove(Player player, Integer i) {
+    /**
+     * 按权重从列表中随机选择一个奖励
+     */
+    private static Reward selectRewardByWeight(List<Reward> rewards) {
+      if (rewards.isEmpty()) {
+        return new Reward(0, Collections.emptyList(), 0);
+      }
+      double total = rewards.stream().mapToInt(Reward::getRate).sum();
+      double roll = RANDOM.nextDouble() * total;
+      double current = 0;
+      for (Reward r : rewards) {
+        current += r.getRate();
+        if (roll < current) {
+          return r;
+        }
+      }
+      return rewards.get(rewards.size() - 1);
     }
   }
 
+  // ------------------------------------------------------------------------
+  // 数据容器：奖励集、抽卡结果
+  // ------------------------------------------------------------------------
+
+  /**
+   * 按保底类型分类的奖励集合，并预计算各类权重总和
+   */
+  private static class RewardSet {
+    final List<Reward> upRewards = new ArrayList<>();
+    final List<Reward> normalRewards = new ArrayList<>();
+    final List<Reward> commonRewards = new ArrayList<>();
+
+    double upTotalWeight;
+    double normalTotalWeight;
+    double commonTotalWeight;
+    double specialTotalWeight; // up+normal
+    double totalWeight;
+
+    static RewardSet fromConfig(List<Map<String, Object>> configList) {
+      RewardSet rs = new RewardSet();
+      for (Map<String, Object> map : configList) {
+        int rate = ((Number) map.getOrDefault("rate", 0)).intValue();
+        @SuppressWarnings("unchecked")
+        List<String> commands = (List<String>) map.getOrDefault("commands", Collections.emptyList());
+        int gType = ((Number) map.getOrDefault("guarntee", 0)).intValue();
+
+        Reward reward = new Reward(rate, commands, gType);
+        if (gType == 2) {
+          rs.upRewards.add(reward);
+          rs.upTotalWeight += rate;
+        } else if (gType == 1) {
+          rs.normalRewards.add(reward);
+          rs.normalTotalWeight += rate;
+        } else {
+          rs.commonRewards.add(reward);
+          rs.commonTotalWeight += rate;
+        }
+      }
+      rs.specialTotalWeight = rs.upTotalWeight + rs.normalTotalWeight;
+      rs.totalWeight = rs.specialTotalWeight + rs.commonTotalWeight;
+      return rs;
+    }
+  }
+
+  /**
+   * 单次抽卡的完整决策结果
+   */
+  private static class RollResult {
+    private final Reward selectedReward;
+    private final int resultType; // 0普通 1小保底 2大保底
+    private final boolean resetTries;
+    private final boolean resetCounts;
+    private final boolean incrementCounts;
+
+    RollResult(Reward selected, int type, boolean resetT, boolean resetC, boolean incC) {
+      this.selectedReward = selected;
+      this.resultType = type;
+      this.resetTries = resetT;
+      this.resetCounts = resetC;
+      this.incrementCounts = incC;
+    }
+
+    void applyTo(Guarantee g) {
+      if (resetTries) {
+        g.resetTries();
+      } else {
+        g.incrementTries();
+      }
+      if (resetCounts) {
+        g.resetCounts();
+      } else if (incrementCounts) {
+        g.incrementCounts();
+      }
+    }
+
+    Reward getSelectedReward() {
+      return selectedReward;
+    }
+
+    int getResultType() {
+      return resultType;
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // 奖励数据类
+  // ------------------------------------------------------------------------
+
+  private static class Reward {
+    private final int rate;
+    private final List<String> commands;
+    private final int guaranteeType;
+
+    Reward(int rate, List<String> commands, int guaranteeType) {
+      this.rate = rate;
+      this.commands = new ArrayList<>(commands);
+      this.guaranteeType = guaranteeType;
+    }
+
+    int getRate() {
+      return rate;
+    }
+
+    List<String> getCommands() {
+      return Collections.unmodifiableList(commands);
+    }
+
+    int getGuaranteeType() {
+      return guaranteeType;
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // 保底管理器（合并原 Guarantee + GuaranteeManager）
+  // ------------------------------------------------------------------------
+
+  /**
+   * 玩家保底状态管理器
+   * <p>
+   * 每个保底规则对应一个独立实例，通过 PDC 持久化两个计数器：
+   * - tries : 距离保底已抽次数（0 ~ every-1）
+   * - counts : 已连续触发小保底的次数（0 ~ max-1）
+   */
+  public static class Guarantee {
+    private final Player player;
+    private final String name;
+    private final NamespacedKey triesKey;
+    private final NamespacedKey countsKey;
+
+    // --------------------------------------------------------------------
+    // 构造与静态工厂
+    // --------------------------------------------------------------------
+
+    public Guarantee(Player player, String name) {
+      this.player = player;
+      this.name = name;
+      this.triesKey = NAMES.getGuaranteeKey(name + ".tries");
+      this.countsKey = NAMES.getGuaranteeKey(name + ".counts");
+    }
+
+    /** 获取指定玩家指定保底规则的实例（静态工具方法） */
+    public static Guarantee of(Player player, String guaranteeName) {
+      return new Guarantee(player, guaranteeName);
+    }
+
+    // --------------------------------------------------------------------
+    // 查询方法
+    // --------------------------------------------------------------------
+
+    public int getTries() {
+      return player.getPersistentDataContainer()
+          .getOrDefault(triesKey, PersistentDataType.INTEGER, 0);
+    }
+
+    public int getCounts() {
+      return player.getPersistentDataContainer()
+          .getOrDefault(countsKey, PersistentDataType.INTEGER, 0);
+    }
+
+    /** 判断下一次保底是否为大保底 */
+    public boolean isNextUpGuaranteed() {
+      Map<String, Object> cfg = poolList.getSection("guarntee." + name);
+      int max = ((Number) cfg.getOrDefault("max", 2)).intValue();
+      return getCounts() >= max - 1;
+    }
+
+    // --------------------------------------------------------------------
+    // 修改方法（包内可见，仅供 EntroprixMain 调用）
+    // --------------------------------------------------------------------
+
+    void incrementTries() {
+      setTries(getTries() + 1);
+    }
+
+    void resetTries() {
+      setTries(0);
+    }
+
+    void incrementCounts() {
+      setCounts(getCounts() + 1);
+    }
+
+    void resetCounts() {
+      setCounts(0);
+    }
+
+    // --------------------------------------------------------------------
+    // 公开修改接口（原 GuaranteeManager 静态方法迁移至此）
+    // --------------------------------------------------------------------
+
+    public void setTries(int value) {
+      player.getPersistentDataContainer().set(triesKey, PersistentDataType.INTEGER, value);
+    }
+
+    public void setCounts(int value) {
+      player.getPersistentDataContainer().set(countsKey, PersistentDataType.INTEGER, value);
+    }
+
+    public void reset() {
+      setTries(0);
+      setCounts(0);
+    }
+
+    // 静态便捷方法（完全替代原 GuaranteeManager）
+    public static int getTries(Player player, String name) {
+      return new Guarantee(player, name).getTries();
+    }
+
+    public static int getCounts(Player player, String name) {
+      return new Guarantee(player, name).getCounts();
+    }
+
+    public static boolean isNextUpGuaranteed(Player player, String name) {
+      return new Guarantee(player, name).isNextUpGuaranteed();
+    }
+
+    public static void addTries(Player player, String name, int delta) {
+      Guarantee g = new Guarantee(player, name);
+      g.setTries(g.getTries() + delta);
+    }
+
+    public static void setTries(Player player, String name, int value) {
+      new Guarantee(player, name).setTries(value);
+    }
+
+    public static void setCounts(Player player, String name, int value) {
+      new Guarantee(player, name).setCounts(value);
+    }
+
+    public static void reset(Player player, String name) {
+      new Guarantee(player, name).reset();
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // 命令执行与日志
+  // ------------------------------------------------------------------------
+
+  /**
+   * 执行奖励命令，返回命令摘要用于日志
+   */
+  private static String executeCommands(Player player, List<String> commands) {
+    StringBuilder summary = new StringBuilder();
+    for (int i = 0; i < commands.size(); i++) {
+      String cmd = commands.get(i)
+          .replace("[player]", player.getName());
+      // PlaceholderAPI 已在插件启用时检查，直接调用
+      if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+        cmd = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, cmd);
+      }
+      try {
+        if (!Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd)) {
+          logger.warn("命令执行失败: %s", cmd);
+        }
+      } catch (Exception e) {
+        logger.err("执行命令异常: %s - %s", cmd, e.getLocalizedMessage());
+      }
+      String clean = cmd.replaceAll("\\s+", " ").trim();
+      if (i > 0)
+        summary.append(" & ");
+      summary.append(clean);
+      if (summary.length() > 100) {
+        summary.setLength(100);
+        summary.append("...");
+        break;
+      }
+    }
+    return summary.toString();
+  }
+
+  /**
+   * 记录抽卡日志
+   */
+  private static void logRoll(String playerName, String poolName,
+      int counts, int tries,
+      String commands, int resultType) {
+    try {
+      LocalDate now = LocalDate.now();
+      Path logDir = LOG_DIR.resolve(String.valueOf(now.getYear()))
+          .resolve(String.valueOf(now.getMonthValue()));
+      Files.createDirectories(logDir);
+      Path logFile = logDir.resolve(now.getDayOfMonth() + ".txt");
+
+      String timeStr = StreackLib.formatTime(null, "yyyy-MM-dd HH:mm:ss");
+      String typeStr = resultType == 2 ? "[UP]" : (resultType == 1 ? "[NORMAL]" : "[COMMON]");
+
+      String logLine = String.format("%s | %s | %s | %d/%d | %s %s%n",
+          timeStr, playerName, poolName, counts, tries, typeStr, commands);
+
+      Files.writeString(logFile, logLine,
+          StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    } catch (Exception e) {
+      logger.err("无法写入抽卡日志: %s", e.getLocalizedMessage());
+    }
+  }
 }
