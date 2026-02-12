@@ -44,7 +44,16 @@ public class EntroprixCommand {
             .then(
               Commands.literal("get")
               .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.get"))
-              .executes(this::guarantee_get) // /entroprix <player> guarantee <id> get
+              .executes(ctx -> { return guarantee_get(ctx, ""); })// /entroprix <player> guarantee <id> get
+              .then(
+                Commands.literal("tries")
+                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.get.tires"))
+                .executes(ctx -> { return guarantee_get(ctx, GUARANTEE_TYPE.TRIES); })// /entroprix <player> guarantee <id> get tries
+              ).then(
+                Commands.literal("counts")
+                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.get.counts"))
+                .executes(ctx -> { return guarantee_get(ctx, GUARANTEE_TYPE.COUNTS); })// /entroprix <player> guarantee <id> get tries
+              )
             ).then(
               Commands.literal("reset")
               .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.reset"))
@@ -57,14 +66,14 @@ public class EntroprixCommand {
                 .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.set.tires"))
                 .then(
                   Commands.argument("value", IntegerArgumentType.integer(0))
-                  .executes(ctx -> { return guarantee_set(ctx, SET_TYPE.TRIES, IntegerArgumentType.getInteger(ctx, "value")); })// /entroprix <player> guarantee <id> set tries <value>
+                  .executes(ctx -> { return guarantee_set(ctx, GUARANTEE_TYPE.TRIES, IntegerArgumentType.getInteger(ctx, "value")); })// /entroprix <player> guarantee <id> set tries <value>
                 )
               ).then(
                 Commands.literal("counts")
-                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.set.tires"))
+                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.set.counts"))
                 .then(
                   Commands.argument("value", IntegerArgumentType.integer(0))
-                  .executes(ctx -> { return guarantee_set(ctx, SET_TYPE.COUNTS, IntegerArgumentType.getInteger(ctx, "value")); })// /entroprix <player> guarantee <id> set tries <value>
+                  .executes(ctx -> { return guarantee_set(ctx, GUARANTEE_TYPE.COUNTS, IntegerArgumentType.getInteger(ctx, "value")); })// /entroprix <player> guarantee <id> set tries <value>
                 )
               )
             )
@@ -89,7 +98,7 @@ public class EntroprixCommand {
     return 1;
   }
 
-  static class SET_TYPE {
+  static class GUARANTEE_TYPE {
     final static String TRIES = "tries";
     final static String COUNTS = "counts";
   }
@@ -108,11 +117,11 @@ public class EntroprixCommand {
     }
 
     switch (type) {
-      case SET_TYPE.COUNTS:
+      case GUARANTEE_TYPE.COUNTS:
         EntroprixMain.Guarantee.setCounts(target, name, times);
         sender.sendMessage(Joyous.i18n.tr("entroprix.set.tries", target.getDisplayName(), name, times));
         return 1;
-      case SET_TYPE.TRIES:
+      case GUARANTEE_TYPE.TRIES:
         EntroprixMain.Guarantee.setTries(target, name, times);
         sender.sendMessage(Joyous.i18n.tr("entroprix.set.counts", target.getDisplayName(), name, times));
         return 1;
@@ -122,7 +131,7 @@ public class EntroprixCommand {
   }
 
   int guarantee_reset(CommandContext<CommandSourceStack> ctx) {
-        String name = StringArgumentType.getString(ctx, "id");
+    String name = StringArgumentType.getString(ctx, "id");
     CommandSender sender = ctx.getSource().getSender();
     Player target;
 
@@ -139,7 +148,39 @@ public class EntroprixCommand {
     return 1;
   }
 
-  int guarantee_get(CommandContext<CommandSourceStack> ctx) {
-    return 1;
+  int guarantee_get(CommandContext<CommandSourceStack> ctx, String type) {
+    String name = StringArgumentType.getString(ctx, "id");
+    CommandSender sender = ctx.getSource().getSender();
+    Player target;
+
+    try {// 读取玩家
+      target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
+    } catch (CommandSyntaxException e) {
+      logger.debug("无法获取玩家的保底状态：%s", e.getLocalizedMessage(), e);
+      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
+      return 0;
+    }
+
+    // 读取数据
+    Integer counts_times = EntroprixMain.Guarantee.getCounts(target, name);
+    Integer tries_times = EntroprixMain.Guarantee.getTries(target, name);
+    String who = Joyous.i18n.tr("system.i18n.you");
+    if (!sender.equals(target)) {
+      who = target.getDisplayName();
+    }
+
+    switch (type) {
+      case "":
+        sender.sendMessage(Joyous.i18n.tr("entroprix.get.tries", who, counts_times, name, tries_times));
+        return 1;
+      case GUARANTEE_TYPE.COUNTS:
+        sender.sendMessage(Joyous.i18n.tr("entroprix.get.tries", who, name, counts_times));
+        return counts_times;
+      case GUARANTEE_TYPE.TRIES:
+        sender.sendMessage(Joyous.i18n.tr("entroprix.get.counts", who, name, tries_times));
+        return tries_times;
+      default:
+        return 0;
+    }
   }
 }

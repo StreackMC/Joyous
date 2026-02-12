@@ -15,6 +15,7 @@
 system:
   i18n:
     update: "您的语言文件需要更新了，请查看 %s"
+    you: "您"
   command:
     no_premission: "&c未知或不完整的命令"
     player_only: "&c该命令只能由玩家执行"
@@ -28,6 +29,10 @@ entroprix:
     missing_guarantee: "&c卡池&f %s &c没有配置保底"
     missing_up: "大保底状态但卡池未配置任何大保底奖励"
     missing_normal: "小保底触发但卡池未配置任何小保底奖励"
+  get:
+    normal: "&f%s已触发%s个[%s]保底，当前位于保底内第%s发"
+    tries: "&f%s的保底[%s]内抽数为 %s"
+    counts: "&f%s的保底[%s]计数为 %s"
   set:
     tries: "&f将 %s 的保底[%s]内抽数设为 %s"
     counts: "&f将 %s 的保底[%s]计数设为 %s"
