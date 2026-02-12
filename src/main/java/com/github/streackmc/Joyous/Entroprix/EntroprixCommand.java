@@ -106,7 +106,13 @@ public class EntroprixCommand {
       sender.sendMessage(Joyous.i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
       return 0;
     }
-    EntroprixMain.roll(player, name, times);
+    try {
+      EntroprixMain.roll(player, name, times);
+    } catch (Exception e) {
+      sender.sendMessage(e.getLocalizedMessage());
+      logger.severe("无法为 %s 在卡池 [%s] 中抽卡：%s", player.getName(), name, e);
+      return 0;
+    }
     return 1;
   }
 
