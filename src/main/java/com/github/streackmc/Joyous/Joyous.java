@@ -59,7 +59,7 @@ public class Joyous {
    */
   public static boolean isDebugMode() {
     // 继承StreackLib的调试状态
-    return StreackLib.conf.getBoolean("debug", false);
+    return StreackLib.isDebugMode();
   }
 
   /**
