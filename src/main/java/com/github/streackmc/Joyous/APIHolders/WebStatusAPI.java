@@ -39,6 +39,12 @@ public class WebStatusAPI {
     logger.info("已注册StatusAPI查询处理器： " + path);
   }
 
+  /** 用于执行缓存策略 */
+  private static class cache {
+    static JSONObject lastBuilt = null;
+    static long lastBuiltTime = -1L;
+  }
+
   /**
    * 构建服务器完整状态数据
    * 包含：online, retrieved_at, expires_at, version, players, motd, tps
@@ -48,14 +54,18 @@ public class WebStatusAPI {
    */
   @SuppressWarnings("unchecked")
   private static JSONObject buildServerStatusData() {
-    JSONObject data = new JSONObject();
-    org.bukkit.Server server = Bukkit.getServer();
     long timestamp = System.currentTimeMillis();
 
-    /* 基础状态 */
-    data.put("online", true);
-    data.put("retrieved_at", timestamp);
-    data.put("expires_at", timestamp + 30000); // 30秒缓存
+    // 缓存命中检查
+    if (timestamp + APIHoldersMain.CONF.cache() > 0L
+        && (timestamp + APIHoldersMain.CONF.cache()) >= cache.lastBuiltTime) {
+      cache.lastBuilt.put("retrieved_at", timestamp);
+      logger.debug("status数据命中缓存：" + cache.lastBuilt.toString());
+      return cache.lastBuilt;
+    }
+
+    JSONObject data = new JSONObject();
+    org.bukkit.Server server = Bukkit.getServer();
 
     /* 版本信息（移除protocol） */
     JSONObject version = new JSONObject();
@@ -93,11 +103,18 @@ public class WebStatusAPI {
     motd.put("html", MCColor.toHtml(rawMotd));
     data.put("motd", motd);
 
-    /* TPS信息（新增：live, avg_60s, avg_300s） */
+    /* TPS信息 */
     data.put("tps", getTPSDataAsJSON());
 
-    logger.debug("status数据构建完成：" + data.toString());
+    /* 基础状态 */
+    timestamp = System.currentTimeMillis();
+    data.put("online", true);
+    data.put("retrieved_at", timestamp);
+    data.put("expires_at", timestamp + APIHoldersMain.CONF.cache());
+    cache.lastBuilt = data;
+    cache.lastBuiltTime = timestamp;
 
+    logger.debug("status数据构建完成：" + data.toString());
     return data;
   }
 

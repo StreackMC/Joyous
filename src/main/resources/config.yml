@@ -17,6 +17,10 @@ APIHolders:
   # 3. 单个具体域名，例如 "https://example.com"：只允许该域名获取数据。
   cors-allowed: "*"
 
+  ## 缓存时长
+  # 对于 StatusAPI ，连续两次刷新数据需要间隔的时间。单位：秒
+  cache: 60
+
   ## 名单模式
   # 启用即白名单，只允许查询匹配的；否则为黑名单，允许查询全部不匹配的（不推荐）
   white-mode: true
@@ -72,5 +76,5 @@ PlayerTitle:
     - "ptitle"
 
 ## 配置文件版本
-version: 000001
+version: 000100
 # 如无必要请勿修改

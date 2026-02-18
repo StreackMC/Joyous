@@ -34,8 +34,13 @@ public class APIHoldersMain {
     public static final String phPath() {
       return Joyous.conf.getString("APIHolders.path.ph", "/api/placeholder");
     }
+
     public static final String statusPath() {
       return Joyous.conf.getString("APIHolders.path.status", "/api/status");
+    }
+
+    public static final long cache() {
+      return Joyous.conf.getLong("APIHolders.cache", 60L)/* 配置文件为秒，自动转为毫秒 */ * 1000;
     }
   }
 
