@@ -34,7 +34,7 @@ public class WebStatusAPI {
         rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
         return rsp;
       } catch (Exception e) {
-        logger.err("无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
+        logger.err("无法处理StatusAPI查询：" + e.getLocalizedMessage(), e);
         return newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR,
             NanoHTTPD.MIME_PLAINTEXT, "500 Internal Server Error: " + e.getLocalizedMessage());
       }
@@ -60,12 +60,14 @@ public class WebStatusAPI {
     long timestamp = System.currentTimeMillis();
 
     // 缓存命中检查
-    if (timestamp + APIHoldersMain.CONF.cache() > 0L
-        && (timestamp + APIHoldersMain.CONF.cache()) >= cache.lastBuiltTime) {
+    if (cache.lastBuiltTime + APIHoldersMain.CONF.cache() > 0L
+        && cache.lastBuilt != null
+        && (cache.lastBuiltTime + APIHoldersMain.CONF.cache()) >= timestamp) {
       cache.lastBuilt.put("retrieved_at", timestamp);
-      logger.debug("status数据命中缓存：" + cache.lastBuilt.toString());
+      logger.debug("status请求命中缓存，因为当前时间戳%s已距离上次构建%s时间不足%s：" + cache.lastBuilt.toString(), timestamp, cache.lastBuiltTime, APIHoldersMain.CONF.cache());
       return cache.lastBuilt;
     }
+    logger.debug("status请求未命中缓存，因为当前时间戳%s距离上次构建%s时间超过了%s：", timestamp, cache.lastBuiltTime, APIHoldersMain.CONF.cache());
 
     JSONObject data = new JSONObject();
     org.bukkit.Server server = Bukkit.getServer();
