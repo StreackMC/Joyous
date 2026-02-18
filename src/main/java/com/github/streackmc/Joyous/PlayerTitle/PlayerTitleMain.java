@@ -109,7 +109,7 @@ public class PlayerTitleMain {
     } else {
       title = String.format("&r&7%s&r&f%s&r&7%s&r",
           Joyous.conf.getString("PlayerTitle.prefix", "「"),
-          title.replaceAll("&(?=#)", "§"),
+          title,
           Joyous.conf.getString("PlayerTitle.suffix", "」"));
       logger.debug("玩家 [%s] 持有的称号 [%s] 为 [%s]", player.getName(), titleId, title);
     }
