@@ -1,0 +1,41 @@
+{ // 顺序遵循代码中构造顺序
+  "version": {
+    "mc": "§f§7Minecraft",
+    "text": "Minecraft",
+    "html": "..."
+  },
+  "players": {
+    "online": 1,
+    "max": 12,
+    "list": [
+      {
+        "uuid": "bf741450-9f09-53e5-89d5-dfe129908427",
+        "name": {
+          "mc": "§fLighting_bug",
+          "text": "Lighting_bug",
+          "html": "..."
+        }
+      }
+    ]
+  },
+  "motd": {
+    "mc": "§f§7A Minecraft Server",
+    "text": "A Minecraft Server",
+    "html": "..."
+  },
+  "tps": {
+    "live": 20.0,
+    "avg_1m": 20.0,
+    "avg_5m": 20.0,
+    "avg_15m": 20.0
+  },
+  "memory": {// JVM内存信息，已用/最大
+    "used": 4000,
+    "max": 8000
+  },
+  "online": true,
+  // 何时生成的
+  "retrieved_at": 1,
+  // 什么时候缓存过期
+  "expires_at": 2
+}

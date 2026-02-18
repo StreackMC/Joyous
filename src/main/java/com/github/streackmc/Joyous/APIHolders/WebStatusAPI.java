@@ -2,6 +2,9 @@ package com.github.streackmc.Joyous.APIHolders;
 
 import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryUsage;
+
 import org.bukkit.Bukkit;
 import org.json.simple.JSONObject;
 
@@ -102,9 +105,16 @@ public class WebStatusAPI {
     motd.put("text", MCColor.strip(rawMotd));
     motd.put("html", MCColor.toHtml(rawMotd));
     data.put("motd", motd);
-
+    
     /* TPS信息 */
     data.put("tps", getTPSDataAsJSON());
+
+    /* JVM内存信息 */
+    MemoryUsage mmxb = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+    JSONObject mem = new JSONObject();
+    mem.put("used", mmxb.getUsed() / 1024 / 1024);
+    mem.put("max", mmxb.getMax() / 1024 / 1024);
+    data.put("memory", mem);
 
     /* 基础状态 */
     timestamp = System.currentTimeMillis();
