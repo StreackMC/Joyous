@@ -87,10 +87,12 @@ public class EntroprixMain {
       logger.err("无法创建日志目录: %s", e.getLocalizedMessage());
     }
     PlaceholderService = new EntroprixPHAPI();
+    Joyous.PlaceholderService.registerParser(PlaceholderService);
     CommandService.register();
   }
 
   public static void onDisable() {
+    Joyous.PlaceholderService.unregisiterParser(PlaceholderService);
     PlaceholderService = null;
   }
 

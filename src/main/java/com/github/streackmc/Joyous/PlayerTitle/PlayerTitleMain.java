@@ -60,10 +60,12 @@ public class PlayerTitleMain {
     titleList.putString("titles.empty", "");
     titleList.startAutoReload();
     PlaceholderService = new PlayerTitlePHAPI();
+    Joyous.PlaceholderService.registerParser(PlaceholderService);
     CommandService.register();
   }
   
   public static final void onDisable() {
+    Joyous.PlaceholderService.unregisiterParser(PlaceholderService);
     PlaceholderService = null;
   }
 

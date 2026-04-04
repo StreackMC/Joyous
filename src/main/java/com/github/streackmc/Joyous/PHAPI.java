@@ -1,15 +1,24 @@
 package com.github.streackmc.Joyous;
 
+import java.util.List;
+
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
-import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
-
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
 public class PHAPI extends PlaceholderExpansion {
+  private List<PHAPI.ModelsPHAPI> usableParser;
+
+  public void registerParser(PHAPI.ModelsPHAPI handler) {
+    usableParser.add(handler);
+  }
+
+  public void unregisiterParser(PHAPI.ModelsPHAPI handler) {
+    usableParser.remove(usableParser.indexOf(handler));
+  }
+
   public PHAPI() {
   }
 
@@ -50,15 +59,18 @@ public class PHAPI extends PlaceholderExpansion {
   public String onPlaceholderRequest(Player player, @NotNull String params) {
     logger.debug("传入PHAPI请求: %s", params);
 
-    String Entroprix = parse(EntroprixMain.PlaceholderService, player, params);
-    if (Entroprix != null) return Entroprix;
-    String PlayerTitle = parse(PlayerTitleMain.PlaceholderService, player, params);
-    if (PlayerTitle != null) return PlayerTitle;
-  
-    return null;
+    String result = null;
+    for (ModelsPHAPI h : usableParser) {
+      result = parse(h, player, params);
+      if (result != null && !result.isEmpty() && !result.isBlank())
+        break;// 竞争解析
+    }
+
+    return result;
   }
   
-  private String parse(ModelsPHAPI provider, Player player, @NotNull String params) {
+  /** 以指定处理器处理 Placeholder */
+  public String parse(ModelsPHAPI provider, Player player, @NotNull String params) {
     if (provider == null)
       return null;
     return provider.onPlaceholderRequest(player, params);
