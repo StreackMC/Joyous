@@ -7,6 +7,8 @@ import com.github.streackmc.StreackLib.utils.MCColor;
 import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
 
+import me.clip.placeholderapi.PlaceholderAPI;
+
 public class i18n extends SConfig {
   public SConfig defaultMap;
 
@@ -45,19 +47,16 @@ public class i18n extends SConfig {
     String result = this.getString(key, "");
     if (result.isEmpty()) {
       result = defaultMap.getString(key, "[MISSING_TRANSLATION]");
-      if (Files.notExists(Joyous.dataPath.toPath().resolve("language.new.yml"))) {
-        try {
-          SFile.cp(defaultMap.getFile(), Joyous.dataPath.toPath().resolve("language.new.yml").toFile());
-        } catch (Exception e) {
-          logger.severe("未能更新翻译文件：" + e.getLocalizedMessage(), e);
-        }
-      }
+      // 差量更新
+      this.putString(key, result);
     }
     // 如果有额外参数，使用 String.format 格式化
     if (args.length > 0) {
       result = String.format(result, args);
     }
-    return MCColor.parse(result);
+
+    // 经过 Placeholder 和 Color 映射后输出
+    return MCColor.parse(PlaceholderAPI.setPlaceholders(null, result));
   }
 
 }

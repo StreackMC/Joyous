@@ -1,16 +1,19 @@
 ## 多语言支持
 # 需要您手动替换以下所有翻译键值
 # 人手限制默认只提供中文(zh_cn)
-# 键缺失时会使用默认值并新建一个 language.new.yml
+# 键缺失时会使用默认值并自动填充到本文件
 # * 空值也算缺失
 # * 所有翻译键都支持自动重载
 
 ## Mutiple Language Support
 # We are so sorry that, on account of lacking developers, we cann't provide official translation except Simplified Chinese (zh_cn).
 # You need to edit the value of those keys to use your own language.
-# When some translations are missing, we would use the default ones and put a new file called language.new.yml , which you need to replace it with manually.
+# When some translations are missing, we would use the default ones and put it here.
 # * If you set a value to empty, then it will be seen as unset, causing missing translation.
 # * Note: All listed key-value pairs are equipped with auto reload.
+
+# 支持 PlaceholderAPI 和 &
+# Using PlaceholderAPI or char '&' are supported.
 
 system:
   i18n:
@@ -22,6 +25,10 @@ system:
     target_loss: "&c找不到指定的目标"
     failed: "&c无法执行命令：\n&r&c&n%s &r&c&o<- [HERE]"
     unexpected: "&c执行命令时发生意外：\n&r&c&n%s &r&c&o<- [HERE]\n&r&c%s"
+envexport:
+  command:
+    set: "&f已将 %s 的值更新为 %s"
+    removed: "&f已移除 %s 的值"
 entroprix:
   pool:
     unknown: "&c卡池&f %s &c不存在"
