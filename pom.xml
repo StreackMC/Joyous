@@ -4,13 +4,13 @@
 
   <artifactId>Joyous</artifactId>
   <groupId>com.github.streackmc</groupId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <packaging>jar</packaging>
   <description>栈流Streack服务器的玩法功能插件</description>
 
   <properties>
-    <streacklib.version>0.4.6</streacklib.version>
-    <!-- <streacklib.version>master-SNAPSHOT</streacklib.version> -->
+    <!-- <streacklib.version>0.4.7</streacklib.version> -->
+    <streacklib.version>master-SNAPSHOT</streacklib.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <maven.compiler.release>21</maven.compiler.release>
@@ -22,16 +22,16 @@
   <!-- Repositories -->
   <repositories>
     <repository>
-      <id>jitpack.io</id>
-      <url>https://jitpack.io</url>
-    </repository>
-    <repository>
       <id>paper-repo</id>
-      <url>https://repo.destroystokyo.com/repository/maven-public/</url>
+      <url>https://repo.papermc.io/repository/maven-public/</url>
     </repository>
     <repository>
       <id>spigot-repo</id>
       <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+    </repository>
+    <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
     </repository>
     <repository>
       <id>bstats-repo</id>
@@ -95,6 +95,23 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>run</goal></goals>
+            <configuration>
+              <target>
+                <echo file="${project.build.directory}/artifacts.txt"
+                      message="${project.build.finalName}.${project.packaging}"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin><!-- 内嵌库 -->
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.5.0</version>
         <executions>
@@ -106,7 +123,27 @@
           </execution>
         </executions>
       </plugin>
+      <plugin><!-- 命名jar -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.2</version>
+        <configuration>
+          <finalName>${project.artifactId}-${project.version}</finalName>
+        </configuration>
+      </plugin>
+      <plugin><!-- 生成源码包 -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.2.1</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>jar-no-fork</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
+
     <!-- Resource Path -->
     <resources>
       <resource>
@@ -120,9 +157,17 @@
         <filtering>true</filtering>
         <includes>
             <include>*</include>
-            <include>**/*</include>
         </includes>
       </resource>
     </resources>
   </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <properties>
+        <build.type>release</build.type>
+      </properties>
+    </profile>
+  </profiles>
 </project>
