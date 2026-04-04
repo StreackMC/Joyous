@@ -1,5 +1,6 @@
 package com.github.streackmc.Joyous;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.entity.Player;
@@ -9,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
 public class PHAPI extends PlaceholderExpansion {
-  private List<PHAPI.ModelsPHAPI> usableParser;
+  private List<PHAPI.ModelsPHAPI> usableParser = new ArrayList<>();
 
   public void registerParser(PHAPI.ModelsPHAPI handler) {
     usableParser.add(handler);
