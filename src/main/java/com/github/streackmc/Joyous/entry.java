@@ -9,6 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
+import com.github.streackmc.Joyous.EnvExport.EnvExport;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.self.manager;
@@ -83,11 +84,21 @@ public class entry extends JavaPlugin {
     CheckConfigUpdate(); // 检查更新
     AdaptConfigReloadNotification(); // 自动重载事件监听并提示
 
+    /* 配置PHAPI */
+    Joyous.PlaceholderService = new PHAPI();
+    Joyous.PlaceholderService.register();
+
     /* 子模块 */
     logger.info("正在启用子模块...");
-    try {/* HTTPServer */
+    try {/* APIHolders */
       logger.info("正在启用 APIHolders");
       APIHoldersMain.onEnable();
+    } catch (Exception e) {
+      logger.severe("启用失败：" + e.getLocalizedMessage(), e);
+    }
+    try {/* EnvExport */
+      logger.info("正在启用 EnvExport");
+      EnvExport.onEnable();
     } catch (Exception e) {
       logger.severe("启用失败：" + e.getLocalizedMessage(), e);
     }
@@ -102,7 +113,7 @@ public class entry extends JavaPlugin {
       logger.severe("启用失败：" + e2.getLocalizedMessage(), e2);
     }
     try {/* Entroprix */
-      if (!Joyous.conf.getBoolean("En.enabled", true)) {
+      if (!Joyous.conf.getBoolean("Entroprix.enabled", true)) {
         throw new IgnoredException();
       }
       logger.info("正在启用 Entroprix");
@@ -111,10 +122,6 @@ public class entry extends JavaPlugin {
     } catch (Exception e2) {
       logger.severe("启用失败：" + e2.getLocalizedMessage(), e2);
     }
-
-    /* 配置PHAPI */
-    Joyous.PlaceholderService = new PHAPI();
-    Joyous.PlaceholderService.register();
   }
 
   @Override
@@ -123,6 +130,11 @@ public class entry extends JavaPlugin {
     try {/* APIHolders */
       logger.info("正在禁用 APIHolders");
       APIHoldersMain.onDisable();
+    } catch (Exception ignored) {
+    }
+    try {/* EnvExport */
+      logger.info("正在禁用 EnvExport");
+      EnvExport.onDisable();
     } catch (Exception ignored) {
     }
     try {/* PlayerTitle */

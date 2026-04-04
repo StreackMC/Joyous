@@ -1,0 +1,16 @@
+## EnvExport
+# 创建 Placeholder 的环境变量
+#
+## 创建
+# 1. 可使用游戏内命令 /export <key> [value] 创建，需要权限 joyous.command.envexport
+# 2. 直接修改本文件，支持自动重载
+# 3. 调用 %joyous_envput_<key>:value% 设置，该 Placeholder 不会返回值
+#
+## 读取
+# 使用 %joyous_env_<key>% 读值，其中 key 支持用 . 分割路径
+
+node1:
+  key1: "我的值用 %joyous_env_node1.key1% 读取"
+  node2:
+    key1: "我的值用 %joyous_env_node1.node2.key2% 读取"
+key3: "我的值用 %joyous_env_key3% 读取"
