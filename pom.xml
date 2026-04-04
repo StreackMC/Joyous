@@ -161,6 +161,7 @@
       </resource>
       <resource>
         <directory>${basedir}/src/main/resources/models</directory>
+        <targetPath>models</targetPath>
         <filtering>true</filtering>
         <includes>
             <include>*</include>
