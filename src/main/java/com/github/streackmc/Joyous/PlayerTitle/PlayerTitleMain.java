@@ -25,7 +25,7 @@ import com.github.streackmc.StreackLib.utils.SFile;
  */
 public class PlayerTitleMain {
 
-  final static Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
+  volatile static Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
 
   public final static class NAMES {
     /** 配置文件名 */
@@ -39,8 +39,8 @@ public class PlayerTitleMain {
   };
 
   // 服务实例
-  public static PlayerTitlePHAPI PlaceholderService = null;
-  public static final PlayerTitleCommand CommandService = new PlayerTitleCommand();
+  public volatile static PlayerTitlePHAPI PlaceholderService = new PlayerTitlePHAPI();
+  public volatile static PlayerTitleCommand CommandService = new PlayerTitleCommand();
 
   /** 称号列表 */
   public static SConfig titleList;
@@ -59,7 +59,6 @@ public class PlayerTitleMain {
     titleList = new SConfig(CONF_PATH, "yml");
     titleList.putString("titles.empty", "");
     titleList.startAutoReload();
-    PlaceholderService = new PlayerTitlePHAPI();
     Joyous.PlaceholderService.registerParser(PlaceholderService);
     CommandService.register();
   }

@@ -40,9 +40,9 @@ import com.github.streackmc.StreackLib.utils.SFile;
  * @author kdxiaoyi 编写提示词与审计
  */
 public class EntroprixMain {
-  private static final Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
-  private static final Path LOG_DIR = Joyous.dataPath.toPath().resolve(NAMES.LOG_FILE);
-  private static final Random RANDOM = ThreadLocalRandom.current();
+  private static volatile Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
+  private static volatile Path LOG_DIR = Joyous.dataPath.toPath().resolve(NAMES.LOG_FILE);
+  private static volatile Random RANDOM = ThreadLocalRandom.current();
 
   public static final class NAMES {
     public static final String CONF_FILE = "models/Entroprix.yml";
@@ -60,8 +60,8 @@ public class EntroprixMain {
   }
 
   // 服务实例
-  public static EntroprixPHAPI PlaceholderService = null;
-  public static final EntroprixCommand CommandService = new EntroprixCommand();
+  public static volatile EntroprixPHAPI PlaceholderService = new EntroprixPHAPI();
+  public static volatile EntroprixCommand CommandService = new EntroprixCommand();
 
   /** 卡池主配置文件 */
   public static SConfig poolList;
@@ -86,7 +86,6 @@ public class EntroprixMain {
     } catch (IOException e) {
       logger.err("无法创建日志目录: %s", e.getLocalizedMessage());
     }
-    PlaceholderService = new EntroprixPHAPI();
     Joyous.PlaceholderService.registerParser(PlaceholderService);
     CommandService.register();
   }
