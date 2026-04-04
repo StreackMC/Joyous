@@ -4,7 +4,7 @@
 ## 创建
 # 1. 可使用游戏内命令 /export <key> [value] 创建，需要权限 joyous.command.envexport
 # 2. 直接修改本文件，支持自动重载
-# 3. 调用 %joyous_envput_<key>:value% 设置，该 Placeholder 不会返回值
+# 3. 调用 %joyous_envput_<key>:value% 设置，该 Placeholder 会返回新值（因为不能返回空白值）
 #
 ## 读取
 # 使用 %joyous_env_<key>% 读值，其中 key 支持用 . 分割路径

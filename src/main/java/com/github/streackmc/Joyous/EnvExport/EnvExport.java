@@ -86,7 +86,7 @@ public class EnvExport {
           logger.debug("PHAPI设置 EnvExport[%s] 的环境变量为 []", v[0]);
           setEnv(v[0], null);
         }
-        return "";
+        return "v[1]";
       }
 
       return null; // 未知占位符返回 null
