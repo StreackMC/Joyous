@@ -198,7 +198,7 @@ public class entry extends JavaPlugin {
   }
 
   private void AdaptConfigReloadNotification() {
-    Joyous.conf.startAutoReload();
+    Joyous.conf.setAutoReload(true);
     SEventCentral.addEventListener(SConfig.EVENTS.CHANGED, event -> {
       if (event.CALLER_ID.equals(Joyous.conf.INSTANCE_ID)) {
         logger.info("已重载配置");

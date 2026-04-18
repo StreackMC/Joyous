@@ -80,7 +80,7 @@ public class EntroprixMain {
       }
     }
     poolList = new SConfig(CONF_PATH, "yml");
-    poolList.startAutoReload();
+    poolList.setAutoReload(true);
     try {
       Files.createDirectories(LOG_DIR);
     } catch (IOException e) {

@@ -15,7 +15,7 @@ public class i18n extends SConfig {
   public i18n(File parent) {
     // 初始化翻译文件
     super(parent.toPath().resolve("language.yml"), "yml");
-    this.startAutoReload();
+    this.setAutoReload(true);
 
     // 载入缺省翻译
     try {

@@ -43,6 +43,7 @@ public class EnvExport {
       }
     }
     conf = new SConfig(CONF_PATH, "yml");
+    conf.setAutoReload(true);
   }
 
   public static void onDisable() {

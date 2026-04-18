@@ -58,7 +58,7 @@ public class PlayerTitleMain {
     }
     titleList = new SConfig(CONF_PATH, "yml");
     titleList.putString("titles.empty", "");
-    titleList.startAutoReload();
+    titleList.setAutoReload(true);
     Joyous.PlaceholderService.registerParser(PlaceholderService);
     CommandService.register();
   }
