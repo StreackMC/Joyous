@@ -10,12 +10,14 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.PHAPI;
 import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous._Model.JoyousModel;
+import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
 import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
 
-public class EnvExport {
+public class EnvExport extends JoyousModel {
+  public static final String MODEL_NAME = "EnvExport";
   public static volatile Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
 
   public static final class NAMES {
@@ -27,11 +29,12 @@ public class EnvExport {
     }
   }
 
-  public static volatile PHAPI.ModelsPHAPI PlaceholderService = new EnvExport.EnvExportPHAPI();
+  public static volatile JoyousPHAPIhandler PlaceholderService = new EnvExport.EnvExportPHAPI();
   public static volatile EnvExportCommand CommandService = new EnvExportCommand();
   public static SConfig conf;
 
-  public static void onEnable() {
+  @Override
+  public void onEnable() {
     CommandService.register();
     Joyous.PlaceholderService.registerParser(PlaceholderService);
     if (Files.notExists(CONF_PATH)) {
@@ -46,7 +49,8 @@ public class EnvExport {
     conf.setAutoReload(true);
   }
 
-  public static void onDisable() {
+  @Override
+  public void onDisable() {
     Joyous.PlaceholderService.unregisiterParser(PlaceholderService);
   }
 
@@ -64,9 +68,9 @@ public class EnvExport {
     }
   }
 
-  private EnvExport() {};
+  public EnvExport() {};
 
-  public static class EnvExportPHAPI implements PHAPI.ModelsPHAPI {// 这个模块比较简单就不解耦合了
+  public static class EnvExportPHAPI implements JoyousPHAPIhandler {// 这个模块比较简单就不解耦合了
     EnvExportPHAPI() {
     }
 

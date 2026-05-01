@@ -3,10 +3,10 @@ package com.github.streackmc.Joyous.PlayerTitle;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import com.github.streackmc.Joyous.PHAPI;
 import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
 
-public class PlayerTitlePHAPI implements PHAPI.ModelsPHAPI {
+public class PlayerTitlePHAPI implements JoyousPHAPIhandler {
   PlayerTitlePHAPI() {
   }
 

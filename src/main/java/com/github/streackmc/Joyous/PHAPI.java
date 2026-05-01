@@ -7,24 +7,22 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
+
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
 public class PHAPI extends PlaceholderExpansion {
-  private List<PHAPI.ModelsPHAPI> usableParser = new ArrayList<>();
+  private List<JoyousPHAPIhandler> usableParser = new ArrayList<>();
 
-  public void registerParser(PHAPI.ModelsPHAPI handler) {
+  public void registerParser(JoyousPHAPIhandler handler) {
     usableParser.add(handler);
   }
 
-  public void unregisiterParser(PHAPI.ModelsPHAPI handler) {
+  public void unregisiterParser(JoyousPHAPIhandler handler) {
     usableParser.remove(usableParser.indexOf(handler));
   }
 
   public PHAPI() {
-  }
-
-  public interface ModelsPHAPI {
-    public String onPlaceholderRequest(Player player, @NotNull String params);
   }
 
   @Override
@@ -61,7 +59,7 @@ public class PHAPI extends PlaceholderExpansion {
     logger.debug("传入PHAPI请求: %s", params);
 
     String result = null;
-    for (ModelsPHAPI h : usableParser) {
+    for (JoyousPHAPIhandler h : usableParser) {
       result = parse(h, player, params);
       if (result != null && !result.isEmpty() && !result.isBlank())
         break;// 竞争解析
@@ -71,7 +69,7 @@ public class PHAPI extends PlaceholderExpansion {
   }
   
   /** 以指定处理器处理 Placeholder */
-  public String parse(ModelsPHAPI provider, Player player, @NotNull String params) {
+  public String parse(JoyousPHAPIhandler provider, Player player, @NotNull String params) {
     if (provider == null)
       return null;
     return provider.onPlaceholderRequest(player, params);

@@ -25,6 +25,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
@@ -39,10 +40,14 @@ import com.github.streackmc.StreackLib.utils.SFile;
  * @author Deepseek 审计
  * @author kdxiaoyi 编写提示词与审计
  */
-public class EntroprixMain {
+public class EntroprixMain extends JoyousModel {
+  public static final String MODEL_NAME = "Entroprix";
   private static volatile Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
   private static volatile Path LOG_DIR = Joyous.dataPath.toPath().resolve(NAMES.LOG_FILE);
   private static volatile Random RANDOM = ThreadLocalRandom.current();
+
+  public EntroprixMain() {
+  };
 
   public static final class NAMES {
     public static final String CONF_FILE = "models/Entroprix.yml";
@@ -70,7 +75,8 @@ public class EntroprixMain {
   // 生命周期
   // ------------------------------------------------------------------------
 
-  public static void onEnable() {
+  @Override
+  public void onEnable() {
     if (Files.notExists(CONF_PATH)) {
       try {
         logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
@@ -90,7 +96,8 @@ public class EntroprixMain {
     CommandService.register();
   }
 
-  public static void onDisable() {
+  @Override
+  public void onDisable() {
     Joyous.PlaceholderService.unregisiterParser(PlaceholderService);
     PlaceholderService = null;
   }

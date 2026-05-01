@@ -3,6 +3,8 @@ package com.github.streackmc.Joyous;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -11,6 +13,7 @@ import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
 import com.github.streackmc.Joyous.EnvExport.EnvExport;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
+import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.self.manager;
 import com.github.streackmc.StreackLib.types.IgnoredException;
@@ -19,6 +22,22 @@ import com.github.streackmc.StreackLib.utils.SEventCentral;
 import com.github.streackmc.StreackLib.utils.SFile;
 
 public class entry extends JavaPlugin {
+
+  /** 模块列表，统一注册，之后自动进行处理 */
+  public static final class Models {
+    public static final Map<String, JoyousModel> models = new HashMap<String, JoyousModel>();
+
+    private static void addModel(JoyousModel m) {
+      models.put(m.MODEL_NAME(), m);
+    }
+
+    static {// 在这里统一注册模块，下方自动遍历处理。
+      addModel(new APIHoldersMain());
+      addModel(new EntroprixMain());
+      addModel(new EnvExport());
+      addModel(new PlayerTitleMain());
+    }
+  }
 
   // public LiteralArgumentBuilder<CommandSourceStack> commandTree = Commands.literal("api-holders");
 
@@ -74,11 +93,6 @@ public class entry extends JavaPlugin {
 
     /* 读入 StreackLib:HTTPServer */
     APIHoldersMain.httpServer = StreackLib.getHttpServer();
-    if (APIHoldersMain.httpServer == null) {
-      logger.severe("启用失败：StreackLib的HTTPServer模块未启用或无法与之通信。");
-      Joyous.pluginManager.disablePlugin(this);
-      return;
-    }
 
     /* 初始化配置文件相关 */
     CheckConfigUpdate(); // 检查更新
@@ -90,69 +104,33 @@ public class entry extends JavaPlugin {
 
     /* 子模块 */
     logger.info("正在启用子模块...");
-    try {/* APIHolders */
-      logger.info("正在启用 APIHolders");
-      APIHoldersMain.onEnable();
-    } catch (Exception e) {
-      logger.severe("启用失败：" + e.getLocalizedMessage(), e);
-    }
-    try {/* EnvExport */
-      logger.info("正在启用 EnvExport");
-      EnvExport.onEnable();
-    } catch (Exception e) {
-      logger.severe("启用失败：" + e.getLocalizedMessage(), e);
-    }
-    try {/* PlayerTitle */
-      if (!Joyous.conf.getBoolean("PlayerTitle.enabled", true)) {
-        throw new IgnoredException();
+    Models.models.forEach((name, model) -> {
+      try {
+        logger.info("正在启用 " + name);
+        model.onEnable();
+      } catch (IgnoredException e1) {
+      } catch (Exception e2) {
+        logger.warn("启用 %s 时发生错误：%s", name, e2.getLocalizedMessage(), e2);
+      } finally {
+        logger.info("已启用 " + name);
       }
-      logger.info("正在启用 PlayerTitle");
-      PlayerTitleMain.onEnable();
-    } catch (IgnoredException e1) {
-    } catch (Exception e2) {
-      logger.severe("启用失败：" + e2.getLocalizedMessage(), e2);
-    }
-    try {/* Entroprix */
-      if (!Joyous.conf.getBoolean("Entroprix.enabled", true)) {
-        throw new IgnoredException();
-      }
-      logger.info("正在启用 Entroprix");
-      EntroprixMain.onEnable();
-    } catch (IgnoredException e1) {
-    } catch (Exception e2) {
-      logger.severe("启用失败：" + e2.getLocalizedMessage(), e2);
-    }
+    });
+    logger.info("已尝试启用全部子模块");
   }
 
   @Override
   public void onDisable() {
     logger.info("正在禁用子模块...");
-    try {/* APIHolders */
-      logger.info("正在禁用 APIHolders");
-      APIHoldersMain.onDisable();
-    } catch (Exception ignored) {
-    }
-    try {/* EnvExport */
-      logger.info("正在禁用 EnvExport");
-      EnvExport.onDisable();
-    } catch (Exception ignored) {
-    }
-    try {/* PlayerTitle */
-      if (!Joyous.conf.getBoolean("PlayerTitle.enabled", true)) {
-        throw new IgnoredException();
+    Models.models.forEach((name, model) -> {
+      try {
+        logger.info("正在禁用 " + name);
+        model.onDisable();
+      } catch (Exception e) {
+        logger.warn("禁用 %s 时发生错误：%s", name, e.getLocalizedMessage(), e);
+      } finally {
+        logger.info("已禁用 " + name);
       }
-      logger.info("正在禁用 PlayerTitle");
-      PlayerTitleMain.onDisable();
-    } catch (Exception ignored) {
-    }
-    try {/* Entroprix */
-      if (!Joyous.conf.getBoolean("Entroprix.enabled", true)) {
-        throw new IgnoredException();
-      }
-      logger.info("正在禁用 Entroprix");
-      EntroprixMain.onDisable();
-    } catch (Exception ignored) {
-    }
+    });
     logger.info("已尝试禁用全部子模块");
   }
 

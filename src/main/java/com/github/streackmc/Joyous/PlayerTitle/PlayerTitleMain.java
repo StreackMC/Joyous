@@ -13,6 +13,7 @@ import org.bukkit.persistence.PersistentDataType;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.utils.MCColor;
 import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
@@ -23,7 +24,10 @@ import com.github.streackmc.StreackLib.utils.SFile;
  * @author kdxiaoyi
  * @since 0.0.1
  */
-public class PlayerTitleMain {
+public class PlayerTitleMain extends JoyousModel {
+  public static final String MODEL_NAME = "PlayerTitle";
+  public PlayerTitleMain() {
+  };
 
   volatile static Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
 
@@ -45,7 +49,8 @@ public class PlayerTitleMain {
   /** 称号列表 */
   public static SConfig titleList;
 
-  public static final void onEnable() {
+  @Override
+  public final void onEnable() {
     NAMES.PLAYER_USING_TITLE_NAMESPACED = new NamespacedKey(Joyous.plugin, NAMES.PLAYER_USING_TITLE);
     Joyous.addPermissions(PermDef.none("joyous.titles", "用于决定一个玩家是否具有指定称号"));
     if (Files.notExists(CONF_PATH)) {
@@ -63,7 +68,8 @@ public class PlayerTitleMain {
     CommandService.register();
   }
   
-  public static final void onDisable() {
+  @Override
+  public final void onDisable() {
     Joyous.PlaceholderService.unregisiterParser(PlaceholderService);
     PlaceholderService = null;
   }

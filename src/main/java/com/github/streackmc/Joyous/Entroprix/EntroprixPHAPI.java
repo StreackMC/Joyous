@@ -3,10 +3,10 @@ package com.github.streackmc.Joyous.Entroprix;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import com.github.streackmc.Joyous.PHAPI;
 import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
 
-public class EntroprixPHAPI implements PHAPI.ModelsPHAPI {
+public class EntroprixPHAPI implements JoyousPHAPIhandler {
   EntroprixPHAPI() {
   }
 

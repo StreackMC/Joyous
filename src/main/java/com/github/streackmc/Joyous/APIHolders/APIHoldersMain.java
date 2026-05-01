@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.utils.HTTPServer;
 
 /**
@@ -14,7 +15,10 @@ import com.github.streackmc.StreackLib.utils.HTTPServer;
  * @author kdxiaoyi 审计
  * @since 0.0.1
  */
-public class APIHoldersMain {
+public class APIHoldersMain extends JoyousModel {
+  public static final String MODEL_NAME = "APIHolders";
+  public APIHoldersMain() {
+  };
 
   public static HTTPServer httpServer;
 
@@ -49,8 +53,9 @@ public class APIHoldersMain {
    * @throws Exception
    * @since 0.0.1
    */
-  public static void onEnable() throws Exception {
-    if (httpServer.equals(null)) {// 防止一些nb的情况
+  @Override
+  public void onEnable() throws Exception {
+    if (httpServer.equals(null)) {
       logger.warn("StreackLib中的 httpServer 服务器已被禁用，无法继续启用");
       return;
     };
@@ -81,7 +86,8 @@ public class APIHoldersMain {
    * @throws Exception
    * @since 0.0.1
    */
-  public static void onDisable() throws Exception {
+  @Override
+  public void onDisable() throws Exception {
     if (httpServer.equals(null)) {
       return;
     }
