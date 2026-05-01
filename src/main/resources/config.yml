@@ -1,6 +1,11 @@
 ## APIHolders 模块
 # 用于提供在线查询API
 APIHolders:
+  ## 是否启用
+  # 需要 StreackLib 中启用 HTTPServer
+  # * 不支持热重载
+  enabled: true
+
   ## 监听路径
   # 必须以 / 开头，ph查询特定Placeholder，status查询服务器状态。
   # * 留空表示不启用
@@ -48,14 +53,17 @@ Entroprix:
   ## 是否启用
   # * 不支持热重载
   enabled: true
+
   ## 最大连续抽取次数
   # 用于限制 roll 子命令中的最大次数，原版上限为 65535
   # 同时抽取次数过大会导致服务器严重卡顿（抽卡主要开销来自执行命令）
   # * 无论如何设置，都不能超过 1000
   # * 设为比1小的值会导致无法抽卡
+
   max: 100
   ## 命令别名
   # 默认命令为 /entroprix
+
   alias:
     - "gacha"
 
@@ -66,10 +74,13 @@ PlayerTitle:
   ## 是否启用
   # * 不支持热重载
   enabled: true
+
   ## 称号前缀
   prefix: "&7「"
+
   ## 称号后缀
   suffix: "&7」&r"
+
   ## 命令别名
   # 默认命令为 /playertitle
   alias:

@@ -106,13 +106,17 @@ public class entry extends JavaPlugin {
     logger.info("正在启用子模块...");
     Models.models.forEach((name, model) -> {
       try {
+        if (!Joyous.conf.getBoolean(name + ".enable", true)) {
+          logger.debug("由于配置文件，已禁用 " + name);
+          return;
+        }
         logger.info("正在启用 " + name);
         model.onEnable();
-      } catch (IgnoredException e1) {
-      } catch (Exception e2) {
-        logger.warn("启用 %s 时发生错误：%s", name, e2.getLocalizedMessage(), e2);
-      } finally {
         logger.info("已启用 " + name);
+      } catch (IgnoredException e1) {
+        logger.debug("中断" + e1.getLocalizedMessage() + "\n", e1.getStackTrace().toString());
+      } catch (Exception e2) {
+        logger.severe("启用 %s 时发生错误：%s", name, e2.getLocalizedMessage(), e2);
       }
     });
     logger.info("已尝试启用全部子模块");
@@ -128,7 +132,7 @@ public class entry extends JavaPlugin {
       } catch (Exception e) {
         logger.warn("禁用 %s 时发生错误：%s", name, e.getLocalizedMessage(), e);
       } finally {
-        logger.info("已禁用 " + name);
+        logger.info("已尝试禁用 " + name);
       }
     });
     logger.info("已尝试禁用全部子模块");
