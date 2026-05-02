@@ -214,6 +214,19 @@ public class SMenuEntry {
     }
   }
 
+  public static String resolvePath(String p) {
+    try {
+      Path menu = SMenuMain.MENU_PATH.resolve(p + ".jmenu");
+      //  无需保证文件存在，文件不存在时SConfig自动回退一个空的文件，之后解析时自动判定无效。
+      if (!menu.toAbsolutePath().startsWith(SMenuMain.MENU_PATH.toAbsolutePath())) {
+        throw new SecurityException("Invalid path: " + menu.toString());
+      }
+      return menu.toString();
+    } catch (Exception e) {
+      return SMenuMain.MENU_PATH.resolve("404.jmenu").toString();
+    }
+  }
+
   /**
    * 加载并解析菜单文件
    * 
@@ -221,11 +234,7 @@ public class SMenuEntry {
    * @throws SecurityException 路径非法
    */
   public SMenuEntry(String path) throws SecurityException {
-    Path menu = SMenuMain.MENU_PATH.resolve(path + ".jmenu");
-    if (!menu.toAbsolutePath().startsWith(SMenuMain.MENU_PATH.toAbsolutePath())) {
-      throw new SecurityException("Invalid path: " + menu.toString());
-    }
-    rootConfig = new SConfig(menu.toFile(), SConfig.TYPES.JSONC);
+    rootConfig = new SConfig(resolvePath(path), SConfig.TYPES.JSONC);
 
     // 解析 Java 版按钮
     Map<String, Object> javaButtonsSection = rootConfig.getSection("java-buttons");
