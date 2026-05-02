@@ -623,7 +623,7 @@ public class EntroprixMain extends JoyousModel {
           .replace("[player]", player.getName());
       // PlaceholderAPI 已在插件启用时检查，直接调用
       if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-        cmd = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, cmd);
+        cmd = Joyous.i18n.getPHparsed(player, cmd);
       }
       try {
         if (!Bukkit.dispatchCommand(Joyous.plugin.getServer().getConsoleSender(), cmd)) {

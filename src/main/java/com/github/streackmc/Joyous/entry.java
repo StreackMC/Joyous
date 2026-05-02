@@ -98,10 +98,6 @@ public class entry extends JavaPlugin {
     CheckConfigUpdate(); // 检查更新
     AdaptConfigReloadNotification(); // 自动重载事件监听并提示
 
-    /* 配置PHAPI */
-    Joyous.PlaceholderService = new PHAPI();
-    Joyous.PlaceholderService.register();
-
     /* 子模块 */
     logger.info("正在启用子模块...");
     Models.models.forEach((name, model) -> {
@@ -171,10 +167,14 @@ public class entry extends JavaPlugin {
       logger.debug("检测到StreackLib，版本：" + StreackLib.ENV.buildConf.getString("version"));
       logger.warn("你正在StreackLib中使用调试模式并已继承到Joyous中，因此会收到更多信息。");
     }
+
     /* 检测 PlaceholderAPI */
     if (!Joyous.pluginManager.isPluginEnabled("PlaceholderAPI")) {
-      throw new RuntimeException("启用失败：未检测到PlaceholderAPI");
+      logger.info("未检测到PlaceholderAPI，相关功能将无法使用。");
+      Joyous.PlaceholderService = new PHAPI(false);
     } else {
+      Joyous.PHAPI_available = true;
+      Joyous.PlaceholderService = new PHAPI(true);
       logger.debug("检测到PlaceholderAPI，版本：" + Joyous.pluginManager.getPlugin("PlaceholderAPI").getDescription().getVersion());
     }
   }

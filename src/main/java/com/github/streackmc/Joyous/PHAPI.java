@@ -5,14 +5,13 @@ import java.util.List;
 
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
 
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-
-public class PHAPI extends PlaceholderExpansion {
-  private List<JoyousPHAPIhandler> usableParser = new ArrayList<>();
+public class PHAPI {
+  protected final List<JoyousPHAPIhandler> usableParser = new ArrayList<>();
+  public final boolean available;
+  public final PHAPI_Backend expansion;
 
   public void registerParser(JoyousPHAPIhandler handler) {
     usableParser.add(handler);
@@ -22,52 +21,16 @@ public class PHAPI extends PlaceholderExpansion {
     usableParser.remove(usableParser.indexOf(handler));
   }
 
-  public PHAPI() {
-  }
-
-  @Override
-  @NotNull
-  public String getIdentifier() {
-    return "joyous"; // %joyous_xxx% 的前缀
-  }
-
-  @Override
-  @NotNull
-  public String getAuthor() {
-    return "kdxiaoyi & StreackMC Team";
-  }
-
-  @Override
-  @NotNull
-  public String getVersion() {
-    return Joyous.getVersion();
-  }
-
-  @Override
-  public boolean persist() {
-    return true; // 插件重载时不卸载此占位符
-  }
-
-  @Override
-  public boolean canRegister() {
-    return true; // 是否可以注册
-  }
-
-  @Override
-  @Nullable
-  public String onPlaceholderRequest(Player player, @NotNull String params) {
-    logger.debug("传入PHAPI请求: %s", params);
-
-    String result = null;
-    for (JoyousPHAPIhandler h : usableParser) {
-      result = parse(h, player, params);
-      if (result != null && !result.isEmpty() && !result.isBlank())
-        break;// 竞争解析
+  public PHAPI(boolean usable) {
+    this.available = usable;
+    if (usable) {
+      this.expansion = new PHAPI_Backend();
+      this.expansion.register();
+    } else {
+      this.expansion = null;
     }
-
-    return result;
   }
-  
+
   /** 以指定处理器处理 Placeholder */
   public String parse(JoyousPHAPIhandler provider, Player player, @NotNull String params) {
     if (provider == null)

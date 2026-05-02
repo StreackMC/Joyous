@@ -62,12 +62,12 @@ public class WebPhAPI {
         /* 解析目标并返回 */
         String parsed;
         if (target == null || target.equalsIgnoreCase("server") || target.equalsIgnoreCase("console")) {
-          parsed = PlaceholderAPI.setPlaceholders(null, query);
+          parsed = Joyous.i18n.getPHparsed(null, query);
           return newPlaceholderJsonResponse(200, "OK: Operation has been completed successfully.", parsed, null, null);
           // TODO: 兼容离线玩家处理并接入StreackLib的玩家
         } else {
           Player targetPlayer = Bukkit.getPlayer(target);
-          parsed = PlaceholderAPI.setPlaceholders(targetPlayer, query);
+          parsed = Joyous.i18n.getPHparsed(targetPlayer, query);
           if (targetPlayer == null) {
             return newPlaceholderJsonResponse(200, "OK: Operation has been completed successfully.", parsed, null,
                 null);

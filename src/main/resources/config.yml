@@ -1,3 +1,38 @@
+## SMenu 模块
+# 提供双端通用菜单和在线编辑器：
+# 在线编辑菜单：https://mc.kdxiaoyi.top/Joyous-MenuEditor/
+SMenu:
+  ## 是否启用
+  # * 不支持热重载
+  enabled: true
+
+  ## 菜单物品设置
+  menu-item:
+    ## 显示的图标
+    # Minecraft标准物品名，不含命名空间
+    material: "clock"
+
+    ## 特化
+    # 启用后只有插件给予的菜单才能使用
+    # 同时只要物品有插件的特殊数据就能打开菜单
+    specialized: true
+
+    ## 显示
+    # 至少1行。首行为物品名，其它为描述
+    display:
+      - &b菜单
+      - &7Powered by StreackMC/Joyous.
+      - 每行开头无需手动重置样式，会自动重置。这行文本就不是斜体嫣紫的。
+
+    ## 给予
+    # 进入服务器时背包没有菜单是否要给一个新的
+    # ！禁用后你需要手动处理菜单给予，要不然就需要开放命令 /smenu open 或者 /smenu get 。
+    give: false
+  
+  ## 冷却
+  # 玩家需要间隔多久才能再次打开菜单。使用 /smenu open [menu] 指定菜单可以绕过。
+  cooldown: 3
+
 ## APIHolders 模块
 # 用于提供在线查询API
 APIHolders:

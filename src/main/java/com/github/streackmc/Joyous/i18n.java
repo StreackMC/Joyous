@@ -3,6 +3,8 @@ package com.github.streackmc.Joyous;
 import java.io.File;
 import java.nio.file.Files;
 
+import org.bukkit.entity.Player;
+
 import com.github.streackmc.StreackLib.utils.MCColor;
 import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
@@ -56,7 +58,16 @@ public class i18n extends SConfig {
     }
 
     // 经过 Placeholder 和 Color 映射后输出
-    return MCColor.parse(PlaceholderAPI.setPlaceholders(null, result));
+    return MCColor.parse(Joyous.i18n.getPHparsed(null, result));
+  }
+
+  /** 安全获取 Placeholder 替换 */
+  public static String getPHparsed(Player p, String t) {
+    if (Joyous.PHAPI_available) {
+      return PlaceholderAPI.setPlaceholders(p, t);
+    } else {
+      return t;
+    }
   }
 
 }

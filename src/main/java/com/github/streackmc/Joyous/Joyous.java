@@ -31,25 +31,27 @@ public class Joyous {
 
   // 配置对象
   /** 用户配置 */
-  public static SConfig conf;
+  public volatile static SConfig conf;
   /** 默认配置 */
-  public static SConfig confDefault;
+  public volatile static SConfig confDefault;
   /** 构建配置 plugin.yml */
-  public static SConfig confBuild;
+  public volatile static SConfig confBuild;
   /** 多语言支持 */
-  public static i18n i18n;
+  public volatile static i18n i18n;
 
   // 全局变量
   /** 插件对象 */
-  public static JavaPlugin plugin;
+  public volatile static boolean PHAPI_available = false;
+  /** 插件对象 */
+  public volatile static JavaPlugin plugin;
   /** 生命周期管理器 */
-  public static LifecycleEventManager<Plugin> lifeCycleManager;
+  public volatile static LifecycleEventManager<Plugin> lifeCycleManager;
   /** 数据文件夹目录 */
-  public static File dataPath;
+  public volatile static File dataPath;
   /** 插件管理器 */
-  public static PluginManager pluginManager;
+  public volatile static PluginManager pluginManager;
   /** PlaceholderAPI Service */
-  public static PHAPI PlaceholderService;
+  public volatile static PHAPI PlaceholderService;
 
   /**
    * 是否启用调试模式
