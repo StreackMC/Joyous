@@ -13,6 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.StreackLib.utils.SConfig;
 
 public class SMenuEntry {
@@ -43,18 +44,18 @@ public class SMenuEntry {
      */
     @SuppressWarnings("unchecked")
     public ButtonJE(String slotKey, Map<String, Object> raw) {
-      // 解析槽位为行列（假设 9 列，槽位从 1 开始）
-      int slot;
-      try {
-        slot = Integer.parseInt(slotKey);
-      } catch (NumberFormatException e) {
+      // 解析槽位为行列
+      if (slotKey == null || slotKey.length() !=2) {
         throw new IllegalArgumentException("无效的槽位键: " + slotKey);
       }
-      if (slot < 1 || slot > 54) {
-        throw new IllegalArgumentException("槽位超出范围: " + slot);
+      this.x = Integer.parseInt(slotKey.substring(0, 1));
+      if (this.x < 1 || this.x > 6) {
+        throw new IllegalArgumentException("行号必须在1-6之间: " + this.x);
       }
-      this.x = (slot - 1) % 9 + 1; // 行，1-based
-      this.y = (slot - 1) % 9 + 1; // 列，1-based
+      this.y = Integer.parseInt(slotKey.substring(1, 2));
+      if (this.y < 1 || this.y > 9) {
+        throw new IllegalArgumentException("列号必须在1-9之间: " + this.y);
+      }
 
       // 解析 display.id
       Object displayObj = raw.get("display");
@@ -249,8 +250,7 @@ public class SMenuEntry {
           ButtonJE btn = new ButtonJE(slotKey, (Map<String, Object>) value);
           javaButtons.add(btn);
         } catch (Exception e) {
-          // 记录日志，跳过无效按钮
-          e.printStackTrace();
+          logger.warning("打开菜单[" + path + "]时无法解析Java版按钮[" + slotKey + "]:" + e.getMessage(), e);
         }
       }
     }
@@ -266,7 +266,7 @@ public class SMenuEntry {
           ButtonBE btn = new ButtonBE((Map<String, Object>) obj);
           bedrockButtons.add(btn);
         } catch (Exception e) {
-          e.printStackTrace();
+          logger.warning("打开菜单[" + path + "]时无法解析基岩版按钮:" + e.getMessage(), e);
         }
       }
     }
