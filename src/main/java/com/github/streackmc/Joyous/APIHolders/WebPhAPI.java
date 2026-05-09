@@ -1,7 +1,5 @@
 package com.github.streackmc.Joyous.APIHolders;
 
-import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
-
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -10,12 +8,13 @@ import java.util.regex.PatternSyntaxException;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.json.simple.JSONObject;
+import org.nanohttpd.protocols.http.NanoHTTPD;
+import org.nanohttpd.protocols.http.request.Method;
+import org.nanohttpd.protocols.http.response.Response;
+import org.nanohttpd.protocols.http.response.Status;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
-
-import fi.iki.elonen.NanoHTTPD;
-import me.clip.placeholderapi.PlaceholderAPI;
 
 public class WebPhAPI {
   /** 启用对PlaceholderAPI的查询支持 */
@@ -23,8 +22,8 @@ public class WebPhAPI {
     APIHoldersMain.httpServer.registerHandler(path, session -> {
       try {
         /* 仅处理 GET */
-        if (!NanoHTTPD.Method.GET.equals(session.getMethod())) {
-          return newFixedLengthResponse(NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+        if (!Method.GET.equals(session.getMethod())) {
+          return Response.newFixedLengthResponse(Status.METHOD_NOT_ALLOWED,
               NanoHTTPD.MIME_PLAINTEXT, "Method GET Allowed Only.");
         }
         /* 读取参数 */
@@ -127,7 +126,7 @@ public class WebPhAPI {
    * @since 0.0.1
    */
   @SuppressWarnings("unchecked")
-  private static NanoHTTPD.Response newPlaceholderJsonResponse(Integer code, String info, String mc, Long timestamp,
+  private static Response newPlaceholderJsonResponse(Integer code, String info, String mc, Long timestamp,
       Long expire_at) {
     Long FALLBACK_TIMESTAMP = (Long) System.currentTimeMillis();
 
@@ -168,7 +167,7 @@ public class WebPhAPI {
     root.put("cache", cache);
     root.put("status", status);
     root.put("result", respond);
-    NanoHTTPD.Response rsp = newFixedLengthResponse(NanoHTTPD.Response.Status.lookup(code),
+    Response rsp = Response.newFixedLengthResponse(Status.lookup(code),
         "application/json", root.toJSONString());
     rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
     return rsp;

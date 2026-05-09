@@ -56,11 +56,11 @@ public class i18n extends SConfig {
     }
 
     // 经过 Placeholder 和 Color 映射后输出
-    return MCColor.parse(i18n.getPHparsed(null, result));
+    return MCColor.parse(Joyous.i18n.getPHparsed(null, result));
   }
 
   /** 安全获取 Placeholder 替换 */
-  public static String getPHparsed(Player p, String t) {
+  public String getPHparsed(Player p, String t) {
     if (Joyous.PHAPI_available && Joyous.PlaceholderService.expansion != null) {
       return Joyous.PlaceholderService.expansion.parseText(t, p);
     } else {

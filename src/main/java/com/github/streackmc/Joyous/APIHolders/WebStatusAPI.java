@@ -1,18 +1,18 @@
 package com.github.streackmc.Joyous.APIHolders;
 
-import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
-
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
 
 import org.bukkit.Bukkit;
 import org.json.simple.JSONObject;
+import org.nanohttpd.protocols.http.NanoHTTPD;
+import org.nanohttpd.protocols.http.request.Method;
+import org.nanohttpd.protocols.http.response.Response;
+import org.nanohttpd.protocols.http.response.Status;
 
 import com.github.streackmc.Joyous.logger;
-import com.github.streackmc.StreackLib.bukkit.SBukkit;
+import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.MCColor;
-
-import fi.iki.elonen.NanoHTTPD;
 
 public class WebStatusAPI {
   static void enableStatus(String path) throws Exception {
@@ -20,22 +20,22 @@ public class WebStatusAPI {
     APIHoldersMain.httpServer.registerHandler(path, session -> {
       try {
         /* 仅处理 GET */
-        if (!NanoHTTPD.Method.GET.equals(session.getMethod())) {
-          return newFixedLengthResponse(NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+        if (!Method.GET.equals(session.getMethod())) {
+          return Response.newFixedLengthResponse(Status.METHOD_NOT_ALLOWED,
               NanoHTTPD.MIME_PLAINTEXT, "Method GET Allowed Only.");
         }
         /* 构建状态数据（合并后的单一方法） */
         JSONObject statusData = buildServerStatusData();
         /* 返回JSON响应 */
-        NanoHTTPD.Response rsp = newFixedLengthResponse(
-            NanoHTTPD.Response.Status.OK,
+        Response rsp = Response.newFixedLengthResponse(
+            Status.OK,
             "application/json",
             statusData.toJSONString());
         rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
         return rsp;
       } catch (Exception e) {
         logger.err("无法处理StatusAPI查询：" + e.getLocalizedMessage(), e);
-        return newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR,
+        return Response.newFixedLengthResponse(Status.INTERNAL_ERROR,
             NanoHTTPD.MIME_PLAINTEXT, "500 Internal Server Error: " + e.getLocalizedMessage());
       }
     });
@@ -143,7 +143,7 @@ public class WebStatusAPI {
   public static JSONObject getTPSDataAsJSON() {
     JSONObject tps = new JSONObject();
     try {
-      double[] getTps = (double[]) SBukkit.getServerTPS();
+      double[] getTps = (double[]) StreackLib.getServerTPS();
       tps.put("live", getTps[0]);
       tps.put("avg_1m", getTps[1]);
       tps.put("avg_5m", getTps[2]);
