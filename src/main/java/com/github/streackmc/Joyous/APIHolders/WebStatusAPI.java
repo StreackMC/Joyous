@@ -2,6 +2,7 @@ package com.github.streackmc.Joyous.APIHolders;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
+import java.util.Objects;
 
 import org.bukkit.Bukkit;
 import org.json.simple.JSONObject;
@@ -13,6 +14,7 @@ import org.nanohttpd.protocols.http.response.Status;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.MCColor;
+import com.sun.management.OperatingSystemMXBean;
 
 public class WebStatusAPI {
   static void enableStatus(String path) throws Exception {
@@ -113,8 +115,9 @@ public class WebStatusAPI {
 
     /* JVM内存信息 */
     MemoryUsage mmxb = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+    OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
     JSONObject mem = new JSONObject();
-    mem.put("used", mmxb.getUsed() / 1024 / 1024);
+    mem.put("used", Objects.requireNonNullElse(osBean.getCommittedVirtualMemorySize(), mmxb.getUsed()) / 1024 / 1024);
     mem.put("max", mmxb.getMax() / 1024 / 1024);
     data.put("memory", mem);
 
