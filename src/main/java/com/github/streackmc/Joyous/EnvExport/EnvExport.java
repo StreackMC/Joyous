@@ -17,7 +17,10 @@ import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
 
 public class EnvExport extends JoyousModel {
-  public static final String MODEL_NAME = "EnvExport";
+  public String MODEL_NAME() {
+    return "EnvExport";
+  }
+
   public static volatile Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
 
   public static final class NAMES {

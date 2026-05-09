@@ -25,7 +25,10 @@ import com.github.streackmc.StreackLib.utils.SFile;
  * @since 0.0.1
  */
 public class PlayerTitleMain extends JoyousModel {
-  public static final String MODEL_NAME = "PlayerTitle";
+  public String MODEL_NAME() {
+    return "PlayerTitle";
+  }
+
   public PlayerTitleMain() {
   };
 

@@ -41,7 +41,10 @@ import com.github.streackmc.StreackLib.utils.SFile;
  * @author kdxiaoyi 编写提示词与审计
  */
 public class EntroprixMain extends JoyousModel {
-  public static final String MODEL_NAME = "Entroprix";
+  public String MODEL_NAME() {
+    return "Entroprix";
+  }
+
   private static volatile Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
   private static volatile Path LOG_DIR = Joyous.dataPath.toPath().resolve(NAMES.LOG_FILE);
   private static volatile Random RANDOM = ThreadLocalRandom.current();
