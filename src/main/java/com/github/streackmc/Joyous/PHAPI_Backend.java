@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
 
+import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
 public class PHAPI_Backend extends PlaceholderExpansion {
@@ -54,5 +55,9 @@ public class PHAPI_Backend extends PlaceholderExpansion {
     }
 
     return result;
+  }
+
+  public String parseText(String text, Player player) {
+    return PlaceholderAPI.setPlaceholders(player, text);
   }
 }
