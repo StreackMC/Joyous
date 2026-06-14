@@ -2,9 +2,9 @@ name: Build Java Project with Maven
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "*" ]
 
 jobs:
   build:
@@ -40,10 +40,10 @@ jobs:
         id: changelog
         shell: bash
         run: |
-          if [ -f docs/.change_log.md ]; then
+          if [ -f .change_log.md ]; then
             {
               echo 'body<<EOF'
-              cat docs/.change_log.md
+              cat .change_log.md
               echo
               echo 'EOF'
             } >> "$GITHUB_OUTPUT"

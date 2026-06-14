@@ -9,8 +9,6 @@ import com.github.streackmc.StreackLib.utils.MCColor;
 import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
 
-import me.clip.placeholderapi.PlaceholderAPI;
-
 public class i18n extends SConfig {
   public SConfig defaultMap;
 
@@ -62,9 +60,9 @@ public class i18n extends SConfig {
   }
 
   /** 安全获取 Placeholder 替换 */
-  public static String getPHparsed(Player p, String t) {
-    if (Joyous.PHAPI_available) {
-      return PlaceholderAPI.setPlaceholders(p, t);
+  public String getPHparsed(Player p, String t) {
+    if (Joyous.PHAPI_available && Joyous.PlaceholderService.expansion != null) {
+      return Joyous.PlaceholderService.expansion.parseText(t, p);
     } else {
       return t;
     }

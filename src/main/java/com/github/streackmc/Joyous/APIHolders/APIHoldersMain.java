@@ -16,7 +16,9 @@ import com.github.streackmc.StreackLib.utils.HTTPServer;
  * @since 0.0.1
  */
 public class APIHoldersMain extends JoyousModel {
-  public static final String MODEL_NAME = "APIHolders";
+  public String MODEL_NAME() {
+    return "APIHolders";
+  }
   public APIHoldersMain() {
   };
 
