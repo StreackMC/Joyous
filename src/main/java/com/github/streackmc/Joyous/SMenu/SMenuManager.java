@@ -321,12 +321,12 @@ public class SMenuManager {
       case "url" -> {
         if (!isBedrockPlayer(player)) {
           player.sendMessage(
-              Component.text("点击此处打开链接")
+              Component.text(MCColor.parse(Joyous.i18n.tr("smenu.open_url", param)))
                   .color(NamedTextColor.AQUA)
                   .decorate(TextDecoration.UNDERLINED)
                   .clickEvent(ClickEvent.openUrl(resolvedParam)));
         } else {
-          player.sendMessage(MCColor.parse("&b链接：&f" + resolvedParam));
+          player.sendMessage(MCColor.parse(Joyous.i18n.tr("smenu.open_url_be", param)));
         }
       }
       default -> logger.debug("菜单按钮动作 [%s] 未被识别，无操作", action);
