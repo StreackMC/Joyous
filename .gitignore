@@ -18,3 +18,4 @@ dependency-reduced-pom.xml
 /mcserver/u*
 /mcserver/v*
 /mcserver/w*
+.DS_Store
