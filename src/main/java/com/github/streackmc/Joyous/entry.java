@@ -13,6 +13,7 @@ import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
 import com.github.streackmc.Joyous.EnvExport.EnvExport;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
+import com.github.streackmc.Joyous.SMenu.SMenuMain;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.self.manager;
@@ -36,6 +37,7 @@ public class entry extends JavaPlugin {
       addModel(new EntroprixMain());
       addModel(new EnvExport());
       addModel(new PlayerTitleMain());
+      addModel(new SMenuMain());
     }
   }
 
