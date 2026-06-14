@@ -8,5 +8,6 @@
     "**/.gitee/**",
     "**/mcserver/**",
     "**/docs/**"
-  ]
+  ],
+  "maven.view": "flat"
 }

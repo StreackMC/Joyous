@@ -1,10 +1,10 @@
 package com.github.streackmc.Joyous.SMenu;
 
-import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.bukkit.Material;
@@ -12,12 +12,10 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.StreackLib.utils.MCColor;
+import com.github.streackmc.StreackLib.utils.SConfig;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -26,11 +24,11 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * SMenu 菜单数据实体
  * <p>
  * 解析并缓存单个 {@code .jmenu} 菜单文件的内容，提供 Java/基岩版按钮列表。
- * 菜单文件使用 JSON 格式，详细格式参见 {@code SMenu.default.json}。
+ * 菜单文件使用 JSON 格式（支持注释和尾随逗号），详细格式参见 {@code SMenu.default.json}。
  * 支持 404 回退：当请求的菜单不存在时，自动尝试 {@code 404.jmenu}。
  *
  * @author kdxiaoyi
- * @since 0.0.1
+ * @since 0.6.0
  */
 public class SMenuEntry {
 
@@ -39,8 +37,6 @@ public class SMenuEntry {
 
   /** 菜单路径（缓存键） */
   private final String menuPath;
-  /** 原始 JSON 根对象 */
-  private final JSONObject root;
   /** Java 版按钮列表 */
   private final List<JavaButton> javaButtons = new ArrayList<>();
   /** 基岩版按钮列表 */
@@ -70,27 +66,25 @@ public class SMenuEntry {
       filePath = fallback;
     }
 
-    // 2. 解析 JSON
-    try (FileReader reader = new FileReader(filePath.toFile())) {
-      JSONParser parser = new JSONParser();
-      this.root = (JSONObject) parser.parse(reader);
+    // 2. 用 SConfig 加载（jsonc 支持注释和尾随逗号）
+    SConfig conf;
+    try {
+      conf = new SConfig(filePath, "jsonc");
     } catch (Exception e) {
       throw new IllegalArgumentException("无法解析菜单 " + menuPath + "：" + e.getLocalizedMessage(), e);
     }
 
     // 3. 解析基本属性
-    Object titleObj = root.get("title");
-    this.title = MCColor.parse(titleObj != null ? String.valueOf(titleObj) : "菜单");
-    Object linesObj = root.get("lines");
-    int rawLines = linesObj instanceof Number n ? n.intValue() : 3;
+    this.title = MCColor.parse(conf.getString("title", "菜单"));
+    int rawLines = conf.getInt("lines", 3);
     if (rawLines < 1 || rawLines > 6) rawLines = 3;
     this.lines = rawLines;
 
     // 4. 解析 Java 版按钮
-    parseJavaButtons();
+    parseJavaButtons(conf);
 
     // 5. 解析基岩版按钮
-    parseBedrockButtons();
+    parseBedrockButtons(conf);
   }
 
   // ──────────────────────────────────────────────
@@ -98,16 +92,14 @@ public class SMenuEntry {
   // ──────────────────────────────────────────────
 
   /** 槽位键格式校验：行号+列号，各 1 位数字 */
-  private static final java.util.regex.Pattern SLOT_PATTERN =
-      java.util.regex.Pattern.compile("^(\\d)(\\d)$");
+  private static final Pattern SLOT_PATTERN = Pattern.compile("^(\\d)(\\d)$");
 
-  @SuppressWarnings("unchecked")
-  private void parseJavaButtons() {
-    JSONObject buttons = (JSONObject) root.get("java-buttons");
-    if (buttons == null) return;
+  private void parseJavaButtons(SConfig conf) {
+    Map<String, Object> buttons = conf.getSection("java-buttons");
+    if (buttons == null || buttons.isEmpty()) return;
 
-    for (Object keyObj : buttons.keySet()) {
-      String slotKey = (String) keyObj;
+    for (var entry : buttons.entrySet()) {
+      String slotKey = entry.getKey();
       var m = SLOT_PATTERN.matcher(slotKey);
       if (!m.matches()) {
         logger.warn("菜单 [%s] 中的按钮键 [%s] 格式无效，应为行号+列号（如 12）", menuPath, slotKey);
@@ -120,45 +112,39 @@ public class SMenuEntry {
         continue;
       }
 
-      JSONObject btn = (JSONObject) buttons.get(slotKey);
-      if (btn == null) continue;
-
-      JSONObject display = (JSONObject) btn.get("display");
-      if (display == null) {
-        logger.warn("菜单 [%s] 中的按钮 [%s] 缺少 display 配置", menuPath, slotKey);
-        continue;
-      }
-
-      String itemId = (String) display.get("id");
-      if (itemId == null || itemId.isBlank()) {
+      // 使用 SConfig 的嵌套路径读取按钮字段
+      String btnPrefix = "java-buttons." + slotKey;
+      String displayPrefix = btnPrefix + ".display";
+      String dispStr = conf.getString(displayPrefix + ".id");
+      if (dispStr == null || dispStr.isBlank()) {
         logger.warn("菜单 [%s] 中的按钮 [%s] 缺少物品 ID", menuPath, slotKey);
         continue;
       }
 
-      Material material = Material.getMaterial(itemId.toUpperCase());
+      Material material = Material.getMaterial(dispStr.toUpperCase());
       if (material == null) {
-        logger.warn("菜单 [%s] 中的按钮 [%s] 使用了未知物品 [%s]", menuPath, slotKey, itemId);
+        logger.warn("菜单 [%s] 中的按钮 [%s] 使用了未知物品 [%s]", menuPath, slotKey, dispStr);
         continue;
       }
       ItemStack item = new ItemStack(material);
 
       // 附魔光效
-      boolean enchant = Boolean.TRUE.equals(display.get("enchant"));
+      boolean enchant = conf.getBoolean(displayPrefix + ".enchant");
       if (enchant) {
         item.addUnsafeEnchantment(Enchantment.UNBREAKING, 1);
       }
 
       ItemMeta meta = item.getItemMeta();
       if (meta != null) {
-        var tooltipRaw = (List<String>) display.get("tooltip");
+        List<String> tooltipRaw = conf.getListOfString(displayPrefix + ".tooltip");
         if (tooltipRaw != null && !tooltipRaw.isEmpty()) {
           var serializer = LegacyComponentSerializer.legacySection();
           // 首行为标题，其余为 Lore
-          meta.displayName(serializer.deserialize(MCColor.parse(tooltipRaw.get(0))));
+          meta.displayName(serializer.deserialize(MCColor.parse("§r" + tooltipRaw.get(0))));
           if (tooltipRaw.size() > 1) {
             List<Component> lore = new ArrayList<>();
             for (int i = 1; i < tooltipRaw.size(); i++) {
-              lore.add(serializer.deserialize(MCColor.parse(tooltipRaw.get(i))));
+              lore.add(serializer.deserialize(MCColor.parse("§r" + tooltipRaw.get(i))));
             }
             meta.lore(lore);
           }
@@ -170,7 +156,7 @@ public class SMenuEntry {
       }
 
       // 权限
-      String perm = (String) btn.get("perm");
+      String perm = conf.getString(btnPrefix + ".perm");
       boolean permUnhave = false;
       if (perm != null && perm.startsWith("!")) {
         permUnhave = true;
@@ -179,30 +165,30 @@ public class SMenuEntry {
       if (perm != null && perm.isBlank()) perm = null;
 
       // 动作
-      String action = String.valueOf(btn.getOrDefault("action", ""));
-      String param = (String) btn.get("param");
+      String action = conf.getString(btnPrefix + ".action", "");
+      String param = conf.getString(btnPrefix + ".param");
 
       javaButtons.add(new JavaButton(x, y, item, perm, permUnhave, action, param));
     }
   }
 
   @SuppressWarnings("unchecked")
-  private void parseBedrockButtons() {
-    JSONArray buttons = (JSONArray) root.get("bedrock-buttons");
-    if (buttons == null) return;
+  private void parseBedrockButtons(SConfig conf) {
+    List<Object> buttons = conf.getList("bedrock-buttons");
+    if (buttons == null || buttons.isEmpty()) return;
 
     for (Object obj : buttons) {
-      JSONObject btn = (JSONObject) obj;
-      JSONObject display = (JSONObject) btn.get("display");
-      if (display == null) continue;
+      if (!(obj instanceof Map btnMap)) continue;
+      Object displayObj = btnMap.get("display");
+      if (!(displayObj instanceof Map dispMap)) continue;
 
-      String text = (String) display.get("text");
-      if (text == null || text.isBlank()) continue;
+      String text = String.valueOf(dispMap.getOrDefault("text", ""));
+      if (text.isBlank()) continue;
 
-      String icon = (String) display.get("icon");
+      String icon = dispMap.containsKey("icon") ? String.valueOf(dispMap.get("icon")) : null;
 
       // 权限
-      String perm = (String) btn.get("perm");
+      String perm = btnMap.containsKey("perm") ? String.valueOf(btnMap.get("perm")) : null;
       boolean permUnhave = false;
       if (perm != null && perm.startsWith("!")) {
         permUnhave = true;
@@ -210,8 +196,8 @@ public class SMenuEntry {
       }
       if (perm != null && perm.isBlank()) perm = null;
 
-      String action = String.valueOf(btn.getOrDefault("action", ""));
-      String param = (String) btn.get("param");
+      String action = String.valueOf(btnMap.getOrDefault("action", ""));
+      String param = btnMap.containsKey("param") ? String.valueOf(btnMap.get("param")) : null;
 
       bedrockButtons.add(new BedrockButton(text, icon, perm, permUnhave, action, param));
     }
@@ -273,9 +259,6 @@ public class SMenuEntry {
 
   /** 获取基岩版按钮列表 */
   public List<BedrockButton> getBedrockButtons() { return bedrockButtons; }
-
-  /** 获取原始 JSON 根对象 */
-  public JSONObject getRootConfig() { return root; }
 
   // ──────────────────────────────────────────────
   // 路径解析工具
