@@ -93,9 +93,6 @@ public class entry extends JavaPlugin {
       return;
     }
 
-    /* 读入 StreackLib:HTTPServer */
-    APIHoldersMain.httpServer = StreackLib.getHttpServer();
-
     /* 初始化配置文件相关 */
     CheckConfigUpdate(); // 检查更新
     AdaptConfigReloadNotification(); // 自动重载事件监听并提示

@@ -5,6 +5,7 @@ import java.util.List;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
+import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.HTTPServer;
 
 /**
@@ -57,7 +58,8 @@ public class APIHoldersMain extends JoyousModel {
    */
   @Override
   public void onEnable() throws Exception {
-    if (httpServer.equals(null)) {
+    httpServer = StreackLib.getHttpServer();
+    if (httpServer == null) {
       logger.warn("StreackLib中的 httpServer 服务器已被禁用，无法继续启用");
       return;
     };
