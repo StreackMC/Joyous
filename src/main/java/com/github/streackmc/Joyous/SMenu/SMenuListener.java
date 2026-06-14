@@ -29,7 +29,7 @@ import com.github.streackmc.StreackLib.utils.MCColor;
  * </ul>
  *
  * @author kdxiaoyi
- * @since 0.0.1
+ * @since 0.2.0
  */
 public class SMenuListener implements Listener {
 

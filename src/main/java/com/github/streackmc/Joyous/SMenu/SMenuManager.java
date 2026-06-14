@@ -31,7 +31,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * 线程安全：使用 {@link ReentrantReadWriteLock} 保护缓存。
  *
  * @author kdxiaoyi
- * @since 0.0.1
+ * @since 0.2.0
  */
 public class SMenuManager {
 

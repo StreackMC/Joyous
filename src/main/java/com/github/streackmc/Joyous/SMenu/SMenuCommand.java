@@ -34,7 +34,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * </ul>
  *
  * @author kdxiaoyi
- * @since 0.0.1
+ * @since 0.2.0
  */
 public class SMenuCommand {
 

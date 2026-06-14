@@ -18,7 +18,7 @@ import com.github.streackmc.StreackLib.utils.SFile;
  * 默认菜单文件释放、监听器和命令的注册。
  *
  * @author kdxiaoyi
- * @since 0.0.1
+ * @since 0.2.0
  */
 public class SMenuMain extends JoyousModel {
   public static final String MODEL_NAME = "SMenu";
