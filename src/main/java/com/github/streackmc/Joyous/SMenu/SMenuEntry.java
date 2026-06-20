@@ -144,7 +144,9 @@ public class SMenuEntry {
           if (tooltipRaw.size() > 1) {
             List<Component> lore = new ArrayList<>();
             for (int i = 1; i < tooltipRaw.size(); i++) {
-              lore.add(serializer.deserialize(MCColor.parse("§r" + tooltipRaw.get(i))));
+              String text = tooltipRaw.get(i);
+              if (text == null) continue;
+              lore.add(serializer.deserialize(MCColor.parse("§r" + text)));
             }
             meta.lore(lore);
           }
