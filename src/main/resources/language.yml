@@ -72,6 +72,5 @@ titles:
 smenu:
   not_found: "&c菜单&f %s &c不存在"
   load_failed: "&c菜单&f %s &c加载失败：&f%s"
-  opened: "&a已打开菜单"
   open_url: "&n&e点击此处以打开 &r&f&n%s"
   open_url_be: "&n&e链接→ &r&f&n%s"

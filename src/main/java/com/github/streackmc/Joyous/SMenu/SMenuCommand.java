@@ -190,7 +190,6 @@ public class SMenuCommand {
     if (!leftover.isEmpty()) {
       player.getWorld().dropItem(player.getLocation(), item);
     }
-    sender.sendMessage(MCColor.parse("&a已获取菜单物品"));
     return 1;
   }
 
