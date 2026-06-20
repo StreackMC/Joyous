@@ -43,5 +43,5 @@ rm -rf "${PLUGINS_DIR}"/Joyous-*-sources.jar
 # 启动服务器
 echo "启动服务器..."
 cd ./mcserver
-java -Xms1M -Xmx2048M -jar ./server.jar nogui
+java $@ -jar ./server.jar nogui
 exit $?

@@ -22,6 +22,16 @@
       }
     },
     {
+      "label": "Scan Dependencies for CVE",
+      "promptOnClose": true,
+      "type": "shell",
+      "command": "mvn org.owasp:dependency-check-maven:check",
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+    },
+    {
       "label": "Build with maven",
       "promptOnClose": true,
       "type": "shell",
@@ -32,10 +42,30 @@
       },
     },
     {
-      "label": "Start Test Server",
+      "label": "Start Test Server (with debug on port 5005)",
       "promptOnClose": true,
       "type": "shell",
-      "command": "bash ./mcserver/run.sh",
+      "command": "bash ./mcserver/run.sh -Ddisable.watchdog=true -Xms1M -Xmx2048M -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5005",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+    },
+    {
+      "label": "Start Test Server (with debug on port 5005 and suspending)",
+      "promptOnClose": true,
+      "type": "shell",
+      "command": "bash ./mcserver/run.sh -Ddisable.watchdog=true -Xms1M -Xmx2048M -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=0.0.0.0:5005",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+    },
+    {
+      "label": "Start Test Server without compiling (with debug on port 5005 and suspending)",
+      "promptOnClose": true,
+      "type": "shell",
+      "command": "bash ./mcserver/run_nc.sh -Ddisable.watchdog=true -Xms1M -Xmx2048M -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=0.0.0.0:5005",
       "group": {
         "kind": "test",
         "isDefault": true
