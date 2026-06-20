@@ -18,6 +18,7 @@ import com.github.streackmc.StreackLib.utils.MCColor;
 import com.github.streackmc.StreackLib.utils.SConfig;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
@@ -140,13 +141,15 @@ public class SMenuEntry {
         if (tooltipRaw != null && !tooltipRaw.isEmpty()) {
           var serializer = LegacyComponentSerializer.legacySection();
           // 首行为标题，其余为 Lore
-          meta.displayName(serializer.deserialize(MCColor.parse("§r" + tooltipRaw.get(0))));
+          meta.displayName(ensureReset(
+              serializer.deserialize(MCColor.parse("§r" + tooltipRaw.get(0)))));
           if (tooltipRaw.size() > 1) {
             List<Component> lore = new ArrayList<>();
             for (int i = 1; i < tooltipRaw.size(); i++) {
               String text = tooltipRaw.get(i);
               if (text == null) continue;
-              lore.add(serializer.deserialize(MCColor.parse("§r" + text)));
+              lore.add(ensureReset(
+                  serializer.deserialize(MCColor.parse("§r" + text))));
             }
             meta.lore(lore);
           }
@@ -261,6 +264,24 @@ public class SMenuEntry {
 
   /** 获取基岩版按钮列表 */
   public List<BedrockButton> getBedrockButtons() { return bedrockButtons; }
+
+  /**
+   * 解析一行菜单文本，确保未显式设置的文字装饰被重置为 {@code false}
+   * <p>
+   * {@link LegacyComponentSerializer#legacySection()} 遇到 {@code §r} 时仅将装饰设为
+   * {@link TextDecoration.State#NOT_SET}，但某些场景下 {@code NOT_SET} 可能被渲染为已启用。
+   * 此方法将 {@code NOT_SET} 的装饰显式设为 {@code FALSE} 以规避该问题。
+   */
+  private static Component ensureReset(Component component) {
+    var style = component.style();
+    return component.style(s -> {
+      for (TextDecoration dec : TextDecoration.values()) {
+        if (style.decoration(dec) == TextDecoration.State.NOT_SET) {
+          s.decoration(dec, false);
+        }
+      }
+    });
+  }
 
   // ──────────────────────────────────────────────
   // 路径解析工具

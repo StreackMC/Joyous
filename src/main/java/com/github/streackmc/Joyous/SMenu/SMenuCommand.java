@@ -20,6 +20,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
@@ -146,6 +147,25 @@ public class SMenuCommand {
     return giveMenuItem(player, menuPath, sender);
   }
 
+  /**
+   * 解析一行菜单文本，确保未显式设置的文字装饰被重置为 {@code false}
+   * <p>
+   * {@link LegacyComponentSerializer#legacySection()} 遇到 {@code §r} 时仅将装饰设为
+   * {@link TextDecoration.State#NOT_SET}（未设置），但某些 Minecraft 客户端/Adventure 版本
+   * 可能将 {@code NOT_SET} 渲染为已启用（如斜体），导致样式跨行"继承"。
+   * 此方法将 {@code NOT_SET} 的装饰显式设为 {@code FALSE} 以规避该问题。
+   */
+  private static Component ensureReset(Component component) {
+    var style = component.style();
+    return component.style(s -> {
+      for (TextDecoration dec : TextDecoration.values()) {
+        if (style.decoration(dec) == TextDecoration.State.NOT_SET) {
+          s.decoration(dec, false);
+        }
+      }
+    });
+  }
+
   /** 给予玩家菜单物品 */
   private int giveMenuItem(Player player, String menuPath, CommandSender sender) {
     boolean specialized = Joyous.conf.getBoolean("SMenu.menu-item.specialized", true);
@@ -164,10 +184,12 @@ public class SMenuCommand {
     if (meta != null) {
       if (!display.isEmpty()) {
         var serializer = LegacyComponentSerializer.legacySection();
-        meta.displayName(serializer.deserialize(MCColor.parse("§r" + display.get(0))));
+        meta.displayName(ensureReset(
+            serializer.deserialize(MCColor.parse("§r" + display.get(0)))));
         if (display.size() > 1) {
           var lore = display.subList(1, display.size()).stream()
-              .<Component>map(line -> serializer.deserialize(MCColor.parse("§r" + line)))
+              .<Component>map(line -> ensureReset(
+                  serializer.deserialize(MCColor.parse("§r" + line))))
               .toList();
           meta.lore(lore);
         }
