@@ -151,7 +151,7 @@ public class SMenuCommand {
     boolean specialized = Joyous.conf.getBoolean("SMenu.menu-item.specialized", true);
     String materialName = Joyous.conf.getString("SMenu.menu-item.material", "clock");
     List<String> display = Joyous.conf.getListOfString("SMenu.menu-item.display",
-        List.of("&b菜单", "&7Powered by StreackMC/Joyous."));
+        List.of("&b菜单", "&7Powered by StreackMC/Joyous.", "每行开头无需手动重置样式，会自动重置。这行文本就不是斜体嫣紫的。"));
 
     Material material = Material.getMaterial(materialName.toUpperCase());
     if (material == null) {
@@ -164,10 +164,10 @@ public class SMenuCommand {
     if (meta != null) {
       if (!display.isEmpty()) {
         var serializer = LegacyComponentSerializer.legacySection();
-        meta.displayName(serializer.deserialize(MCColor.parse(display.get(0))));
+        meta.displayName(serializer.deserialize(MCColor.parse("§r" + display.get(0))));
         if (display.size() > 1) {
           var lore = display.subList(1, display.size()).stream()
-              .<Component>map(line -> serializer.deserialize(MCColor.parse(line)))
+              .<Component>map(line -> serializer.deserialize(MCColor.parse("§r" + line)))
               .toList();
           meta.lore(lore);
         }
