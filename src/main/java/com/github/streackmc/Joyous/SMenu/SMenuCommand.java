@@ -27,10 +27,10 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * <p>
  * 提供命令：
  * <ul>
- *   <li>{@code /smenu open <menu> [player]} — 为（指定）玩家打开菜单</li>
- *   <li>{@code /smenu get [menu]} — 获取菜单物品</li>
- *   <li>{@code /smenu reload} — 重载所有菜单缓存</li>
- *   <li>{@code /smenu help} — 显示帮助</li>
+ *   <li>{@code /jmenu open <menu> [player]} — 为（指定）玩家打开菜单</li>
+ *   <li>{@code /jmenu get [menu]} — 获取菜单物品</li>
+ *   <li>{@code /jmenu reload} — 重载所有菜单缓存</li>
+ *   <li>{@code /jmenu help} — 显示帮助</li>
  * </ul>
  *
  * @author kdxiaoyi
@@ -59,17 +59,17 @@ public class SMenuCommand {
             .then(Commands.literal("open")
                 .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.smenu.open"))
                 .then(Commands.argument("menu", StringArgumentType.string())
-                    .executes(this::open) // /smenu open <menu>
+                    .executes(this::open) // /jmenu open <menu>
                     .then(Commands.argument("player", ArgumentTypes.player())
                         .requires(ctx -> ctx.getSender().hasPermission("minecraft.selector"))
                         .requires(ctx -> ctx.getSender().hasPermission(
                             "joyous.commands.smenu.open.others"))
-                        .executes(this::openOthers)))) // /smenu open <menu> <player>
+                        .executes(this::openOthers)))) // /jmenu open <menu> <player>
             .then(Commands.literal("get")
                 .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.smenu.get"))
-                .executes(this::get) // /smenu get
+                .executes(this::get) // /jmenu get
                 .then(Commands.argument("menu", StringArgumentType.string())
-                    .executes(this::getMenu))) // /smenu get <menu>
+                    .executes(this::getMenu))) // /jmenu get <menu>
             .then(Commands.literal("reload")
                 .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.smenu.reload"))
                 .executes(this::reload))
@@ -84,7 +84,7 @@ public class SMenuCommand {
   // 命令实现
   // ──────────────────────────────────────────────
 
-  /** /smenu open <menu> */
+  /** /jmenu open <menu> */
   private int open(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
@@ -95,7 +95,7 @@ public class SMenuCommand {
     return openForPlayer(player, menuPath, sender);
   }
 
-  /** /smenu open <menu> <player> */
+  /** /jmenu open <menu> <player> */
   private int openOthers(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     String menuPath = StringArgumentType.getString(ctx, "menu");
@@ -125,7 +125,7 @@ public class SMenuCommand {
     }
   }
 
-  /** /smenu get */
+  /** /jmenu get */
   private int get(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
@@ -135,7 +135,7 @@ public class SMenuCommand {
     return giveMenuItem(player, "", sender);
   }
 
-  /** /smenu get <menu> */
+  /** /jmenu get <menu> */
   private int getMenu(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
@@ -194,7 +194,7 @@ public class SMenuCommand {
     return 1;
   }
 
-  /** /smenu reload */
+  /** /jmenu reload */
   private int reload(CommandContext<CommandSourceStack> ctx) {
     manager.invalidateAllCache();
     Joyous.conf.reload();
@@ -203,24 +203,24 @@ public class SMenuCommand {
     return 1;
   }
 
-  /** /smenu help */
+  /** /jmenu help */
   private int help(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     sender.sendMessage(MCColor.parse("""
-        &6/smenu open <menu> [player]
+        &6/jmenu open <menu> [player]
         &f打开一个菜单，可指定目标玩家
         &2P: &7joyous.commands.smenu.open (默认所有)
         &2P: &7joyous.commands.smenu.open.others (默认 OP)
         &r
-        &6/smenu get [menu]
+        &6/jmenu get [menu]
         &f获取菜单物品
         &2P: &7joyous.commands.smenu.get (默认所有)
         &r
-        &6/smenu reload
+        &6/jmenu reload
         &f重载所有菜单缓存
         &2P: &7joyous.commands.smenu.reload (默认 OP)
         &r
-        &6/smenu help
+        &6/jmenu help
         &f显示此帮助
         """));
     return 1;
