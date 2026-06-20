@@ -178,9 +178,11 @@ public class SMenuManager {
   private void openJavaMenu(SMenuEntry menuData, Player player) {
     int lines = menuData.getLines();
     String title = menuData.getTitle();
+    // 解析 PAPI 占位符（带玩家上下文，替换 %player_name% 等玩家相关占位符）
+    String papiTitle = Joyous.i18n.getPHparsed(player, title);
 
     Inventory inventory = Bukkit.createInventory(null, lines * 9,
-        LegacyComponentSerializer.legacySection().deserialize(MCColor.parse(title)));
+        LegacyComponentSerializer.legacySection().deserialize(MCColor.parse(papiTitle)));
 
     // 放置按钮（按权限过滤）
     for (var btn : menuData.getJavaButtons()) {

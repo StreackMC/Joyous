@@ -184,12 +184,17 @@ public class SMenuCommand {
     if (meta != null) {
       if (!display.isEmpty()) {
         var serializer = LegacyComponentSerializer.legacySection();
+        // 先解析 PAPI 占位符（带玩家上下文），再解析颜色代码
+        String papiName = Joyous.i18n.getPHparsed(player, display.get(0));
         meta.displayName(ensureReset(
-            serializer.deserialize(MCColor.parse("§r" + display.get(0)))));
+            serializer.deserialize(MCColor.parse("§r" + papiName))));
         if (display.size() > 1) {
           var lore = display.subList(1, display.size()).stream()
-              .<Component>map(line -> ensureReset(
-                  serializer.deserialize(MCColor.parse("§r" + line))))
+              .<Component>map(line -> {
+                String papiLine = Joyous.i18n.getPHparsed(player, line);
+                return ensureReset(
+                    serializer.deserialize(MCColor.parse("§r" + papiLine)));
+              })
               .toList();
           meta.lore(lore);
         }

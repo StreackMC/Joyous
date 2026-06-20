@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 import com.github.streackmc.StreackLib.utils.SConfig;
@@ -75,8 +76,8 @@ public class SMenuEntry {
       throw new IllegalArgumentException("无法解析菜单 " + menuPath + "：" + e.getLocalizedMessage(), e);
     }
 
-    // 3. 解析基本属性
-    this.title = MCColor.parse(conf.getString("title", "菜单"));
+    // 3. 解析基本属性（含 PAPI 占位符，无玩家上下文时仅解析服务端占位符）
+    this.title = MCColor.parse(Joyous.i18n.getPHparsed(null, conf.getString("title", "菜单")));
     int rawLines = conf.getInt("lines", 3);
     if (rawLines < 1 || rawLines > 6) rawLines = 3;
     this.lines = rawLines;
@@ -140,16 +141,18 @@ public class SMenuEntry {
         List<String> tooltipRaw = conf.getListOfString(displayPrefix + ".tooltip");
         if (tooltipRaw != null && !tooltipRaw.isEmpty()) {
           var serializer = LegacyComponentSerializer.legacySection();
-          // 首行为标题，其余为 Lore
+          // 首行为标题，其余为 Lore；先解析 PAPI（无玩家时仅解析服务端占位符），再解析颜色代码
+          String papiName = Joyous.i18n.getPHparsed(null, tooltipRaw.get(0));
           meta.displayName(ensureReset(
-              serializer.deserialize(MCColor.parse("§r" + tooltipRaw.get(0)))));
+              serializer.deserialize(MCColor.parse("§r" + papiName))));
           if (tooltipRaw.size() > 1) {
             List<Component> lore = new ArrayList<>();
             for (int i = 1; i < tooltipRaw.size(); i++) {
               String text = tooltipRaw.get(i);
               if (text == null) continue;
+              String papiLine = Joyous.i18n.getPHparsed(null, text);
               lore.add(ensureReset(
-                  serializer.deserialize(MCColor.parse("§r" + text))));
+                  serializer.deserialize(MCColor.parse("§r" + papiLine))));
             }
             meta.lore(lore);
           }
