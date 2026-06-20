@@ -26,7 +26,7 @@ SMenu:
 
     ## 给予
     # 进入服务器时背包没有菜单是否要给一个新的
-    # ！禁用后你需要手动处理菜单给予，要不然就需要开放命令 /jmenu open 或者 /jmenu get 。
+    # ！禁用后你需要手动处理菜单给予，要不然就需要开放命令 /smenu open 或者 /smenu get 。
     give: false
   
   ## 命令别名
@@ -34,7 +34,7 @@ SMenu:
   alias: []
 
   ## 冷却
-  # 玩家需要间隔多久才能再次打开菜单。使用 /jmenu open [menu] 指定菜单可以绕过。
+  # 玩家需要间隔多久才能再次打开菜单。使用 /smenu open [menu] 指定菜单可以绕过。
   cooldown: 3
 
 ## APIHolders 模块
