@@ -1,0 +1,18 @@
+# 邮件服务设置
+
+shutdown:
+  # 是否要发送关服邮件
+  enabled: true
+  # 时间占位符 %time% 替换的格式
+  time: "yyyy-MM-dd HH:mm:ss"
+  # 服务器名占位符 %name% 的值应该是什么
+  name: "MAIN_SERVER"
+  # 发给谁？下列列表为密送。
+  to:
+    - "foo@example.com"
+  # 邮件标题是
+  subject: "Shutdown Warn from Your Server!"
+  # 要使用高优先级吗
+  high-pirority: true
+  # 使用哪个 StreackLib SEmail Profile ？
+  profile: "default"

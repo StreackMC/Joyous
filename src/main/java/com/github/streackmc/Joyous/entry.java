@@ -12,6 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
 import com.github.streackmc.Joyous.EnvExport.EnvExport;
+import com.github.streackmc.Joyous.Mails.MailsMain;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
 import com.github.streackmc.Joyous.SMenu.SMenuMain;
 import com.github.streackmc.Joyous._Model.JoyousModel;
@@ -38,6 +39,7 @@ public class entry extends JavaPlugin {
       addModel(new EnvExport());
       addModel(new PlayerTitleMain());
       addModel(new SMenuMain());
+      addModel(new MailsMain());
     }
   }
 
@@ -101,13 +103,12 @@ public class entry extends JavaPlugin {
     logger.info("正在启用子模块...");
     Models.models.forEach((name, model) -> {
       try {
-        if (!Joyous.conf.getBoolean(name + ".enable", true)) {
+        if (!Joyous.conf.getBoolean(name + ".enabled", true)) {
           logger.debug("由于配置文件，已禁用 " + name);
           return;
         }
         logger.info("正在启用 " + name);
         model.onEnable();
-        logger.info("已启用 " + name);
       } catch (IgnoredException e1) {
         logger.debug("中断" + e1.getLocalizedMessage() + "\n", e1.getStackTrace().toString());
       } catch (Exception e2) {
