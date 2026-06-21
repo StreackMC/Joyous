@@ -36,7 +36,7 @@ public class MailsCommand {
         .then(
           Commands.argument("Profile", StringArgumentType.word())
           .then(
-            Commands.argument("targetAddress", StringArgumentType.word())
+            Commands.argument("targetAddress", StringArgumentType.string())
             .then(
               Commands.argument("Subject", StringArgumentType.string())
               .then(
