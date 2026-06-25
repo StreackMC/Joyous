@@ -123,7 +123,16 @@ public class SMenuEntry {
         continue;
       }
 
-      Material material = Material.getMaterial(dispStr.toUpperCase());
+      // 标准化ID，删掉命名空间
+      String id = dispStr.toUpperCase();
+      int namespaceIndex = id.indexOf(":");
+      if (namespaceIndex >= 0/* 确保有命名空间 */ && namespaceIndex + 1 < id.length()/* 且:后面有字符 */) {
+        id = id.substring(namespaceIndex + 1);
+      } else if (namespaceIndex >= 0/* 此处说明只有命名空间 */) {
+        logger.warn("菜单 [%s] 中的按钮 [%s] 缺少物品 ID", menuPath, slotKey);
+        continue;
+      }
+      Material material = Material.getMaterial(id);
       if (material == null) {
         logger.warn("菜单 [%s] 中的按钮 [%s] 使用了未知物品 [%s]", menuPath, slotKey, dispStr);
         continue;
