@@ -58,7 +58,7 @@ public class SMenuEntry {
     this.menuPath = menuPath;
 
     // 1. 定位菜单文件
-    Path filePath = SMenuMain.MENU_PATH.resolve(menuPath + ".jmenu");
+    Path filePath = SMenuMain.MENU_PATH.resolve(menuPath.replaceAll(".", "/") + ".jmenu");
     if (Files.notExists(filePath)) {
       // 尝试 404 回退
       Path fallback = SMenuMain.MENU_PATH.resolve("404.jmenu");
