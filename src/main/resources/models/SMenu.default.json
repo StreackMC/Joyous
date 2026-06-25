@@ -73,5 +73,7 @@
       // url  = 目标URL
       "param": "example"
     }
-  ]
+  ],
+  "jme": "menu",
+  "jmev": 1
 }
