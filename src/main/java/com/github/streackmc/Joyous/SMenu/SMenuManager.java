@@ -184,11 +184,11 @@ public class SMenuManager {
     Inventory inventory = Bukkit.createInventory(null, lines * 9,
         LegacyComponentSerializer.legacySection().deserialize(MCColor.parse(papiTitle)));
 
-    // 放置按钮（按权限过滤）
+    // 放置按钮（按权限过滤，逐玩家构建以解析 PAPI）
     for (var btn : menuData.getJavaButtons()) {
       int slot = (btn.x() - 1) * 9 + (btn.y() - 1);
       if (checkPermission(player, btn.perm(), btn.permUnhave())) {
-        inventory.setItem(slot, btn.item());
+        inventory.setItem(slot, btn.buildItem(player));
       }
     }
 
@@ -224,7 +224,8 @@ public class SMenuManager {
     }
 
     try {
-      String title = MCColor.strip(menuData.getTitle());
+      // 逐玩家解析 PAPI 后，去除所有颜色代码供基岩版表单使用
+      String title = MCColor.remove(Joyous.i18n.getPHparsed(player, menuData.getTitle()));
       var buttons = menuData.getBedrockButtons();
 
       // 过滤可用按钮
