@@ -195,7 +195,7 @@ public class SMenuManager {
     // 记录当前菜单并打开
     ACTIVE_MENUS.put(player.getUniqueId(), menuData);
     player.openInventory(inventory);
-    player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.5f, 1.0f);
+    player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_HIT, 0.5f, 1.0f);
   }
 
   /** 获取玩家当前打开的菜单，若没有则返回 null */
