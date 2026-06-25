@@ -1,0 +1,76 @@
+## 多语言支持
+# 需要您手动替换以下所有翻译键值
+# 人手限制默认只提供中文(zh_cn)
+# 键缺失时会使用默认值并自动填充到本文件
+# * 空值也算缺失
+# * 所有翻译键都支持自动重载
+
+## Mutiple Language Support
+# We are so sorry that, on account of lacking developers, we cann't provide official translation except Simplified Chinese (zh_cn).
+# You need to edit the value of those keys to use your own language.
+# When some translations are missing, we would use the default ones and put it here.
+# * If you set a value to empty, then it will be seen as unset, causing missing translation.
+# * Note: All listed key-value pairs are equipped with auto reload.
+
+# 支持 PlaceholderAPI 和 &
+# Using PlaceholderAPI or char '&' are supported.
+
+system:
+  i18n:
+    update: "您的语言文件需要更新了，请查看 %s"
+    you: "您"
+  command:
+    no_premission: "&c未知或不完整的命令"
+    player_only: "&c该命令只能由玩家执行"
+    target_loss: "&c找不到指定的目标"
+    failed: "&c无法执行命令：\n&r&c&n%s &r&c&o<- [HERE]"
+    unexpected: "&c执行命令时发生意外：\n&r&c&n%s &r&c&o<- [HERE]\n&r&c%s"
+envexport:
+  command:
+    set: "&f已将 %s 的值更新为 %s"
+    removed: "&f已移除 %s 的值"
+entroprix:
+  pool:
+    unknown: "&c卡池&f %s &c不存在"
+    invaild: "&c卡池&f %s &c的配置无效"
+    invaild_times: "&c无效的抽取次数，应介于 %s 和 %s 间"
+    missing_guarantee: "&c卡池&f %s &c没有配置保底"
+    missing_up: "大保底状态但卡池未配置任何大保底奖励"
+    missing_normal: "小保底触发但卡池未配置任何小保底奖励"
+  get:
+    normal: "&f%s已触发%s个[%s]保底，当前位于保底内第%s发"
+    tries: "&f%s的保底[%s]内抽数为 %s"
+    counts: "&f%s的保底[%s]计数为 %s"
+  set:
+    tries: "&f将 %s 的保底[%s]内抽数设为 %s"
+    counts: "&f将 %s 的保底[%s]计数设为 %s"
+    reset: "&f重置 %s 的保底[%s]数据"
+titles:
+  status:
+    outdated: "&e注意，您的称号已过期，将重置为默认。"
+    not_have_yet: "&c错误：&r&f您还未持有此称号。"
+    missing: "&c错误：&r&f系统找不到您的称号 &b[%s] ，其已被删除？"
+  set:
+    done: "&a已将称号设置为 &r%s"
+    wrong: "&c设置称号时发生了错误：&f%s"
+    unknown: "&c未知的称号"
+  preview: "&a称号样式预览： &r%s"
+  help: |
+    &6/playertitle set <titleId> [target]
+    &f为指定玩家设置称号，玩家需要拥有才能生效。
+    &2P: &7joyous.commands.playertitle.set
+    &f设置自己的称号
+    &2P: &7joyous.commands.playertitle.set.others
+    &f设置别人的称号，即允许接&n[target]&r&f参数。此时目标玩家不会收到通知。
+    &r
+    &6/playertitle help
+    &f展示此消息
+    &r
+    &6/playertitle preview
+    &f预览一个称号，需要权限 joyous.commands.playertitle.preview
+
+smenu:
+  not_found: "&c菜单&f %s &c不存在"
+  load_failed: "&c菜单&f %s &c加载失败：&f%s"
+  open_url: "&n&e点击此处以打开 &r&f&n%s"
+  open_url_be: "&n&e链接→ &r&f&n%s"
