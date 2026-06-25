@@ -43,7 +43,7 @@ public class SMenuEntry {
   private final List<JavaButton> javaButtons = new ArrayList<>();
   /** 基岩版按钮列表 */
   private final List<BedrockButton> bedrockButtons = new ArrayList<>();
-  /** 菜单标题（已解析颜色） */
+  /** 菜单标题（原始文本，含 {@code &} 颜色码和可能的 PAPI 占位符） */
   private final String title;
   /** 菜单行数（仅 Java 版，1-6） */
   private final int lines;
@@ -76,8 +76,8 @@ public class SMenuEntry {
       throw new IllegalArgumentException("无法解析菜单 " + menuPath + "：" + e.getLocalizedMessage(), e);
     }
 
-    // 3. 解析基本属性（含 PAPI 占位符，无玩家上下文时仅解析服务端占位符）
-    this.title = MCColor.parse(Joyous.i18n.getPHparsed(null, conf.getString("title", "菜单")));
+    // 3. 解析基本属性（标题存原始文本，PAPI 和颜色在打开菜单时逐玩家解析）
+    this.title = conf.getString("title", "菜单");
     int rawLines = conf.getInt("lines", 3);
     if (rawLines < 1 || rawLines > 6) rawLines = 3;
     this.lines = rawLines;
@@ -145,31 +145,16 @@ public class SMenuEntry {
         item.addUnsafeEnchantment(Enchantment.UNBREAKING, 1);
       }
 
-      ItemMeta meta = item.getItemMeta();
-      if (meta != null) {
-        List<String> tooltipRaw = conf.getListOfString(displayPrefix + ".tooltip");
-        if (tooltipRaw != null && !tooltipRaw.isEmpty()) {
-          var serializer = LegacyComponentSerializer.legacySection();
-          // 首行为标题，其余为 Lore；先解析 PAPI（无玩家时仅解析服务端占位符），再解析颜色代码
-          String papiName = Joyous.i18n.getPHparsed(null, tooltipRaw.get(0));
-          meta.displayName(ensureReset(
-              serializer.deserialize(MCColor.parse("§r" + papiName))));
-          if (tooltipRaw.size() > 1) {
-            List<Component> lore = new ArrayList<>();
-            for (int i = 1; i < tooltipRaw.size(); i++) {
-              String text = tooltipRaw.get(i);
-              if (text == null) continue;
-              String papiLine = Joyous.i18n.getPHparsed(null, text);
-              lore.add(ensureReset(
-                  serializer.deserialize(MCColor.parse("§r" + papiLine))));
-            }
-            meta.lore(lore);
-          }
-        }
-        if (enchant) {
+      // 收集原始 tooltip 文本（PAPI 和颜色在打开菜单时逐玩家解析，不缓存）
+      List<String> tooltipRaw = conf.getListOfString(displayPrefix + ".tooltip");
+
+      // 缓存的物品仅保留材质和附魔光效，不含文字（文字在 buildItem 时逐玩家构建）
+      if (enchant) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
           meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+          item.setItemMeta(meta);
         }
-        item.setItemMeta(meta);
       }
 
       // 权限
@@ -185,7 +170,7 @@ public class SMenuEntry {
       String action = conf.getString(btnPrefix + ".action", "");
       String param = conf.getString(btnPrefix + ".param");
 
-      javaButtons.add(new JavaButton(x, y, item, perm, permUnhave, action, param));
+      javaButtons.add(new JavaButton(x, y, material, enchant, tooltipRaw, item, perm, permUnhave, action, param));
     }
   }
 
@@ -230,7 +215,13 @@ public class SMenuEntry {
       int x,
       /** 列（1-indexed） */
       int y,
-      /** 按钮物品（已解析颜色、附魔） */
+      /** 按钮物品材质 */
+      Material materialType,
+      /** 是否有附魔光效 */
+      boolean enchant,
+      /** 原始 tooltip 文本（用于逐玩家 PAPI 解析） */
+      List<String> tooltipRaw,
+      /** 按钮物品（无玩家 PAPI 时的回退） */
       ItemStack item,
       /** 权限节点，{@code null} 表示不校验 */
       String perm,
@@ -240,7 +231,43 @@ public class SMenuEntry {
       String action,
       /** 动作参数 */
       String param
-  ) {}
+  ) {
+    /**
+     * 为指定玩家构建按钮物品（逐玩家解析 PAPI 占位符）
+     *
+     * @param player 目标玩家，为 {@code null} 时仅解析服务端占位符
+     * @return 适用于该玩家的 ItemStack
+     */
+    public ItemStack buildItem(@javax.annotation.Nullable org.bukkit.entity.Player player) {
+      ItemStack newItem = new ItemStack(materialType);
+      if (enchant) {
+        newItem.addUnsafeEnchantment(Enchantment.UNBREAKING, 1);
+      }
+      ItemMeta meta = newItem.getItemMeta();
+      if (meta != null && tooltipRaw != null && !tooltipRaw.isEmpty()) {
+        var serializer = LegacyComponentSerializer.legacySection();
+        String papiName = Joyous.i18n.getPHparsed(player, tooltipRaw.get(0));
+        meta.displayName(SMenuEntry.ensureReset(
+            serializer.deserialize(MCColor.parse("§r" + papiName))));
+        if (tooltipRaw.size() > 1) {
+          java.util.List<Component> lore = new ArrayList<>();
+          for (int i = 1; i < tooltipRaw.size(); i++) {
+            String text = tooltipRaw.get(i);
+            if (text == null) continue;
+            String papiLine = Joyous.i18n.getPHparsed(player, text);
+            lore.add(SMenuEntry.ensureReset(
+                serializer.deserialize(MCColor.parse("§r" + papiLine))));
+          }
+          meta.lore(lore);
+        }
+        if (enchant) {
+          meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
+        newItem.setItemMeta(meta);
+      }
+      return newItem;
+    }
+  }
 
   /** 基岩版按钮 */
   public record BedrockButton(
@@ -284,7 +311,7 @@ public class SMenuEntry {
    * {@link TextDecoration.State#NOT_SET}，但某些场景下 {@code NOT_SET} 可能被渲染为已启用。
    * 此方法将 {@code NOT_SET} 的装饰显式设为 {@code FALSE} 以规避该问题。
    */
-  private static Component ensureReset(Component component) {
+  static Component ensureReset(Component component) {
     var style = component.style();
     return component.style(s -> {
       for (TextDecoration dec : TextDecoration.values()) {

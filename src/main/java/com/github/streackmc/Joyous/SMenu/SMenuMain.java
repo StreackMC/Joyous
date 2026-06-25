@@ -69,8 +69,8 @@ public class SMenuMain extends JoyousModel {
       }
     }
 
-    // 4. 创建管理器（缓存 TTL：5 分钟）
-    long ttl = 1000L * 60 * 5;
+    // 4. 创建管理器
+    long ttl = Joyous.conf.getLong("SMenu.cache_ttl", 1000L * 60 * 30);
     manager = new SMenuManager(Joyous.plugin, ttl);
 
     // 5. 注册监听器
