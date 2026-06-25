@@ -91,7 +91,7 @@ public class EntroprixCommand {
               )
             )
         )
-      ).build(), "熵流抽卡", Joyous.conf.getListOfString("entroprix.alias", List.of("ptitle")));
+      ).build(), "熵流抽卡", Joyous.conf.getListOfString("entroprix.alias", List.of("gacha")));
   }
   
   int roll(CommandContext<CommandSourceStack> ctx, int times) {
