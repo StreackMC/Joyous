@@ -11,5 +11,6 @@
 # 需要注意，empty为保留id，每次启动服务器都会重置为空
 # ---
 # 使用 %joyous.title% 来读取称号
+# 如果你发现部分情况下返回的称号里面混合着 § 甚至是 & ，请使用 %joyous.title2% 来提高兼容性
 example1: "HELLO WORLD!"
 example2: "POWERED BY STREACKMC"

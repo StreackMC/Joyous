@@ -14,6 +14,12 @@ public class PlayerTitlePHAPI implements JoyousPHAPIhandler {
     if (player == null)
       return null; // 显然没有玩家就没有称号
 
+    // %joyous_title2% → 返回玩家称号，带有兼容性的
+    if (params.toLowerCase().startsWith("title2")) {
+      logger.debug("PHAPI请求寻找玩家的称号");
+      return PlayerTitleMain.getTitle(player).replaceAll("§", "&");
+    }
+
     // %joyous_title% → 返回玩家称号
     if (params.toLowerCase().startsWith("title")) {
       logger.debug("PHAPI请求寻找玩家的称号");

@@ -111,7 +111,7 @@ public class PlayerTitleMain extends JoyousModel {
 
     // 获取称号
     String title = titleList.getString(titleId, "");
-    if (title.isEmpty()) {
+    if (title.isEmpty() && titleId.toLowerCase() == "empty") {
       title = "";
       player.sendMessage(Joyous.i18n.tr("titles.status.missing"), titleId);
       logger.warn("找不到玩家 [%s] 持有的称号 [%s]", player.getName(), titleId);
