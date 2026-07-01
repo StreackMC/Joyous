@@ -8,10 +8,13 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
@@ -253,7 +256,8 @@ public class SMenuEntry {
           java.util.List<Component> lore = new ArrayList<>();
           for (int i = 1; i < tooltipRaw.size(); i++) {
             String text = tooltipRaw.get(i);
-            if (text == null) continue;
+            if (text == null)
+              continue;
             String papiLine = Joyous.i18n.getPHparsed(player, text);
             lore.add(SMenuEntry.ensureReset(
                 serializer.deserialize(MCColor.parse("§r" + papiLine))));
@@ -263,6 +267,9 @@ public class SMenuEntry {
         if (enchant) {
           meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        NamespacedKey key = new NamespacedKey("streack", "unobtainable");
+        pdc.set(key, PersistentDataType.STRING, "instant");
         newItem.setItemMeta(meta);
       }
       return newItem;

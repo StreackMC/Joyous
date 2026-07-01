@@ -150,12 +150,17 @@ public class SMenuManager {
    * @throws IllegalArgumentException 菜单路径非法或菜单加载失败
    */
   public void openMenuFor(String menuPath, Player player) throws IllegalArgumentException {
-    if (menuPath == null || menuPath.isEmpty()) {
+    if (menuPath == null) {
       player.closeInventory();
       return;
     }
 
-    String resolved = SMenuEntry.resolvePath(menuPath);
+    String resolved;
+    if (menuPath.isBlank()) {
+      resolved = SMenuEntry.resolvePath("main");
+    } else {
+      resolved = SMenuEntry.resolvePath(menuPath);
+    }
     if (resolved.isEmpty()) {
       player.closeInventory();
       return;
@@ -192,9 +197,10 @@ public class SMenuManager {
       }
     }
 
-    // 记录当前菜单并打开
-    ACTIVE_MENUS.put(player.getUniqueId(), menuData);
+    // 先打开物品栏（这会触发 InventoryCloseEvent，若玩家此前有 GUI 则会移除旧菜单记录）
     player.openInventory(inventory);
+    // 再记录当前菜单（必须放在 openInventory 之后，避免被 InventoryCloseEvent 清掉）
+    ACTIVE_MENUS.put(player.getUniqueId(), menuData);
     player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_HIT, 0.5f, 1.0f);
   }
 

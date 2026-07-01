@@ -28,7 +28,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * <p>
  * 提供命令：
  * <ul>
- *   <li>{@code /smenu open <menu> [player]} — 为（指定）玩家打开菜单</li>
+ *   <li>{@code /smenu open [menu] [player]} — 为（指定）玩家打开菜单</li>
  *   <li>{@code /smenu get [menu]} — 获取菜单物品</li>
  *   <li>{@code /smenu reload} — 重载所有菜单缓存</li>
  *   <li>{@code /smenu help} — 显示帮助</li>
@@ -60,7 +60,7 @@ public class SMenuCommand {
             .then(Commands.literal("open")
                 .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.smenu.open"))
                 .then(Commands.argument("menu", StringArgumentType.string())
-                    .executes(this::open) // /smenu open <menu>
+                    .executes(this::open) // /smenu open [menu]
                     .then(Commands.argument("player", ArgumentTypes.player())
                         .requires(ctx -> ctx.getSender().hasPermission("minecraft.selector"))
                         .requires(ctx -> ctx.getSender().hasPermission(
@@ -96,7 +96,7 @@ public class SMenuCommand {
     return openForPlayer(player, menuPath, sender);
   }
 
-  /** /smenu open <menu> <player> */
+  /** /smenu open [menu] <player> */
   private int openOthers(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     String menuPath = StringArgumentType.getString(ctx, "menu");
