@@ -335,7 +335,7 @@ public class RestarterMain extends JoyousModel {
     return checkTimeConditions() || checkWhileConditions();
   }
 
-  /** 检查时间条件（when 下所有已配置的条件必须满足） */
+  /** 检查时间条件（OR 关系：任一配置的有效条件匹配即触发） */
   @SuppressWarnings("unchecked")
   private static boolean checkTimeConditions() {
     var when = Joyous.conf.getSection("Restarter.autoRestart.when");
@@ -344,42 +344,39 @@ public class RestarterMain extends JoyousModel {
 
     LocalDateTime now = LocalDateTime.now();
 
-    // 时
+    // 小时 (0-23，-1 或越界视为禁用)
     int hour = ((Number) when.getOrDefault("hour", -1)).intValue();
-    if (hour >= 0 && now.getHour() != hour)
-      return false;
+    if (hour >= 0 && hour <= 23 && now.getHour() == hour)
+      return true;
 
-    // 分
+    // 分钟 (0-59，-1 或越界视为禁用)
     int min = ((Number) when.getOrDefault("min", -1)).intValue();
-    if (min >= 0 && now.getMinute() != min)
-      return false;
+    if (min >= 0 && min <= 59 && now.getMinute() == min)
+      return true;
 
-    // 秒
+    // 秒 (0-59，-1 或越界视为禁用)
     int sec = ((Number) when.getOrDefault("sec", -1)).intValue();
-    if (sec >= 0 && now.getSecond() != sec)
-      return false;
+    if (sec >= 0 && sec <= 59 && now.getSecond() == sec)
+      return true;
 
-    // 星期（数字拼接表示：164 = 星期一、六、四）
+    // 星期（数字拼接：164 = 星期一、六、四；非法值跳过）
     Object weekdayObj = when.get("weekday");
     if (weekdayObj != null) {
-      String weekdayStr = String.valueOf(((Number) weekdayObj).intValue());
-      int today = now.getDayOfWeek().getValue(); // 1=Mon ... 7=Sun
-      boolean found = false;
-      for (char c : weekdayStr.toCharArray()) {
-        int day = c - '0';
-        if (day == today) {
-          found = true;
-          break;
+      try {
+        String weekdayStr = String.valueOf(((Number) weekdayObj).intValue());
+        int today = now.getDayOfWeek().getValue(); // 1=Mon ... 7=Sun
+        for (char c : weekdayStr.toCharArray()) {
+          int day = c - '0';
+          if (day >= 1 && day <= 7 && day == today)
+            return true;
         }
+      } catch (NumberFormatException ignored) {
       }
-      if (!found)
-        return false;
     }
 
     // 指定日期 M.dd
     List<String> days = (List<String>) when.get("days");
     if (days != null && !days.isEmpty()) {
-      boolean matched = false;
       for (String day : days) {
         try {
           String[] parts = day.split("\\.");
@@ -387,33 +384,25 @@ public class RestarterMain extends JoyousModel {
             continue;
           int m = Integer.parseInt(parts[0]);
           int d = Integer.parseInt(parts[1]);
-          if (m == now.getMonthValue() && d == now.getDayOfMonth()) {
-            matched = true;
-            break;
-          }
+          if (m >= 1 && m <= 12 && d >= 1 && d <= 31
+              && m == now.getMonthValue() && d == now.getDayOfMonth())
+            return true;
         } catch (NumberFormatException ignored) {
         }
       }
-      if (!matched)
-        return false;
     }
 
-    // dayOfM 通配符模式
+    // dayOfM 通配符
     List<String> dayOfMList = (List<String>) when.get("dayOfM");
     if (dayOfMList != null && !dayOfMList.isEmpty()) {
-      boolean matched = false;
       int today = now.getDayOfMonth();
       for (String pattern : dayOfMList) {
-        if (matchesDayOfMonth(pattern, today)) {
-          matched = true;
-          break;
-        }
+        if (matchesDayOfMonth(pattern, today))
+          return true;
       }
-      if (!matched)
-        return false;
     }
 
-    return true;
+    return false;
   }
 
   /**
@@ -430,21 +419,22 @@ public class RestarterMain extends JoyousModel {
     return String.valueOf(day).matches(regex);
   }
 
-  /** 检查附加条件（while 下所有启用的条件必须满足） */
+  /** 检查附加条件（OR 关系：任一启用的条件匹配即触发） */
   private static boolean checkWhileConditions() {
-    // 堆内存 OOM 检查
+    // 堆内存 OOM 检查（<=0 视为禁用）
     int oomPercent = Joyous.conf.getInt("Restarter.autoRestart.while.oomPercent", 0);
     if (oomPercent > 0) {
       Runtime rt = Runtime.getRuntime();
       long maxMemory = rt.maxMemory();
       long usedMemory = rt.totalMemory() - rt.freeMemory();
       double usedPercent = (double) usedMemory / maxMemory * 100;
-      if (usedPercent < oomPercent)
-        return false;
-      logger.debug("Restarter | OOM 条件触发: %.1f%% >= %d%%", usedPercent, oomPercent);
+      if (usedPercent >= oomPercent) {
+        logger.debug("Restarter | OOM 条件触发: %.1f%% >= %d%%", usedPercent, oomPercent);
+        return true;
+      }
     }
 
-    return true;
+    return false;
   }
 
   // ------------------------------------------------------------------------

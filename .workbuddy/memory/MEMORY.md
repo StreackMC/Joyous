@@ -19,7 +19,7 @@
 4. **PlayerTitle** — 轻量玩家称号系统(Placeholder+权限控制)
 5. **Mails** — 关服邮件通知(基于StreackLib的SMail)
 6. **EnvExport** — 环境变量KV存储(可通过占位符和命令读写)
-7. **Restarter** — 服务器重启器(代码骨架，命令尚未实现)
+7. **Restarter** — 服务器重启器
 
 ## 外部依赖 (全部 provided scope)
 - StreackLib 0.5.2 (核心库,硬依赖)
