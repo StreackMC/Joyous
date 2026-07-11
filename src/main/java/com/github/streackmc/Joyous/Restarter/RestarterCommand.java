@@ -107,11 +107,11 @@ public class RestarterCommand {
   /** /jrestarter cancel — 取消计划 */
   private int cancelAction(CommandContext<CommandSourceStack> ctx) {
     if (!RestarterMain.scheduled) {
-      ctx.getSource().getSender().sendMessage("§e当前没有计划的服务器重启或关闭。");
+      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.no-plan"));
       return 1;
     }
     RestarterMain.cancelCountdown();
-    Bukkit.broadcastMessage("§a服务器重启/关闭计划已被 §e" + ctx.getSource().getSender().getName() + " §a取消。");
+    Bukkit.broadcastMessage(Joyous.i18n.tr("restarter.command.cancelled", ctx.getSource().getSender().getName()));
     return 1;
   }
 
@@ -119,9 +119,9 @@ public class RestarterCommand {
   private int fpAdd(CommandContext<CommandSourceStack> ctx) {
     String name = StringArgumentType.getString(ctx, "player");
     if (RestarterMain.addFakePlayer(name)) {
-      ctx.getSource().getSender().sendMessage("§a已将 §f" + name + " §a添加到假人恢复列表。");
+      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.added", name));
     } else {
-      ctx.getSource().getSender().sendMessage("§e" + name + " §e已在假人恢复列表中。");
+      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.already", name));
     }
     return 1;
   }
@@ -130,9 +130,9 @@ public class RestarterCommand {
   private int fpRemove(CommandContext<CommandSourceStack> ctx) {
     String name = StringArgumentType.getString(ctx, "player");
     if (RestarterMain.removeFakePlayer(name)) {
-      ctx.getSource().getSender().sendMessage("§a已将 §f" + name + " §a从假人恢复列表中移除。");
+      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.removed", name));
     } else {
-      ctx.getSource().getSender().sendMessage("§e" + name + " §e不在假人恢复列表中。");
+      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.not-exists", name));
     }
     return 1;
   }
@@ -141,10 +141,10 @@ public class RestarterCommand {
   private int fpList(CommandContext<CommandSourceStack> ctx) {
     Set<String> fps = RestarterMain.fakePlayers;
     if (fps.isEmpty()) {
-      ctx.getSource().getSender().sendMessage("§7当前假人恢复列表为空。");
+      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.list-empty"));
     } else {
       ctx.getSource().getSender()
-          .sendMessage("§a假人恢复列表 (§f" + fps.size() + "§a): §f" + String.join(", ", fps));
+          .sendMessage(Joyous.i18n.tr("restarter.command.fp.list", fps.size(), String.join(", ", fps)));
     }
     return 1;
   }

@@ -86,5 +86,23 @@ restarter:
   auto-restart:
     bossbar: "服务器将在 %s 秒后重启" # 同时影响最后10秒的提示文本
     notify: "&e由于%s，服务器将在 %s 秒后重新启动。\n&a请及时保存您的工作以免意外发生。"
-    reason:
+    reason: "计划任务"
+    immediate:
+      broadcast: "&c&l满足自动重启条件，服务器即将重启！"
+      kick: "&c自动重启中..."
+  shutting-down:
+    restart-broadcast: "&c&l服务器正在重启！"
+    stop-broadcast: "&c&l服务器正在关闭！"
+    restart-kick: "&c服务器正在重启&r\n&7原因：&f%s"
+    stop-kick: "&c服务器正在关闭&r\n&7原因：&f%s"
+  command:
+    no-plan: "&e当前没有计划的服务器重启或关闭。"
+    cancelled: "&a服务器重启/关闭计划已被 &e%s &a取消。"
+    fp:
+      added: "&a已将 &f%s &a添加到假人恢复列表。"
+      already: "&e%s &e已在假人恢复列表中。"
+      removed: "&a已将 &f%s &a从假人恢复列表中移除。"
+      not-exists: "&e%s &e不在假人恢复列表中。"
+      list-empty: "&7当前假人恢复列表为空。"
+      list: "&a假人恢复列表 (&f%d&a)：&f%s"
       

@@ -183,7 +183,10 @@ public class RestarterMain extends JoyousModel {
     restartMode = isRestart;
     countdownSeconds = seconds;
     totalSeconds = seconds;
-    RestarterMain.reason = (reason != null) ? reason : "";
+    String effectiveReason = (reason != null && !reason.isEmpty())
+        ? reason
+        : Joyous.i18n.tr("restarter.default-reason");
+    RestarterMain.reason = effectiveReason;
 
     // 初始化 BossBar
     if (isBossBarEnabled()) {
@@ -198,10 +201,8 @@ public class RestarterMain extends JoyousModel {
     }
 
     // 首次广播
-    String action = isRestart ? "重启" : "关闭";
-    Server.broadcastMessage(
-        "§c§l服务器将在 §e" + seconds + "秒 §c§l后" + action + "！"
-            + (RestarterMain.reason.isEmpty() ? "" : " §7原因: §f" + RestarterMain.reason));
+    String notifyKey = isRestart ? "restarter.restart.notify" : "restarter.stop.notify";
+    Server.broadcastMessage(Joyous.i18n.tr(notifyKey, effectiveReason, seconds));
 
     // 启动倒计时（每秒）
     countdownTask = Server.getScheduler().runTaskTimer(Joyous.plugin, () -> {
@@ -220,9 +221,7 @@ public class RestarterMain extends JoyousModel {
       if (countdownSeconds <= 5 || countdownSeconds == 10 || countdownSeconds == 30
           || (countdownSeconds <= 60 && countdownSeconds % 30 == 0)
           || (countdownSeconds > 60 && countdownSeconds % 60 == 0)) {
-        Server.broadcastMessage(
-            "§c服务器将在 §e" + countdownSeconds + "秒 §c后" + (restartMode ? "重启" : "关闭") + "！"
-                + (RestarterMain.reason.isEmpty() ? "" : " §7(" + RestarterMain.reason + ")"));
+        Server.broadcastMessage(Joyous.i18n.tr(notifyKey, RestarterMain.reason, countdownSeconds));
       }
     }, 0L, 20L);
   }
@@ -245,13 +244,13 @@ public class RestarterMain extends JoyousModel {
 
   /** 执行关机/重启 */
   private static void executeShutdown() {
-    String actionStr = restartMode ? "重启" : "关闭";
-    Server.broadcastMessage("§c§l服务器正在" + actionStr + "！");
+    String bcKey = restartMode ? "restarter.shutting-down.restart-broadcast" : "restarter.shutting-down.stop-broadcast";
+    Server.broadcastMessage(Joyous.i18n.tr(bcKey));
 
     // 踢出所有玩家
+    String kickKey = restartMode ? "restarter.shutting-down.restart-kick" : "restarter.shutting-down.stop-kick";
     for (Player p : new ArrayList<>(Server.getOnlinePlayers())) {
-      p.kickPlayer("§c服务器正在" + actionStr + "§r"
-          + (reason.isEmpty() ? "" : "\n§7原因: §f" + reason));
+      p.kickPlayer(Joyous.i18n.tr(kickKey, reason));
     }
 
     // 保存假人
@@ -295,7 +294,8 @@ public class RestarterMain extends JoyousModel {
       bossBar.setColor(BarColor.GREEN);
     }
 
-    bossBar.setTitle("§c服务器即将" + (restartMode ? "重启" : "关闭") + " §e" + countdownSeconds + "秒");
+    String bossKey = restartMode ? "restarter.restart.bossbar" : "restarter.stop.bossbar";
+    bossBar.setTitle(Joyous.i18n.tr(bossKey, countdownSeconds));
   }
 
   // ------------------------------------------------------------------------
@@ -317,15 +317,15 @@ public class RestarterMain extends JoyousModel {
         if (timeout == 0) {
           // 立即重启
           logger.info("Restarter | 满足自动重启条件，立即执行重启。");
-          Server.broadcastMessage("§c§l满足自动重启条件，服务器即将重启！");
+          Server.broadcastMessage(Joyous.i18n.tr("restarter.auto-restart.immediate.broadcast"));
           for (Player p : new ArrayList<>(Server.getOnlinePlayers())) {
-            p.kickPlayer("§c自动重启中...");
+            p.kickPlayer(Joyous.i18n.tr("restarter.auto-restart.immediate.kick"));
           }
           if (isFpEnabled())
             saveFakePlayers();
           Server.getScheduler().runTaskLater(Joyous.plugin, () -> Server.spigot().restart(), 20L);
         } else {
-          scheduleRestart(timeout, "自动重启");
+          scheduleRestart(timeout, Joyous.i18n.tr("restarter.auto-restart.reason"));
         }
       }
     }, 20L, 20L); // 每秒
