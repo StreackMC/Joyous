@@ -248,7 +248,7 @@ public class RestarterMain extends JoyousModel {
     // 延迟执行以确保踢出完成
     Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
       if (restartMode) {
-        Server.spigot().restart();
+        Server.restart();
       } else {
         Server.shutdown();
       }
@@ -310,7 +310,7 @@ public class RestarterMain extends JoyousModel {
           }
           if (isFpEnabled())
             saveFakePlayers();
-          Server.getScheduler().runTaskLater(Joyous.plugin, () -> Server.spigot().restart(), 20L);
+          Server.getScheduler().runTaskLater(Joyous.plugin, () -> Server.restart(), 20L);
         } else {
           scheduleRestart(timeout, Joyous.i18n.tr("restarter.auto-restart.reason"));
         }
