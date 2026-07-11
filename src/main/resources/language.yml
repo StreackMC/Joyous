@@ -74,3 +74,17 @@ smenu:
   load_failed: "&c菜单&f %s &c加载失败：&f%s"
   open_url: "&n&e点击此处以打开 &r&f&n%s"
   open_url_be: "&n&e链接→ &r&f&n%s"
+
+restarter:
+  stop:
+    bossbar: "服务器将在 %s 秒后关闭" # 同时影响最后10秒的提示文本
+    notify: "&e由于%s，服务器将在 %s 秒后关闭。\n&a请及时保存您的工作以免意外发生。"
+  restart:
+    bossbar: "服务器将在 %s 秒后重启" # 同时影响最后10秒的提示文本
+    notify: "&e由于%s，服务器将在 %s 秒后重新启动。\n&a请及时保存您的工作以免意外发生。"
+  default-reason: "维护需要" # 默认原因
+  auto-restart:
+    bossbar: "服务器将在 %s 秒后重启" # 同时影响最后10秒的提示文本
+    notify: "&e由于%s，服务器将在 %s 秒后重新启动。\n&a请及时保存您的工作以免意外发生。"
+    reason:
+      

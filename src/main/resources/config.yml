@@ -123,6 +123,70 @@ Mails:
   # * 不支持热重载
   enabled: true
 
+## Restarter 模块
+# 本模块的基本用法是
+# /jrestart [秒数] [理由] - 计划重启并全服通知
+# /jstop [秒数] [理由] - 计划关闭并全服通知
+Restarter:
+  ## 是否启用
+  # * 不支持热重载
+  enabled: true
+  ## 在服务器意外关闭后计划重启
+  # 启用后只能使用 /jstop 安全关闭服务器
+  preventInterrupt: false
+  ## 是否要展示顶部倒计时条
+  showBossbar: true
+  ## 在没有输入秒数时的默认值
+  defaultTimeout: 60
+  ## 配置自动重启
+  autoRestart:
+    ## 自动重启时的倒计时（秒）
+    # 等于0立即重启，小于0禁用本功能
+    timeout: -1
+    ## 触发时间条件
+    when:
+      ## 在当天的什么时候计划重启
+      # 计划后会经过上面的 timeout 倒计时秒
+      hour: 12
+      min: 00
+      sec: 00
+      ## 每周?
+      # 支持混排，示例为星期一、四、六
+      weekday: 164
+      ## ?月?日
+      days:
+        - 7.2
+        - 2.30 # 非法值会被忽略
+      ## 每月的特定日
+      dayOfM:
+        - 1 # 1日
+        - ?5 # 5、15、25日
+        - 1? #10...19日
+    ## 触发其它条件
+    while:
+      # 当堆内存达到上限的百分之多少，小于等于 0 禁用
+      # 堆内存上限指的是 -Xmx 设置的数值
+      # 值得一提，StatusAPI 提供的内存信息还计入了非堆内存
+      oomPercent: 80
+    ## 重启后保留假人的兼容性配置
+    # 本功能只要启动都会自动生效，无论由于什么而启动
+    fp:
+      # 功能开关
+      enabled: true
+      ## 怎么找到假人
+      identify:
+        # 拥有如下权限
+        perm: 'streack.fakeplayer'
+        # 启用后假人可以被命令 /jrestarter fp <add/remove> <player> 添加
+        command: true
+      # 生成假人的命令
+      # 此处以及后者的命令无需携带 / ，使用 %name% 插入假人名称
+      spawn: 'fp spawn %name%'
+      # 使假人登录的命令
+      login: 'authme forcelogin %name%'
+      # login 在玩家加入后执行的延迟毫秒
+      delayOfJoin: 2000
+
 ## 配置文件版本
-version: 000203
+version: 000204
 # 如无必要请勿修改
