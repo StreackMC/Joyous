@@ -14,6 +14,7 @@ import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
 import com.github.streackmc.Joyous.EnvExport.EnvExport;
 import com.github.streackmc.Joyous.Mails.MailsMain;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
+import com.github.streackmc.Joyous.Restarter.RestarterMain;
 import com.github.streackmc.Joyous.SMenu.SMenuMain;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
@@ -40,6 +41,7 @@ public class entry extends JavaPlugin {
       addModel(new PlayerTitleMain());
       addModel(new SMenuMain());
       addModel(new MailsMain());
+      addModel(new RestarterMain());
     }
   }
 
