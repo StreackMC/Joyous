@@ -4,7 +4,7 @@
 
   <artifactId>Joyous</artifactId>
   <groupId>com.github.streackmc</groupId>
-  <version>0.2.4</version>
+  <version>0.2.5</version>
   <packaging>jar</packaging>
   <description>栈流Streack服务器的玩法功能插件</description>
 

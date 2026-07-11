@@ -90,6 +90,18 @@ restarter:
     immediate:
       broadcast: "&c&l满足自动重启条件，服务器即将重启！"
       kick: "&c自动重启中..."
+    memory:
+      reason: "内存压力"
+      leak-reason: "检测到内存泄漏"
+      broadcast: "&c&l服务器内存持续过高，即将自动重启！"
+      kick: "&c服务器内存压力过高，正在自动重启..."
+      leak-broadcast: "&c&l检测到内存泄漏，服务器即将自动重启！"
+      leak-kick: "&c检测到内存泄漏，服务器正在自动重启..."
+      heap-dump-failed: "&e堆转储生成失败，继续执行重启。"
+      cooldown: "&e距上次内存重启不足 %s 分钟，跳过本次内存重启。"
+      sample-failed: "&c老年代占用率 %.1f%% 超过阈值 %d%%（连续第 %d/%d 次）"
+      leak-detected: "&c内存泄漏检测：老年代 %.1f%% → %.1f%%，Full GC 回收率 %.1f%% < %d%%"
+      heap-dump-saved: "&7堆转储已保存至 %s"
   shutting-down:
     restart-broadcast: "&c&l服务器正在重启！"
     stop-broadcast: "&c&l服务器正在关闭！"

@@ -2,7 +2,7 @@
 
 ## 项目概述
 - **Joyous** 是「栈流Streack」Minecraft 服务器的玩法功能插件
-- groupId: `com.github.streackmc`, artifactId: `Joyous`, version: `0.2.4`
+- groupId: `com.github.streackmc`, artifactId: `Joyous`, version: `0.2.5`
 - 基于 Paper 1.21.8 API + Java 21
 - 许可证: GPL-3.0
 - 仓库: https://github.com/StreackMC/Joyous
@@ -19,7 +19,10 @@
 4. **PlayerTitle** — 轻量玩家称号系统(Placeholder+权限控制)
 5. **Mails** — 关服邮件通知(基于StreackLib的SMail)
 6. **EnvExport** — 环境变量KV存储(可通过占位符和命令读写)
-7. **Restarter** — 服务器重启器
+7. **Restarter** — 服务器重启器(计划重启/关闭、自动重启时间条件+内存检测、假人恢复、preventInterrupt)
+   - 内存检测: Old Gen占用率(MemoryPoolMXBean)、连续采样、泄漏检测(Full GC回收率)、堆转储、重启间隔保护
+   - 持久化: dat.json (SConfig JSON)，存储 fakePlayers + lastMemoryRestart
+   - 语义化执行: performRestart()/performShutdown() 封装最终逻辑
 
 ## 外部依赖 (全部 provided scope)
 - StreackLib 0.5.2 (核心库,硬依赖)
