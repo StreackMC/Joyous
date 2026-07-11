@@ -199,8 +199,9 @@ public class RestarterMain extends JoyousModel {
       updateBossBar();
 
       if (countdownSeconds <= 0) {
+        boolean wasRestart = restartMode;
         cancelCountdown();
-        executeShutdown();
+        executeShutdown(wasRestart);
         return;
       }
 
@@ -230,12 +231,12 @@ public class RestarterMain extends JoyousModel {
   }
 
   /** 执行关机/重启 */
-  private static void executeShutdown() {
-    String bcKey = restartMode ? "restarter.shutting-down.restart-broadcast" : "restarter.shutting-down.stop-broadcast";
+  private static void executeShutdown(boolean isRestart) {
+    String bcKey = isRestart ? "restarter.shutting-down.restart-broadcast" : "restarter.shutting-down.stop-broadcast";
     Server.broadcastMessage(Joyous.i18n.tr(bcKey));
 
     // 踢出所有玩家
-    String kickKey = restartMode ? "restarter.shutting-down.restart-kick" : "restarter.shutting-down.stop-kick";
+    String kickKey = isRestart ? "restarter.shutting-down.restart-kick" : "restarter.shutting-down.stop-kick";
     for (Player p : new ArrayList<>(Server.getOnlinePlayers())) {
       p.kickPlayer(Joyous.i18n.tr(kickKey, reason));
     }
@@ -247,7 +248,7 @@ public class RestarterMain extends JoyousModel {
 
     // 延迟执行以确保踢出完成
     Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
-      if (restartMode) {
+      if (isRestart) {
         Server.restart();
       } else {
         Server.shutdown();
