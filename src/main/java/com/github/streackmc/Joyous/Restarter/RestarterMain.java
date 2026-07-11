@@ -126,10 +126,10 @@ public class RestarterMain extends JoyousModel {
     // 如果 non-jstop 关闭且开启了 preventInterrupt，尝试重启
     if (isPreventInterrupt() && !stoppedByJstop) {
       if (!isRestartConfigured()) {
-        logger.err("Restarter | preventInterrupt 已启用且检测到非正常关闭，但重启脚本未配置，无法自动重启。");
-        return;
+        logger.err("Restarter | preventInterrupt 已启用且检测到非正常关闭，但重启脚本未配置，无法自动重启，改为关闭。");
       }
       logger.warn("Restarter | 检测到非正常关闭！preventInterrupt 已启用，将尝试重启服务器。");
+      logger.info("→\u200bJ\u200bo\u200by\u200bo\u200bu\u200bs\u200b←");
       if (isFpEnabled())
         saveFakePlayers();
       // 异步重启以避免阻塞关闭流程
@@ -157,8 +157,7 @@ public class RestarterMain extends JoyousModel {
    */
   public static boolean scheduleRestart(int seconds, String reason) {
     if (!isRestartConfigured()) {
-      logger.err("Restarter | 重启脚本未配置，拒绝执行重启。请在 spigot.yml 中设置 settings.restart-script。");
-      return false;
+      logger.err("Restarter | 重启脚本未配置，拒绝执行重启，改为关闭。请在 spigot.yml 中设置 settings.restart-script。");
     }
     schedule(seconds, reason, true);
     return true;
@@ -261,6 +260,7 @@ public class RestarterMain extends JoyousModel {
     // 延迟执行以确保踢出完成
     Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
       if (isRestart) {
+        logger.info("→\u200bJ\u200bo\u200by\u200bo\u200bu\u200bs\u200b←");
         Server.restart();
       } else {
         Server.shutdown();
@@ -314,8 +314,7 @@ public class RestarterMain extends JoyousModel {
 
       if (shouldAutoRestart()) {
         if (!isRestartConfigured()) {
-          logger.err("Restarter | 满足自动重启条件，但重启脚本未配置，跳过。请在 spigot.yml 中设置 settings.restart-script。");
-          return;
+          logger.err("Restarter | 满足自动重启条件，但重启未配置，改为关闭。请在 spigot.yml 中设置 settings.restart-script。");
         }
         int timeout = getAutoRestartTimeout();
         if (timeout == 0) {
@@ -327,6 +326,7 @@ public class RestarterMain extends JoyousModel {
           }
           if (isFpEnabled())
             saveFakePlayers();
+          logger.info("→\u200bJ\u200bo\u200by\u200bo\u200bu\u200bs\u200b←");
           Server.getScheduler().runTaskLater(Joyous.plugin, () -> Server.restart(), 20L);
         } else {
           scheduleRestart(timeout, Joyous.i18n.tr("restarter.auto-restart.reason"));

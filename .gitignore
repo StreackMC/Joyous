@@ -18,4 +18,5 @@ dependency-reduced-pom.xml
 /mcserver/u*
 /mcserver/v*
 /mcserver/w*
+/mcserver/run_j_r.sh
 .DS_Store
