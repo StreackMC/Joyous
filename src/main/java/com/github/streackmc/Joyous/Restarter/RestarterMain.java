@@ -1,5 +1,6 @@
 package com.github.streackmc.Joyous.Restarter;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,6 +15,7 @@ import org.bukkit.Server;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -123,6 +125,10 @@ public class RestarterMain extends JoyousModel {
 
     // 如果 non-jstop 关闭且开启了 preventInterrupt，尝试重启
     if (isPreventInterrupt() && !stoppedByJstop) {
+      if (!isRestartConfigured()) {
+        logger.err("Restarter | preventInterrupt 已启用且检测到非正常关闭，但重启脚本未配置，无法自动重启。");
+        return;
+      }
       logger.warn("Restarter | 检测到非正常关闭！preventInterrupt 已启用，将尝试重启服务器。");
       if (isFpEnabled())
         saveFakePlayers();
@@ -147,9 +153,15 @@ public class RestarterMain extends JoyousModel {
    * 计划重启服务器
    * @param seconds 倒计时秒数
    * @param reason  理由
+   * @return true 如果计划成功；false 如果重启脚本未配置
    */
-  public static void scheduleRestart(int seconds, String reason) {
+  public static boolean scheduleRestart(int seconds, String reason) {
+    if (!isRestartConfigured()) {
+      logger.err("Restarter | 重启脚本未配置，拒绝执行重启。请在 spigot.yml 中设置 settings.restart-script。");
+      return false;
+    }
     schedule(seconds, reason, true);
+    return true;
   }
 
   /**
@@ -301,6 +313,10 @@ public class RestarterMain extends JoyousModel {
         return;
 
       if (shouldAutoRestart()) {
+        if (!isRestartConfigured()) {
+          logger.err("Restarter | 满足自动重启条件，但重启脚本未配置，跳过。请在 spigot.yml 中设置 settings.restart-script。");
+          return;
+        }
         int timeout = getAutoRestartTimeout();
         if (timeout == 0) {
           // 立即重启
@@ -559,6 +575,37 @@ public class RestarterMain extends JoyousModel {
 
   public static boolean isFpCommandCapable() {
     return isFpEnabled() && isFpCommandEnabled();
+  }
+
+  /**
+   * 检查服务器是否已配置重启脚本。
+   * <p>
+   * Paper 的 {@link Server#restart()} 在未配置 restart-script 时
+   * 会直接停止服务器而非重启。
+   *
+   * @return true 如果 spigot.yml 中配置了 restart-script 且脚本文件存在
+   */
+  public static boolean isRestartConfigured() {
+    File serverRoot = Joyous.plugin.getDataFolder().getParentFile().getParentFile();
+    File spigotYml = new File(serverRoot, "spigot.yml");
+    if (!spigotYml.exists()) {
+      logger.warn("Restarter | 无法找到 spigot.yml，无法验证重启脚本配置。");
+      return false;
+    }
+    YamlConfiguration spigotConfig = YamlConfiguration.loadConfiguration(spigotYml);
+    String scriptPath = spigotConfig.getString("settings.restart-script", "");
+    if (scriptPath == null || scriptPath.isEmpty()) {
+      return false;
+    }
+    File scriptFile = new File(scriptPath);
+    if (!scriptFile.isAbsolute()) {
+      scriptFile = new File(serverRoot, scriptPath);
+    }
+    if (!scriptFile.exists()) {
+      logger.warn("Restarter | 重启脚本 %s 不存在。", scriptFile.getAbsolutePath());
+      return false;
+    }
+    return true;
   }
 
   // ------------------------------------------------------------------------

@@ -32,14 +32,20 @@ public class RestarterCommand {
     Joyous.registerCommand(Commands.literal("jrestart")
         .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.restarter.restart"))
         .executes(ctx -> {
-          RestarterMain.scheduleRestart(RestarterMain.getDefaultTimeout(), "");
+          if (!RestarterMain.scheduleRestart(RestarterMain.getDefaultTimeout(), "")) {
+            ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.restart-not-configured"));
+            return 0;
+          }
           return 1;
         })
         .then(
             Commands.argument("seconds", IntegerArgumentType.integer(1, 3600))
                 .executes(ctx -> {
                   int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
-                  RestarterMain.scheduleRestart(seconds, "");
+                  if (!RestarterMain.scheduleRestart(seconds, "")) {
+                    ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.restart-not-configured"));
+                    return 0;
+                  }
                   return 1;
                 })
                 .then(
@@ -47,7 +53,10 @@ public class RestarterCommand {
                         .executes(ctx -> {
                           int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
                           String reason = StringArgumentType.getString(ctx, "reason");
-                          RestarterMain.scheduleRestart(seconds, reason);
+                          if (!RestarterMain.scheduleRestart(seconds, reason)) {
+                            ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.restart-not-configured"));
+                            return 0;
+                          }
                           return 1;
                         })))
         .build(), "计划重启服务器", List.of());

@@ -98,6 +98,7 @@ restarter:
   command:
     no-plan: "&e当前没有计划的服务器重启或关闭。"
     cancelled: "&a服务器重启/关闭计划已被 &e%s &a取消。"
+    restart-not-configured: "&c无法重启：服务器未配置重启脚本。&r\n&7请在 &fspigot.yml &7中设置 &fsettings.restart-script&7，并确保脚本文件存在。"
     fp:
       added: "&a已将 &f%s &a添加到假人恢复列表。"
       already: "&e%s &e已在假人恢复列表中。"
