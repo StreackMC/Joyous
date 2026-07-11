@@ -65,7 +65,7 @@ public class PlayerTitleMain extends JoyousModel {
       }
     }
     titleList = new SConfig(CONF_PATH, "yml");
-    titleList.putString("titles.empty", "");
+    titleList.putString("empty", "");
     titleList.setAutoReload(true);
     Joyous.PlaceholderService.registerParser(PlaceholderService);
     CommandService.register();
