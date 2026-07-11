@@ -24,7 +24,7 @@ public class RestarterCommand {
   final void register() {
     Joyous.addPermissions(
         PermDef.op("joyous.commands.restarter.restart", "计划重启服务器"),
-        PermDef.op("joyous.commands.restarter.stop", "计划关闭服务器"),
+        PermDef.none("joyous.commands.restarter.stop", "计划关闭服务器"),
         PermDef.op("joyous.commands.restarter.cancel", "取消计划重启/关闭"),
         PermDef.op("joyous.commands.restarter.fp", "管理假人列表"));
 
