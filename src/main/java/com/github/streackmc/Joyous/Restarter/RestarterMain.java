@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Server;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -72,6 +73,8 @@ public class RestarterMain extends JoyousModel {
   private static volatile int totalSeconds = -1;
   /** 重启/关闭理由 */
   public static volatile String reason = "";
+  /** Server Server */
+  private static volatile Server Server = Joyous.plugin.getServer();
   /** 倒计时调度任务 */
   private static volatile BukkitTask countdownTask = null;
   /** BossBar 实例 */
@@ -137,8 +140,8 @@ public class RestarterMain extends JoyousModel {
       if (isFpEnabled())
         saveFakePlayers();
       // 异步重启以避免阻塞关闭流程
-      Bukkit.getScheduler().runTask(Joyous.plugin, () -> {
-        Bukkit.spigot().restart();
+      Server.getScheduler().runTask(Joyous.plugin, () -> {
+        Server.restart();
       });
       return;
     }
@@ -185,23 +188,23 @@ public class RestarterMain extends JoyousModel {
     // 初始化 BossBar
     if (isBossBarEnabled()) {
       if (bossBar == null) {
-        bossBar = Bukkit.createBossBar("", BarColor.RED, BarStyle.SOLID);
+        bossBar = Server.createBossBar("", BarColor.RED, BarStyle.SOLID);
       }
       bossBar.setVisible(true);
       bossBar.removeAll();
-      for (Player p : Bukkit.getOnlinePlayers()) {
+      for (Player p : Server.getOnlinePlayers()) {
         bossBar.addPlayer(p);
       }
     }
 
     // 首次广播
     String action = isRestart ? "重启" : "关闭";
-    Bukkit.broadcastMessage(
+    Server.broadcastMessage(
         "§c§l服务器将在 §e" + seconds + "秒 §c§l后" + action + "！"
             + (RestarterMain.reason.isEmpty() ? "" : " §7原因: §f" + RestarterMain.reason));
 
     // 启动倒计时（每秒）
-    countdownTask = Bukkit.getScheduler().runTaskTimer(Joyous.plugin, () -> {
+    countdownTask = Server.getScheduler().runTaskTimer(Joyous.plugin, () -> {
       countdownSeconds--;
 
       // 更新 BossBar
@@ -217,7 +220,7 @@ public class RestarterMain extends JoyousModel {
       if (countdownSeconds <= 5 || countdownSeconds == 10 || countdownSeconds == 30
           || (countdownSeconds <= 60 && countdownSeconds % 30 == 0)
           || (countdownSeconds > 60 && countdownSeconds % 60 == 0)) {
-        Bukkit.broadcastMessage(
+        Server.broadcastMessage(
             "§c服务器将在 §e" + countdownSeconds + "秒 §c后" + (restartMode ? "重启" : "关闭") + "！"
                 + (RestarterMain.reason.isEmpty() ? "" : " §7(" + RestarterMain.reason + ")"));
       }
@@ -243,10 +246,10 @@ public class RestarterMain extends JoyousModel {
   /** 执行关机/重启 */
   private static void executeShutdown() {
     String actionStr = restartMode ? "重启" : "关闭";
-    Bukkit.broadcastMessage("§c§l服务器正在" + actionStr + "！");
+    Server.broadcastMessage("§c§l服务器正在" + actionStr + "！");
 
     // 踢出所有玩家
-    for (Player p : new ArrayList<>(Bukkit.getOnlinePlayers())) {
+    for (Player p : new ArrayList<>(Server.getOnlinePlayers())) {
       p.kickPlayer("§c服务器正在" + actionStr + "§r"
           + (reason.isEmpty() ? "" : "\n§7原因: §f" + reason));
     }
@@ -257,11 +260,11 @@ public class RestarterMain extends JoyousModel {
     }
 
     // 延迟执行以确保踢出完成
-    Bukkit.getScheduler().runTaskLater(Joyous.plugin, () -> {
+    Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
       if (restartMode) {
-        Bukkit.spigot().restart();
+        Server.spigot().restart();
       } else {
-        Bukkit.shutdown();
+        Server.shutdown();
       }
     }, 20L);
   }
@@ -305,7 +308,7 @@ public class RestarterMain extends JoyousModel {
 
   private void startAutoCheck() {
     // 每秒检查一次以确保精确到秒的时间匹配
-    autoCheckTask = Bukkit.getScheduler().runTaskTimer(Joyous.plugin, () -> {
+    autoCheckTask = Server.getScheduler().runTaskTimer(Joyous.plugin, () -> {
       if (scheduled)
         return;
 
@@ -314,13 +317,13 @@ public class RestarterMain extends JoyousModel {
         if (timeout == 0) {
           // 立即重启
           logger.info("Restarter | 满足自动重启条件，立即执行重启。");
-          Bukkit.broadcastMessage("§c§l满足自动重启条件，服务器即将重启！");
-          for (Player p : new ArrayList<>(Bukkit.getOnlinePlayers())) {
+          Server.broadcastMessage("§c§l满足自动重启条件，服务器即将重启！");
+          for (Player p : new ArrayList<>(Server.getOnlinePlayers())) {
             p.kickPlayer("§c自动重启中...");
           }
           if (isFpEnabled())
             saveFakePlayers();
-          Bukkit.getScheduler().runTaskLater(Joyous.plugin, () -> Bukkit.spigot().restart(), 20L);
+          Server.getScheduler().runTaskLater(Joyous.plugin, () -> Server.spigot().restart(), 20L);
         } else {
           scheduleRestart(timeout, "自动重启");
         }
@@ -475,7 +478,7 @@ public class RestarterMain extends JoyousModel {
   /** 扫描在线玩家，将拥有假人权限的加入名单 */
   private static void collectFakePlayers() {
     String perm = getFpPerm();
-    for (Player p : Bukkit.getOnlinePlayers()) {
+    for (Player p : Server.getOnlinePlayers()) {
       if (p.hasPermission(perm)) {
         fakePlayers.add(p.getName().toLowerCase());
       }
@@ -539,7 +542,7 @@ public class RestarterMain extends JoyousModel {
 
     logger.info("Restarter | 将在 %d ms 后恢复 %d 个假人", delayMs, toRecover.size());
 
-    Bukkit.getScheduler().runTaskLater(Joyous.plugin, () -> {
+    Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
       // 清理持久化文件
       try {
         Files.deleteIfExists(fakePlayerFile);
@@ -549,13 +552,13 @@ public class RestarterMain extends JoyousModel {
       for (String name : toRecover) {
         // 生成假人
         String spawn = spawnCmd.replace("%name%", name);
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), spawn);
+        Server.dispatchCommand(Server.getConsoleSender(), spawn);
         logger.debug("Restarter | 已生成假人: %s", name);
 
         // 延迟登录
-        Bukkit.getScheduler().runTaskLater(Joyous.plugin, () -> {
+        Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
           String login = loginCmd.replace("%name%", name);
-          Bukkit.dispatchCommand(Bukkit.getConsoleSender(), login);
+          Server.dispatchCommand(Server.getConsoleSender(), login);
           logger.debug("Restarter | 假人已登录: %s", name);
         }, delayTicks);
       }
