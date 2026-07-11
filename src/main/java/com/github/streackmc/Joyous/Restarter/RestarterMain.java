@@ -332,7 +332,7 @@ public class RestarterMain extends JoyousModel {
   }
 
   private static boolean shouldAutoRestart() {
-    return checkTimeConditions() && checkWhileConditions();
+    return checkTimeConditions() || checkWhileConditions();
   }
 
   /** 检查时间条件（when 下所有已配置的条件必须满足） */
