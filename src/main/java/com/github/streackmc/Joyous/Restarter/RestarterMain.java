@@ -23,7 +23,6 @@ import org.bukkit.scheduler.BukkitTask;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
-import com.github.streackmc.StreackLib.utils.SFile;
 
 /**
  * 服务器重启/关闭管理模块
@@ -38,13 +37,11 @@ public class RestarterMain extends JoyousModel {
     return "Restarter";
   }
 
-  private static volatile Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
-
   public RestarterMain() {
   };
 
   public static final class NAMES {
-    public static final String CONF_FILE = "models/Restarter.yml";
+    public static final String FP_SAVES = "models/Restarter.fp.dat";
     public static final String LOG_FILE = "logs/Restarter";
     public static final String PERMISSION_PREFIX = "joyous.restarter.";
 
@@ -84,8 +81,7 @@ public class RestarterMain extends JoyousModel {
   /** 假人名册（小写） */
   public static volatile Set<String> fakePlayers = new HashSet<>();
   /** 假人持久化文件 */
-  private static volatile Path fakePlayerFile = Joyous.dataPath.toPath()
-      .resolve(NAMES.CONF_FILE.replace(".yml", ".fp.dat"));
+  private static volatile Path fakePlayerFile = Joyous.dataPath.toPath().resolve(NAMES.FP_SAVES);
   /** 是否由 /jstop 触发关闭（用于 preventInterrupt） */
   private static volatile boolean stoppedByJstop = false;
 
@@ -95,15 +91,6 @@ public class RestarterMain extends JoyousModel {
 
   @Override
   public void onEnable() {
-    if (Files.notExists(CONF_PATH)) {
-      try {
-        logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
-        SFile.mv(Joyous.getResourceAsFile("/" + NAMES.CONF_FILE), CONF_PATH.toFile());
-      } catch (Exception e) {
-        logger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
-      }
-    }
-
     // 恢复假人
     if (isFpEnabled()) {
       loadFakePlayers();
