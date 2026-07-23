@@ -78,7 +78,7 @@ public class JMenuCommand {
                 .executes(this::help))
             .build(),
         "Joyous 双端通用菜单系统",
-        Joyous.conf.getListOfString("JMenu.alias", List.of()));
+        Joyous.conf.getListOfString("JMenu.alias", List.of("smenu")));
   }
 
   // ──────────────────────────────────────────────
