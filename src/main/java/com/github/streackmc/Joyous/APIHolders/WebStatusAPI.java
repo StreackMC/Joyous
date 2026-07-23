@@ -10,8 +10,6 @@ import org.nanohttpd.protocols.http.request.Method;
 import org.nanohttpd.protocols.http.response.Response;
 import org.nanohttpd.protocols.http.response.Status;
 
-import org.nanohttpd.protocols.http.response.Status;
-
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.MCColor;

@@ -446,15 +446,13 @@ public class EntroprixMain extends JoyousModel {
   // ------------------------------------------------------------------------
 
   private static class Reward {
-    private final int rate;
-    private final List<String> commands;
-    private final String name;
-    private final int guaranteeType;
+    public final int rate;
+    public final List<String> commands;
+    public final String name;
 
     Reward(int rate, List<String> commands, int guaranteeType, String name) {
       this.rate = rate;
       this.commands = new ArrayList<>(commands);
-      this.guaranteeType = guaranteeType;
       this.name = Objects.requireNonNullElse(name, "");
     }
 
@@ -464,10 +462,6 @@ public class EntroprixMain extends JoyousModel {
 
     List<String> getCommands() {
       return Collections.unmodifiableList(commands);
-    }
-
-    int getGuaranteeType() {
-      return guaranteeType;
     }
   }
 
@@ -635,7 +629,7 @@ public class EntroprixMain extends JoyousModel {
       } catch (Exception e) {
         logger.err(Joyous.i18n.tr("system.command.unexpected"), cmd, e.getLocalizedMessage());
       }
-      String clean = cmd.replaceAll("\\s+", " ").trim();
+      //String clean = cmd.replaceAll("\\s+", " ").trim();
     }
     return;
   }
