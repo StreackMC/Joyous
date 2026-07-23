@@ -13,6 +13,7 @@ import com.mojang.brigadier.context.CommandContext;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
  * Restarter 模块命令系统
@@ -120,7 +121,7 @@ public class RestarterCommand {
       return 1;
     }
     RestarterMain.cancelCountdown();
-    Bukkit.broadcastMessage(Joyous.i18n.tr("restarter.command.cancelled", ctx.getSource().getSender().getName()));
+    Bukkit.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr("restarter.command.cancelled", ctx.getSource().getSender().getName())));
     return 1;
   }
 

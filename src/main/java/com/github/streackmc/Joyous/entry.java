@@ -177,7 +177,7 @@ public class entry extends JavaPlugin {
     } else {
       Joyous.PHAPI_available = true;
       Joyous.PlaceholderService = new PHAPI(true);
-      logger.debug("检测到PlaceholderAPI，版本：" + Joyous.pluginManager.getPlugin("PlaceholderAPI").getDescription().getVersion());
+      logger.debug("检测到PlaceholderAPI，版本：" + Joyous.pluginManager.getPlugin("PlaceholderAPI").getPluginMeta().getVersion());
     }
   }
 

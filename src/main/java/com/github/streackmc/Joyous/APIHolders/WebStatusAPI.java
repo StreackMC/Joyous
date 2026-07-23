@@ -10,9 +10,13 @@ import org.nanohttpd.protocols.http.request.Method;
 import org.nanohttpd.protocols.http.response.Response;
 import org.nanohttpd.protocols.http.response.Status;
 
+import org.nanohttpd.protocols.http.response.Status;
+
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.MCColor;
+
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class WebStatusAPI {
   static void enableStatus(String path) throws Exception {
@@ -90,10 +94,10 @@ public class WebStatusAPI {
     onlinePlayers.stream().limit(5).forEach(player -> {
       JSONObject p = new JSONObject();
       p.put("uuid", player.getUniqueId().toString());
-      p.put("mc", player.getDisplayName());
+      p.put("mc", LegacyComponentSerializer.legacySection().serialize(player.displayName()));
       JSONObject pn = new JSONObject();
-      pn.put("text", MCColor.strip(player.getDisplayName()));
-      pn.put("html", MCColor.toHtml(player.getDisplayName()));
+      pn.put("text", MCColor.strip(LegacyComponentSerializer.legacySection().serialize(player.displayName())));
+      pn.put("html", MCColor.toHtml(LegacyComponentSerializer.legacySection().serialize(player.displayName())));
       p.put("name", pn);
       sampleList.add(p);
     });
@@ -102,7 +106,7 @@ public class WebStatusAPI {
 
     /* MOTD信息 */
     JSONObject motd = new JSONObject();
-    String rawMotd = server.getMotd();
+    String rawMotd = LegacyComponentSerializer.legacySection().serialize(server.motd());
     motd.put("mc", rawMotd);
     motd.put("text", MCColor.strip(rawMotd));
     motd.put("html", MCColor.toHtml(rawMotd));

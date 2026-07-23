@@ -23,7 +23,7 @@ public class i18n extends SConfig {
     } catch (Exception e) {
       logger.severe("无法载入默认语言文件：" + e.getLocalizedMessage(), e);
       defaultMap = null;
-      Joyous.plugin.getPluginLoader().disablePlugin(Joyous.plugin);
+      Joyous.pluginManager.disablePlugin(Joyous.plugin);
     }
 
     // 如果没有释放文件则释放一个

@@ -35,6 +35,8 @@ import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.types.SConfig;
 
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 /**
  * 服务器重启/关闭管理模块
  * <p>
@@ -307,7 +309,7 @@ public class RestarterMain extends JoyousModel {
 
     // 首次广播
     String notifyKey = isRestart ? "restarter.restart.notify" : "restarter.stop.notify";
-    Server.broadcastMessage(Joyous.i18n.tr(notifyKey, effectiveReason, seconds));
+    Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(notifyKey, effectiveReason, seconds)));
 
     // 启动倒计时（每秒）
     countdownTask = Server.getScheduler().runTaskTimer(Joyous.plugin, () -> {
@@ -327,7 +329,7 @@ public class RestarterMain extends JoyousModel {
       if (countdownSeconds <= 5 || countdownSeconds == 10 || countdownSeconds == 30
           || (countdownSeconds <= 60 && countdownSeconds % 30 == 0)
           || (countdownSeconds > 60 && countdownSeconds % 60 == 0)) {
-        Server.broadcastMessage(Joyous.i18n.tr(notifyKey, RestarterMain.reason, countdownSeconds));
+        Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(notifyKey, RestarterMain.reason, countdownSeconds)));
       }
     }, 0L, 20L);
   }
@@ -355,7 +357,7 @@ public class RestarterMain extends JoyousModel {
   /** 踢出所有在线玩家 */
   private static void kickAllPlayers(String kickKey, Object... args) {
     for (Player p : new ArrayList<>(Server.getOnlinePlayers())) {
-      p.kickPlayer(Joyous.i18n.tr(kickKey, args));
+      p.kick(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(kickKey, args)));
     }
   }
 
@@ -400,7 +402,7 @@ public class RestarterMain extends JoyousModel {
     String bcKey = isRestart
         ? "restarter.shutting-down.restart-broadcast"
         : "restarter.shutting-down.stop-broadcast";
-    Server.broadcastMessage(Joyous.i18n.tr(bcKey));
+    Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(bcKey)));
 
     String kickKey = isRestart
         ? "restarter.shutting-down.restart-kick"
@@ -465,7 +467,7 @@ public class RestarterMain extends JoyousModel {
         if (timeout == 0) {
           // 立即重启
           logger.info("Restarter | 满足时间条件，立即执行重启。");
-          Server.broadcastMessage(Joyous.i18n.tr("restarter.auto-restart.immediate.broadcast"));
+          Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr("restarter.auto-restart.immediate.broadcast")));
           kickAllPlayers("restarter.auto-restart.immediate.kick");
           performRestart();
         } else {
@@ -788,7 +790,7 @@ public class RestarterMain extends JoyousModel {
           : "restarter.auto-restart.memory.kick";
 
       logger.info("Restarter | 内存触发立即重启（%s）。", isLeak ? "内存泄漏" : "内存压力");
-      Server.broadcastMessage(Joyous.i18n.tr(bcKey));
+      Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(bcKey)));
       kickAllPlayers(kickKey);
       performRestart();
     } else if (timeout > 0) {

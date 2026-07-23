@@ -17,6 +17,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
 import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class EntroprixCommand {
   EntroprixCommand() {
@@ -137,11 +138,11 @@ public class EntroprixCommand {
     switch (type) {
       case GUARANTEE_TYPE.COUNTS:
         EntroprixMain.Guarantee.setCounts(player, name, times);
-        sender.sendMessage(Joyous.i18n.tr("entroprix.set.tries", player.getDisplayName(), name, times));
+        sender.sendMessage(Joyous.i18n.tr("entroprix.set.tries", LegacyComponentSerializer.legacySection().serialize(player.displayName()), name, times));
         return 1;
       case GUARANTEE_TYPE.TRIES:
         EntroprixMain.Guarantee.setTries(player, name, times);
-        sender.sendMessage(Joyous.i18n.tr("entroprix.set.counts", player.getDisplayName(), name, times));
+        sender.sendMessage(Joyous.i18n.tr("entroprix.set.counts", LegacyComponentSerializer.legacySection().serialize(player.displayName()), name, times));
         return 1;
       default:
         return 0;
@@ -162,7 +163,7 @@ public class EntroprixCommand {
     }
     EntroprixMain.Guarantee.setCounts(player, name, 0);
     EntroprixMain.Guarantee.setTries(player, name, 0);
-    sender.sendMessage(Joyous.i18n.tr("entroprix.set.reset", player.getDisplayName(), name));
+    sender.sendMessage(Joyous.i18n.tr("entroprix.set.reset", LegacyComponentSerializer.legacySection().serialize(player.displayName()), name));
     return 1;
   }
 
@@ -184,7 +185,7 @@ public class EntroprixCommand {
     Integer tries_times = EntroprixMain.Guarantee.getTries(player, name);
     String who = Joyous.i18n.tr("system.i18n.you");
     if (!sender.equals(player)) {
-      who = player.getDisplayName();
+      who = LegacyComponentSerializer.legacySection().serialize(player.displayName());
     }
 
     switch (type) {
