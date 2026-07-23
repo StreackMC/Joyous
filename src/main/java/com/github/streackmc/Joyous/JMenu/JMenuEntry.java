@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.SMenu;
+package com.github.streackmc.Joyous.JMenu;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,16 +26,16 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
- * SMenu 菜单数据实体
+ * JMenu 菜单数据实体
  * <p>
  * 解析并缓存单个 {@code .jmenu} 菜单文件的内容，提供 Java/基岩版按钮列表。
- * 菜单文件使用 JSON 格式（支持注释和尾随逗号），详细格式参见 {@code SMenu.default.json}。
+ * 菜单文件使用 JSON 格式（支持注释和尾随逗号），详细格式参见 {@code JMenu.default.json}。
  * 支持 404 回退：当请求的菜单不存在时，自动尝试 {@code 404.jmenu}。
  *
  * @author kdxiaoyi
  * @since 0.6.0
  */
-public class SMenuEntry {
+public class JMenuEntry {
 
   /** 合法路径字符正则 */
   private static final Pattern PATH_PATTERN = Pattern.compile("[a-zA-Z0-9.]*");
@@ -57,14 +57,14 @@ public class SMenuEntry {
    * @param menuPath 菜单路径（相对于菜单目录，不含 {@code .jmenu} 后缀）
    * @throws IllegalArgumentException 文件不存在或格式错误
    */
-  public SMenuEntry(String menuPath) throws IllegalArgumentException {
+  public JMenuEntry(String menuPath) throws IllegalArgumentException {
     this.menuPath = menuPath;
 
     // 1. 定位菜单文件
-    Path filePath = SMenuMain.MENU_PATH.resolve(menuPath.replace(".", "/") + ".jmenu");
+    Path filePath = JMenuMain.MENU_PATH.resolve(menuPath.replace(".", "/") + ".jmenu");
     if (Files.notExists(filePath)) {
       // 尝试 404 回退
-      Path fallback = SMenuMain.MENU_PATH.resolve("404.jmenu");
+      Path fallback = JMenuMain.MENU_PATH.resolve("404.jmenu");
       if (Files.notExists(fallback)) {
         throw new IllegalArgumentException("菜单 " + menuPath + " 不存在，且无 404 回退");
       }
@@ -250,7 +250,7 @@ public class SMenuEntry {
       if (meta != null && tooltipRaw != null && !tooltipRaw.isEmpty()) {
         var serializer = LegacyComponentSerializer.legacySection();
         String papiName = Joyous.i18n.getPHparsed(player, tooltipRaw.get(0));
-        meta.displayName(SMenuEntry.ensureReset(
+        meta.displayName(JMenuEntry.ensureReset(
             serializer.deserialize(MCColor.parse("§r" + papiName))));
         if (tooltipRaw.size() > 1) {
           java.util.List<Component> lore = new ArrayList<>();
@@ -259,7 +259,7 @@ public class SMenuEntry {
             if (text == null)
               continue;
             String papiLine = Joyous.i18n.getPHparsed(player, text);
-            lore.add(SMenuEntry.ensureReset(
+            lore.add(JMenuEntry.ensureReset(
                 serializer.deserialize(MCColor.parse("§r" + papiLine))));
           }
           meta.lore(lore);

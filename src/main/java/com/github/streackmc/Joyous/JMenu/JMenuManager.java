@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.SMenu;
+package com.github.streackmc.Joyous.JMenu;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,7 +23,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
- * SMenu 管理器
+ * JMenu 管理器
  * <p>
  * 负责菜单文件的缓存、菜单打开与动作执行。
  * 自动区分 Java 版（箱子 GUI）和基岩版（Floodgate 表单）。
@@ -33,16 +33,16 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * @author kdxiaoyi
  * @since 0.2.0
  */
-public class SMenuManager {
+public class JMenuManager {
 
   /** 缓存 TTL（毫秒） */
   public final long cacheTtlMillis;
   /** 菜单缓存 <路径, 解析后的菜单> */
-  public final Map<String, SMenuEntry> MENU_CACHE = new HashMap<>();
+  public final Map<String, JMenuEntry> MENU_CACHE = new HashMap<>();
   /** 缓存过期时间 <路径, 过期时间戳> */
   public final Map<String, Long> MENU_CACHE_EXPIRE = new HashMap<>();
   /** 玩家当前打开的菜单 <玩家UUID, 菜单> */
-  public final Map<UUID, SMenuEntry> ACTIVE_MENUS = new HashMap<>();
+  public final Map<UUID, JMenuEntry> ACTIVE_MENUS = new HashMap<>();
 
   /** 读写锁 */
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -50,7 +50,7 @@ public class SMenuManager {
   /** Floodgate 是否可用（惰性检测） */
   private volatile Boolean floodgateAvailable = null;
 
-  public SMenuManager(Plugin plugin, long ttl) {
+  public JMenuManager(Plugin plugin, long ttl) {
     this.plugin = plugin;
     this.cacheTtlMillis = ttl;
     startAsyncCleanupTask();
@@ -87,10 +87,10 @@ public class SMenuManager {
    * @return 解析后的菜单
    * @throws IllegalArgumentException 菜单不存在或格式错误
    */
-  private SMenuEntry loadMenu(String menuPath) throws IllegalArgumentException {
+  private JMenuEntry loadMenu(String menuPath) throws IllegalArgumentException {
     lock.readLock().lock();
     try {
-      SMenuEntry cached = MENU_CACHE.get(menuPath);
+      JMenuEntry cached = MENU_CACHE.get(menuPath);
       if (cached != null && System.currentTimeMillis() <= MENU_CACHE_EXPIRE.getOrDefault(menuPath, 0L)) {
         return cached;
       }
@@ -99,7 +99,7 @@ public class SMenuManager {
     }
 
     // 缓存过期或不存在，重新加载
-    SMenuEntry fresh = new SMenuEntry(menuPath);
+    JMenuEntry fresh = new JMenuEntry(menuPath);
     lock.writeLock().lock();
     try {
       MENU_CACHE.put(menuPath, fresh);
@@ -157,16 +157,16 @@ public class SMenuManager {
 
     String resolved;
     if (menuPath.isBlank()) {
-      resolved = SMenuEntry.resolvePath("main");
+      resolved = JMenuEntry.resolvePath("main");
     } else {
-      resolved = SMenuEntry.resolvePath(menuPath);
+      resolved = JMenuEntry.resolvePath(menuPath);
     }
     if (resolved.isEmpty()) {
       player.closeInventory();
       return;
     }
 
-    SMenuEntry menuData = loadMenu(resolved);
+    JMenuEntry menuData = loadMenu(resolved);
 
     if (isBedrockPlayer(player)) {
       openBedrockMenu(menuData, player);
@@ -180,7 +180,7 @@ public class SMenuManager {
   // ──────────────────────────────────────────────
 
   /** 为 Java 版玩家打开箱子 GUI 菜单 */
-  private void openJavaMenu(SMenuEntry menuData, Player player) {
+  private void openJavaMenu(JMenuEntry menuData, Player player) {
     int lines = menuData.getLines();
     String title = menuData.getTitle();
     // 解析 PAPI 占位符（带玩家上下文，替换 %player_name% 等玩家相关占位符）
@@ -205,7 +205,7 @@ public class SMenuManager {
   }
 
   /** 获取玩家当前打开的菜单，若没有则返回 null */
-  public SMenuEntry getActiveMenu(Player player) {
+  public JMenuEntry getActiveMenu(Player player) {
     return ACTIVE_MENUS.get(player.getUniqueId());
   }
 
@@ -223,7 +223,7 @@ public class SMenuManager {
    * <p>
    * 如果 Floodgate 不可用，此方法会静默跳过。
    */
-  private void openBedrockMenu(SMenuEntry menuData, Player player) {
+  private void openBedrockMenu(JMenuEntry menuData, Player player) {
     if (!isFloodgateAvailable()) {
       logger.debug("Floodgate 不可用，跳过基岩版菜单 [%s] 的打开", menuData.getMenuPath());
       return;
@@ -330,12 +330,12 @@ public class SMenuManager {
       case "url" -> {
         if (!isBedrockPlayer(player)) {
           player.sendMessage(
-              Component.text(MCColor.parse(Joyous.i18n.tr("smenu.open_url", param)))
+              Component.text(MCColor.parse(Joyous.i18n.tr("jmenu.open_url", param)))
                   .color(NamedTextColor.AQUA)
                   .decorate(TextDecoration.UNDERLINED)
                   .clickEvent(ClickEvent.openUrl(resolvedParam)));
         } else {
-          player.sendMessage(MCColor.parse(Joyous.i18n.tr("smenu.open_url_be", param)));
+          player.sendMessage(MCColor.parse(Joyous.i18n.tr("jmenu.open_url_be", param)));
         }
       }
       default -> logger.debug("菜单按钮动作 [%s] 未被识别，无操作", action);

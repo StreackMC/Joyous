@@ -69,7 +69,7 @@ titles:
     &6/playertitle preview
     &f预览一个称号，需要权限 joyous.commands.playertitle.preview
 
-smenu:
+jmenu:
   not_found: "&c菜单&f %s &c不存在"
   load_failed: "&c菜单&f %s &c加载失败：&f%s"
   open_url: "&n&e点击此处以打开 &r&f&n%s"

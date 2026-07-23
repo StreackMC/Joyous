@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.SMenu;
+package com.github.streackmc.Joyous.JMenu;
 
 import java.util.List;
 
@@ -24,24 +24,24 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
- * SMenu 命令处理器
+ * JMenu 命令处理器
  * <p>
  * 提供命令：
  * <ul>
- *   <li>{@code /smenu open [menu] [player]} — 为（指定）玩家打开菜单</li>
- *   <li>{@code /smenu get [menu]} — 获取菜单物品</li>
- *   <li>{@code /smenu reload} — 重载所有菜单缓存</li>
- *   <li>{@code /smenu help} — 显示帮助</li>
+ *   <li>{@code /jmenu open [menu] [player]} — 为（指定）玩家打开菜单</li>
+ *   <li>{@code /jmenu get [menu]} — 获取菜单物品</li>
+ *   <li>{@code /jmenu reload} — 重载所有菜单缓存</li>
+ *   <li>{@code /jmenu help} — 显示帮助</li>
  * </ul>
  *
  * @author kdxiaoyi
  * @since 0.2.0
  */
-public class SMenuCommand {
+public class JMenuCommand {
 
-  private final SMenuManager manager;
+  private final JMenuManager manager;
 
-  public SMenuCommand(SMenuManager manager) {
+  public JMenuCommand(JMenuManager manager) {
     this.manager = manager;
   }
 
@@ -50,42 +50,42 @@ public class SMenuCommand {
    */
   public void register() {
     Joyous.addPermissions(
-        PermDef.all("joyous.commands.smenu.open", "打开菜单"),
-        PermDef.op("joyous.commands.smenu.open.others", "为他人打开菜单"),
-        PermDef.all("joyous.commands.smenu.get", "获取菜单物品"),
-        PermDef.op("joyous.commands.smenu.reload", "重载菜单缓存"));
+        PermDef.all("joyous.commands.jmenu.open", "打开菜单"),
+        PermDef.op("joyous.commands.jmenu.open.others", "为他人打开菜单"),
+        PermDef.all("joyous.commands.jmenu.get", "获取菜单物品"),
+        PermDef.op("joyous.commands.jmenu.reload", "重载菜单缓存"));
 
     Joyous.registerCommand(
-        Commands.literal("smenu")
+        Commands.literal("jmenu")
             .then(Commands.literal("open")
-                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.smenu.open"))
+                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.jmenu.open"))
                 .then(Commands.argument("menu", StringArgumentType.string())
-                    .executes(this::open) // /smenu open [menu]
+                    .executes(this::open) // /jmenu open [menu]
                     .then(Commands.argument("player", ArgumentTypes.player())
                         .requires(ctx -> ctx.getSender().hasPermission("minecraft.selector"))
                         .requires(ctx -> ctx.getSender().hasPermission(
-                            "joyous.commands.smenu.open.others"))
-                        .executes(this::openOthers)))) // /smenu open <menu> <player>
+                            "joyous.commands.jmenu.open.others"))
+                        .executes(this::openOthers)))) // /jmenu open <menu> <player>
             .then(Commands.literal("get")
-                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.smenu.get"))
-                .executes(this::get) // /smenu get
+                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.jmenu.get"))
+                .executes(this::get) // /jmenu get
                 .then(Commands.argument("menu", StringArgumentType.string())
-                    .executes(this::getMenu))) // /smenu get <menu>
+                    .executes(this::getMenu))) // /jmenu get <menu>
             .then(Commands.literal("reload")
-                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.smenu.reload"))
+                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.jmenu.reload"))
                 .executes(this::reload))
             .then(Commands.literal("help")
                 .executes(this::help))
             .build(),
         "Joyous 双端通用菜单系统",
-        Joyous.conf.getListOfString("SMenu.alias", List.of()));
+        Joyous.conf.getListOfString("JMenu.alias", List.of()));
   }
 
   // ──────────────────────────────────────────────
   // 命令实现
   // ──────────────────────────────────────────────
 
-  /** /smenu open <menu> */
+  /** /jmenu open <menu> */
   private int open(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
@@ -96,7 +96,7 @@ public class SMenuCommand {
     return openForPlayer(player, menuPath, sender);
   }
 
-  /** /smenu open [menu] <player> */
+  /** /jmenu open [menu] <player> */
   private int openOthers(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     String menuPath = StringArgumentType.getString(ctx, "menu");
@@ -126,7 +126,7 @@ public class SMenuCommand {
     }
   }
 
-  /** /smenu get */
+  /** /jmenu get */
   private int get(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
@@ -136,7 +136,7 @@ public class SMenuCommand {
     return giveMenuItem(player, "", sender);
   }
 
-  /** /smenu get <menu> */
+  /** /jmenu get <menu> */
   private int getMenu(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
@@ -168,9 +168,9 @@ public class SMenuCommand {
 
   /** 给予玩家菜单物品 */
   private int giveMenuItem(Player player, String menuPath, CommandSender sender) {
-    boolean specialized = Joyous.conf.getBoolean("SMenu.menu-item.specialized", true);
-    String materialName = Joyous.conf.getString("SMenu.menu-item.material", "clock");
-    List<String> display = Joyous.conf.getListOfString("SMenu.menu-item.display",
+    boolean specialized = Joyous.conf.getBoolean("JMenu.menu-item.specialized", true);
+    String materialName = Joyous.conf.getString("JMenu.menu-item.material", "clock");
+    List<String> display = Joyous.conf.getListOfString("JMenu.menu-item.display",
         List.of("&b菜单", "&7Powered by StreackMC/Joyous.", "每行开头无需手动重置样式，会自动重置。这行文本就不是斜体嫣紫的。"));
 
     Material material = Material.getMaterial(materialName.toUpperCase());
@@ -202,9 +202,9 @@ public class SMenuCommand {
 
       // 特化模式：写入菜单路径标记到 PDC
       if (specialized) {
-        String resolvedPath = menuPath.isBlank() ? "main" : SMenuEntry.resolvePath(menuPath);
+        String resolvedPath = menuPath.isBlank() ? "main" : JMenuEntry.resolvePath(menuPath);
         meta.getPersistentDataContainer().set(
-            SMenuMain.MENU_ITEM_KEY,
+            JMenuMain.MENU_ITEM_KEY,
             org.bukkit.persistence.PersistentDataType.STRING,
             resolvedPath);
       }
@@ -220,7 +220,7 @@ public class SMenuCommand {
     return 1;
   }
 
-  /** /smenu reload */
+  /** /jmenu reload */
   private int reload(CommandContext<CommandSourceStack> ctx) {
     manager.invalidateAllCache();
     Joyous.conf.reload();
@@ -229,24 +229,24 @@ public class SMenuCommand {
     return 1;
   }
 
-  /** /smenu help */
+  /** /jmenu help */
   private int help(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     sender.sendMessage(MCColor.parse("""
-        &6/smenu open <menu> [player]
+        &6/jmenu open <menu> [player]
         &f打开一个菜单，可指定目标玩家
-        &2P: &7joyous.commands.smenu.open (默认所有)
-        &2P: &7joyous.commands.smenu.open.others (默认 OP)
+        &2P: &7joyous.commands.jmenu.open (默认所有)
+        &2P: &7joyous.commands.jmenu.open.others (默认 OP)
         &r
-        &6/smenu get [menu]
+        &6/jmenu get [menu]
         &f获取菜单物品
-        &2P: &7joyous.commands.smenu.get (默认所有)
+        &2P: &7joyous.commands.jmenu.get (默认所有)
         &r
-        &6/smenu reload
+        &6/jmenu reload
         &f重载所有菜单缓存
-        &2P: &7joyous.commands.smenu.reload (默认 OP)
+        &2P: &7joyous.commands.jmenu.reload (默认 OP)
         &r
-        &6/smenu help
+        &6/jmenu help
         &f显示此帮助
         """));
     return 1;

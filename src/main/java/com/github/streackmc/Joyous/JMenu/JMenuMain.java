@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.SMenu;
+package com.github.streackmc.Joyous.JMenu;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,7 +12,7 @@ import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.utils.SFile;
 
 /**
- * SMenu 模块主类
+ * JMenu 模块主类
  * <p>
  * 负责菜单模块的生命周期管理（启用/禁用）、
  * 默认菜单文件释放、监听器和命令的注册。
@@ -20,10 +20,10 @@ import com.github.streackmc.StreackLib.utils.SFile;
  * @author kdxiaoyi
  * @since 0.2.0
  */
-public class SMenuMain extends JoyousModel {
-  public static final String MODEL_NAME = "SMenu";
+public class JMenuMain extends JoyousModel {
+  public static final String MODEL_NAME = "JMenu";
 
-  public SMenuMain() {
+  public JMenuMain() {
   };
 
   public String MODEL_NAME() { return MODEL_NAME; };
@@ -34,26 +34,26 @@ public class SMenuMain extends JoyousModel {
   volatile static NamespacedKey MENU_ITEM_KEY;
 
   /** 管理器实例 */
-  private volatile SMenuManager manager;
+  private volatile JMenuManager manager;
   /** 监听器实例 */
-  private volatile SMenuListener listener;
+  private volatile JMenuListener listener;
   /** 命令处理器实例 */
-  private volatile SMenuCommand command;
+  private volatile JMenuCommand command;
 
   public final static class NAMES {
     /** 菜单目录（相对于插件数据目录） */
-    public final static String MENU_PATH = "models/SMenu/";
+    public final static String MENU_PATH = "models/JMenu/";
     /** 默认菜单模板资源路径 */
-    public final static String MENU_FILE_DEFAULT = "models/SMenu.default.json";
+    public final static String MENU_FILE_DEFAULT = "models/JMenu.default.json";
     /** 权限前缀 */
-    public final static String PERMISSION_PREFIX = "joyous.smenu.";
+    public final static String PERMISSION_PREFIX = "joyous.jmenu.";
   };
 
   @Override
   public void onEnable() throws Exception {
     // 1. 初始化路径和 NamespacedKey
     MENU_PATH = Joyous.dataPath.toPath().resolve(NAMES.MENU_PATH);
-    MENU_ITEM_KEY = new NamespacedKey(Joyous.plugin, "smenu_path");
+    MENU_ITEM_KEY = new NamespacedKey(Joyous.plugin, "jmenu_path");
 
     // 2. 确保菜单目录存在
     Files.createDirectories(MENU_PATH);
@@ -70,18 +70,18 @@ public class SMenuMain extends JoyousModel {
     }
 
     // 4. 创建管理器
-    long ttl = Joyous.conf.getLong("SMenu.cache_ttl", 1000L * 60 * 30);
-    manager = new SMenuManager(Joyous.plugin, ttl);
+    long ttl = Joyous.conf.getLong("JMenu.cache_ttl", 1000L * 60 * 30);
+    manager = new JMenuManager(Joyous.plugin, ttl);
 
     // 5. 注册监听器
-    listener = new SMenuListener(manager);
+    listener = new JMenuListener(manager);
     Bukkit.getPluginManager().registerEvents(listener, Joyous.plugin);
 
     // 6. 注册命令
-    command = new SMenuCommand(manager);
+    command = new JMenuCommand(manager);
     command.register();
 
-    logger.info("SMenu 模块已启用（Floodgate 可用：" + manager.isFloodgateAvailable() + "）");
+    logger.info("JMenu 模块已启用（Floodgate 可用：" + manager.isFloodgateAvailable() + "）");
   };
 
   @Override
@@ -91,6 +91,6 @@ public class SMenuMain extends JoyousModel {
       manager.ACTIVE_MENUS.clear();
       manager.invalidateAllCache();
     }
-    logger.info("SMenu 模块已禁用");
+    logger.info("JMenu 模块已禁用");
   };
 }

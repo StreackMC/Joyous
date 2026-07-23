@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.SMenu;
+package com.github.streackmc.Joyous.JMenu;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,7 +17,7 @@ import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
 /**
- * SMenu 事件监听器
+ * JMenu 事件监听器
  * <p>
  * 监听以下事件：
  * <ul>
@@ -31,11 +31,11 @@ import com.github.streackmc.StreackLib.utils.MCColor;
  * @author kdxiaoyi
  * @since 0.2.0
  */
-public class SMenuListener implements Listener {
+public class JMenuListener implements Listener {
 
-  private final SMenuManager manager;
+  private final JMenuManager manager;
 
-  public SMenuListener(SMenuManager manager) {
+  public JMenuListener(JMenuManager manager) {
     this.manager = manager;
   }
 
@@ -46,7 +46,7 @@ public class SMenuListener implements Listener {
   /**
    * 处理 Java 版箱子菜单的点击事件
    * <p>
-   * 仅处理 SMenuManager 记录的活跃菜单中的点击。
+   * 仅处理 JMenuManager 记录的活跃菜单中的点击。
    * 取消所有点击事件，只对有效按钮执行对应动作。
    */
   @EventHandler(priority = EventPriority.HIGH)
@@ -55,7 +55,7 @@ public class SMenuListener implements Listener {
     if (event.getClickedInventory() == null) return;
 
     // 检查是否是我们打开的菜单
-    SMenuEntry menu = manager.getActiveMenu(player);
+    JMenuEntry menu = manager.getActiveMenu(player);
     if (menu == null) return;
 
     // 取消所有点击（禁止取走物品）
@@ -70,7 +70,7 @@ public class SMenuListener implements Listener {
         int btnSlot = (btn.x() - 1) * 9 + (btn.y() - 1);
         if (slot == btnSlot) {
           // 权限校验
-          if (!SMenuManager.checkPermission(player, btn.perm(), btn.permUnhave())) {
+          if (!JMenuManager.checkPermission(player, btn.perm(), btn.permUnhave())) {
             return;
           }
 
@@ -99,7 +99,7 @@ public class SMenuListener implements Listener {
   @EventHandler(priority = EventPriority.HIGH)
   public void onInventoryDrag(InventoryDragEvent event) {
     if (!(event.getWhoClicked() instanceof Player player)) return;
-    SMenuEntry menu = manager.getActiveMenu(player);
+    JMenuEntry menu = manager.getActiveMenu(player);
     if (menu == null) return;
 
     // 检查拖拽的目标是否包含菜单的槽位
@@ -150,7 +150,7 @@ public class SMenuListener implements Listener {
         : null;
     if (pdc == null) return;
 
-    String menuPath = pdc.get(SMenuMain.MENU_ITEM_KEY,
+    String menuPath = pdc.get(JMenuMain.MENU_ITEM_KEY,
         org.bukkit.persistence.PersistentDataType.STRING);
     if (menuPath == null || menuPath.isBlank()) return;
 

@@ -13,7 +13,7 @@
 - 入口: `entry extends JavaPlugin` — onEnable 中初始化配置→检查依赖→遍历注册模块
 
 ## 模块清单 (6个)
-1. **SMenu** — 双端通用菜单(Java箱子GUI + 基岩版Floodgate表单), JSON格式菜单文件(.jmenu), 带缓存TTL
+1. **JMenu** — 双端通用菜单(Java箱子GUI + 基岩版Floodgate表单), JSON格式菜单文件(.jmenu), 带缓存TTL
 2. **Entroprix** — 熵流抽卡系统(米池规则), 权重制概率/大小保底/概率提升, PDC持久化保底状态
 3. **APIHolders** — HTTP API服务端(基于StreackLib的HTTPServer), 提供Placeholder查询和服务器状态查询
 4. **PlayerTitle** — 轻量玩家称号系统(Placeholder+权限控制)
