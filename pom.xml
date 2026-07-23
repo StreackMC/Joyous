@@ -16,7 +16,6 @@
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <paper.version>1.21.8-R0.1-SNAPSHOT</paper.version>
-    <spigot.version>1.21.5-R0.1-SNAPSHOT</spigot.version>
   </properties>
 
   <!-- Repositories -->
@@ -24,10 +23,6 @@
     <repository>
       <id>Paper-repo</id>
       <url>https://repo.papermc.io/repository/maven-public/</url>
-    </repository>
-    <repository>
-      <id>Spigot-repo</id>
-      <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
     </repository>
     <repository>
       <id>jitpack.io</id>
@@ -87,12 +82,6 @@
       <groupId>io.papermc.paper</groupId>
       <artifactId>paper-api</artifactId>
       <version>${paper.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.spigotmc</groupId>
-      <artifactId>spigot-api</artifactId>
-      <version>${spigot.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
