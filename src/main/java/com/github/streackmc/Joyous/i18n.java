@@ -5,8 +5,8 @@ import java.nio.file.Files;
 
 import org.bukkit.entity.Player;
 
+import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.utils.MCColor;
-import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
 
 public class i18n extends SConfig {

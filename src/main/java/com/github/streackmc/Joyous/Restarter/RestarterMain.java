@@ -33,7 +33,7 @@ import org.bukkit.scheduler.BukkitTask;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
-import com.github.streackmc.StreackLib.utils.SConfig;
+import com.github.streackmc.StreackLib.types.SConfig;
 
 /**
  * 服务器重启/关闭管理模块

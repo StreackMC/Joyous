@@ -6,7 +6,7 @@ import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
-import com.github.streackmc.StreackLib.utils.HTTPServer;
+import com.github.streackmc.StreackLib.types.HTTPServer;
 
 /**
  * APIHolders 主类

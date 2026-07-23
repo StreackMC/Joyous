@@ -4,13 +4,13 @@
 
   <artifactId>Joyous</artifactId>
   <groupId>com.github.streackmc</groupId>
-  <version>0.2.5</version>
+  <version>0.3.0</version>
   <packaging>jar</packaging>
   <description>栈流Streack服务器的玩法功能插件</description>
 
   <properties>
-    <streacklib.version>0.5.2</streacklib.version>
-    <!-- <streacklib.version>master-SNAPSHOT</streacklib.version> -->
+    <!-- <streacklib.version>0.5.2</streacklib.version> -->
+    <streacklib.version>master-SNAPSHOT</streacklib.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <maven.compiler.release>21</maven.compiler.release>

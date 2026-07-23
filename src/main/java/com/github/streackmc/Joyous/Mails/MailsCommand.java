@@ -5,7 +5,7 @@ import java.util.List;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.logger;
-import com.github.streackmc.StreackLib.utils.SMail;
+import com.github.streackmc.StreackLib.types.SMail;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 

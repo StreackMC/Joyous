@@ -20,7 +20,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.ApiStatus.Internal;
 
 import com.github.streackmc.StreackLib.StreackLib;
-import com.github.streackmc.StreackLib.utils.SConfig;
+import com.github.streackmc.StreackLib.types.SConfig;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;

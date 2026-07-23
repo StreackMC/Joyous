@@ -14,8 +14,8 @@ import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
+import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.utils.MCColor;
-import com.github.streackmc.StreackLib.utils.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
 
 /**
@@ -70,7 +70,7 @@ public class PlayerTitleMain extends JoyousModel {
     Joyous.PlaceholderService.registerParser(PlaceholderService);
     CommandService.register();
   }
-  
+
   @Override
   public final void onDisable() {
     Joyous.PlaceholderService.unregisiterParser(PlaceholderService);
@@ -127,7 +127,8 @@ public class PlayerTitleMain extends JoyousModel {
   }
 
   /** 设置称号 */
-  public static final void setTitle(Player player,@Nullable String titleId,@Nullable Boolean slience,@Nullable Boolean forced) throws IllegalArgumentException {
+  public static final void setTitle(Player player, @Nullable String titleId, @Nullable Boolean slience,
+      @Nullable Boolean forced) throws IllegalArgumentException {
     PersistentDataContainer pdc = player.getPersistentDataContainer();
 
     // 如果是移除模式
@@ -145,15 +146,20 @@ public class PlayerTitleMain extends JoyousModel {
       if (!checkTitlePermission(player, titleId))
         throw new IllegalArgumentException(Joyous.i18n.tr("titles.status.not_have_yet"));
     }
-    
+
     // 设置
     pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, titleId);
 
     // 通知目标玩家
-    if (!(slience == null || slience)) player.sendMessage(Joyous.i18n.tr("titles.set.done"), getTitle(player));
+    if (!(slience == null || slience))
+      player.sendMessage(Joyous.i18n.tr("titles.set.done"), getTitle(player));
   }
 
-  /** 判断是否具有权限 <p> 仅检查不移除 */
+  /**
+   * 判断是否具有权限
+   * <p>
+   * 仅检查不移除
+   */
   public static final boolean checkTitlePermission(Player player, String titleId) {
     if (!player.hasPermission(NAMES.PERMISSION_PREFIX + titleId)) {
       return false;

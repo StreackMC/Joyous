@@ -13,7 +13,7 @@ import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
-import com.github.streackmc.StreackLib.utils.SConfig;
+import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.utils.SFile;
 
 public class EnvExport extends JoyousModel {

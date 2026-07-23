@@ -10,9 +10,9 @@ import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.logger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
-import com.github.streackmc.StreackLib.utils.SConfig;
+import com.github.streackmc.StreackLib.types.SConfig;
+import com.github.streackmc.StreackLib.types.SMail;
 import com.github.streackmc.StreackLib.utils.SFile;
-import com.github.streackmc.StreackLib.utils.SMail;
 
 /**
  * 邮件模块
