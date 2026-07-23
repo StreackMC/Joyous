@@ -39,3 +39,4 @@
 ## Git 约定
 - 提交身份: username="Neonai", email="neonai+coding@streack.top"
 - 仅通过命令行 `-c user.name= -c user.email=` 携带，不写入git配置
+- 记忆文件也要一起提交，所以需要在提交之前先写记忆
