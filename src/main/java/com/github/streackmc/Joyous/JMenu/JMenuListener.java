@@ -13,7 +13,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
 /**
@@ -160,7 +160,7 @@ public class JMenuListener implements Listener {
       manager.openMenuFor(menuPath, player);
     } catch (IllegalArgumentException e) {
       player.sendMessage(MCColor.parse("&c无法打开菜单：" + e.getLocalizedMessage()));
-      logger.warn("玩家 [%s] 通过物品打开菜单 [%s] 失败：%s",
+      jlogger.warn("玩家 [%s] 通过物品打开菜单 [%s] 失败：%s",
           player.getName(), menuPath, e.getLocalizedMessage());
     }
   }

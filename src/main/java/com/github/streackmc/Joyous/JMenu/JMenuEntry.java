@@ -16,8 +16,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
@@ -107,13 +107,13 @@ public class JMenuEntry {
       String slotKey = entry.getKey();
       var m = SLOT_PATTERN.matcher(slotKey);
       if (!m.matches()) {
-        logger.warn("菜单 [%s] 中的按钮键 [%s] 格式无效，应为行号+列号（如 12）", menuPath, slotKey);
+        jlogger.warn("菜单 [%s] 中的按钮键 [%s] 格式无效，应为行号+列号（如 12）", menuPath, slotKey);
         continue;
       }
       int x = Integer.parseInt(m.group(1)); // 行（1-indexed）
       int y = Integer.parseInt(m.group(2)); // 列（1-indexed）
       if (x < 1 || x > 6 || y < 1 || y > 9) {
-        logger.warn("菜单 [%s] 中的按钮 [%s] 超出边界 (1-6行, 1-9列)", menuPath, slotKey);
+        jlogger.warn("菜单 [%s] 中的按钮 [%s] 超出边界 (1-6行, 1-9列)", menuPath, slotKey);
         continue;
       }
 
@@ -122,7 +122,7 @@ public class JMenuEntry {
       String displayPrefix = btnPrefix + ".display";
       String dispStr = conf.getString(displayPrefix + ".id");
       if (dispStr == null || dispStr.isBlank()) {
-        logger.warn("菜单 [%s] 中的按钮 [%s] 缺少物品 ID", menuPath, slotKey);
+        jlogger.warn("菜单 [%s] 中的按钮 [%s] 缺少物品 ID", menuPath, slotKey);
         continue;
       }
 
@@ -132,12 +132,12 @@ public class JMenuEntry {
       if (namespaceIndex >= 0/* 确保有命名空间 */ && namespaceIndex + 1 < id.length()/* 且:后面有字符 */) {
         id = id.substring(namespaceIndex + 1);
       } else if (namespaceIndex >= 0/* 此处说明只有命名空间 */) {
-        logger.warn("菜单 [%s] 中的按钮 [%s] 缺少物品 ID", menuPath, slotKey);
+        jlogger.warn("菜单 [%s] 中的按钮 [%s] 缺少物品 ID", menuPath, slotKey);
         continue;
       }
       Material material = Material.getMaterial(id);
       if (material == null) {
-        logger.warn("菜单 [%s] 中的按钮 [%s] 使用了未知物品 [%s]", menuPath, slotKey, dispStr);
+        jlogger.warn("菜单 [%s] 中的按钮 [%s] 使用了未知物品 [%s]", menuPath, slotKey, dispStr);
         continue;
       }
       ItemStack item = new ItemStack(material);
@@ -249,7 +249,7 @@ public class JMenuEntry {
       ItemMeta meta = newItem.getItemMeta();
       if (meta != null && tooltipRaw != null && !tooltipRaw.isEmpty()) {
         var serializer = LegacyComponentSerializer.legacySection();
-        String papiName = Joyous.i18n.getPHparsed(player, tooltipRaw.get(0));
+        String papiName = i18n.getPHparsed(player, tooltipRaw.get(0));
         meta.displayName(JMenuEntry.ensureReset(
             serializer.deserialize(MCColor.parse("§r" + papiName))));
         if (tooltipRaw.size() > 1) {
@@ -258,7 +258,7 @@ public class JMenuEntry {
             String text = tooltipRaw.get(i);
             if (text == null)
               continue;
-            String papiLine = Joyous.i18n.getPHparsed(player, text);
+            String papiLine = i18n.getPHparsed(player, text);
             lore.add(JMenuEntry.ensureReset(
                 serializer.deserialize(MCColor.parse("§r" + papiLine))));
           }

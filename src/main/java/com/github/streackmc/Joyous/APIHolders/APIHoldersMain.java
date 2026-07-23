@@ -3,7 +3,7 @@ package com.github.streackmc.Joyous.APIHolders;
 import java.util.List;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.types.HTTPServer;
@@ -60,25 +60,25 @@ public class APIHoldersMain extends JoyousModel {
   public void onEnable() throws Exception {
     httpServer = StreackLib.getHttpServer();
     if (httpServer == null) {
-      logger.warn("StreackLib中的 httpServer 服务器已被禁用，无法继续启用");
+      jlogger.warn("StreackLib中的 httpServer 服务器已被禁用，无法继续启用");
       return;
     };
     try {
       if (!CONF.phPath().isEmpty()) {
-        logger.info("正在启用PlaceholderAPI查询处理器…… @ " + CONF.phPath());
+        jlogger.info("正在启用PlaceholderAPI查询处理器…… @ " + CONF.phPath());
         WebPhAPI.enablePH(CONF.phPath());
       } else {
-        logger.info("没有启用PlaceholderAPI查询处理器");
+        jlogger.info("没有启用PlaceholderAPI查询处理器");
       }
     } catch (Exception e) {
       throw new Exception("无法注册PlaceholderAPI查询处理器：" + e.getLocalizedMessage(), e);
     }
     try {
       if (!CONF.statusPath().isEmpty()) {
-        logger.info("正在启用StatusAPI查询处理器…… @ " + CONF.statusPath());
+        jlogger.info("正在启用StatusAPI查询处理器…… @ " + CONF.statusPath());
         WebStatusAPI.enableStatus(CONF.statusPath());
       } else {
-        logger.info("没有启用StatusAPI查询处理器");
+        jlogger.info("没有启用StatusAPI查询处理器");
       }
     } catch (Exception e) {
       throw new Exception("无法注册StatusAPI查询处理器：" + e.getLocalizedMessage(), e);

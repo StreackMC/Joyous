@@ -10,7 +10,7 @@ import org.nanohttpd.protocols.http.request.Method;
 import org.nanohttpd.protocols.http.response.Response;
 import org.nanohttpd.protocols.http.response.Status;
 
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
@@ -36,12 +36,12 @@ public class WebStatusAPI {
         rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
         return rsp;
       } catch (Exception e) {
-        logger.err("无法处理StatusAPI查询：" + e.getLocalizedMessage(), e);
+        jlogger.err("无法处理StatusAPI查询：" + e.getLocalizedMessage(), e);
         return Response.newFixedLengthResponse(Status.INTERNAL_ERROR,
             NanoHTTPD.MIME_PLAINTEXT, "500 Internal Server Error: " + e.getLocalizedMessage());
       }
     });
-    logger.info("已注册StatusAPI查询处理器： " + path);
+    jlogger.info("已注册StatusAPI查询处理器： " + path);
   }
 
   /** 用于执行缓存策略 */
@@ -66,10 +66,10 @@ public class WebStatusAPI {
         && cache.lastBuilt != null
         && (cache.lastBuiltTime + APIHoldersMain.CONF.cache()) >= timestamp) {
       cache.lastBuilt.put("retrieved_at", timestamp);
-      logger.debug("status请求命中缓存，因为当前时间戳%s已距离上次构建%s时间不足%s：" + cache.lastBuilt.toString(), timestamp, cache.lastBuiltTime, APIHoldersMain.CONF.cache());
+      jlogger.debug("status请求命中缓存，因为当前时间戳%s已距离上次构建%s时间不足%s：" + cache.lastBuilt.toString(), timestamp, cache.lastBuiltTime, APIHoldersMain.CONF.cache());
       return cache.lastBuilt;
     }
-    logger.debug("status请求未命中缓存，因为当前时间戳%s距离上次构建%s时间超过了%s：", timestamp, cache.lastBuiltTime, APIHoldersMain.CONF.cache());
+    jlogger.debug("status请求未命中缓存，因为当前时间戳%s距离上次构建%s时间超过了%s：", timestamp, cache.lastBuiltTime, APIHoldersMain.CONF.cache());
 
     JSONObject data = new JSONObject();
     org.bukkit.Server server = Bukkit.getServer();
@@ -129,7 +129,7 @@ public class WebStatusAPI {
     cache.lastBuilt = data;
     cache.lastBuiltTime = timestamp;
 
-    logger.debug("status数据构建完成：" + data.toString());
+    jlogger.debug("status数据构建完成：" + data.toString());
     return data;
   }
 
@@ -152,7 +152,7 @@ public class WebStatusAPI {
       tps.put("avg_5m", getTps[2]);
       tps.put("avg_15m", getTps[3]);
     } catch (Exception e) {
-      logger.error("无法获取TPS：" + e.getLocalizedMessage(), e);
+      jlogger.error("无法获取TPS：" + e.getLocalizedMessage(), e);
       tps.put("live", -1.0);
       tps.put("avg_1m", -1.0);
       tps.put("avg_5m", -1.0);

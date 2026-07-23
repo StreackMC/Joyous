@@ -3,7 +3,7 @@ package com.github.streackmc.Joyous.Entroprix;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
 
 public class EntroprixPHAPI implements JoyousPHAPIhandler {
@@ -16,13 +16,13 @@ public class EntroprixPHAPI implements JoyousPHAPIhandler {
 
     // %joyous_entroprix_guarntee_counts_% → 返回玩家保底计数
     if (params.toLowerCase().startsWith("entroprix_guarantee_counts_")) {
-      logger.debug("PHAPI返回 Entroprix 的保底[%s]计数", params.substring(27));
+      jlogger.debug("PHAPI返回 Entroprix 的保底[%s]计数", params.substring(27));
       return String.format("%s", EntroprixMain.Guarantee.getCounts(player, params.substring(27)));
     }
     
     // %joyous_entroprix_guarntee_tries_% → 返回玩家保底内抽数
     if (params.toLowerCase().startsWith("entroprix_guarantee_tries_")) {
-      logger.debug("PHAPI返回 Entroprix 的保底[%s]内抽数", params.substring(26));
+      jlogger.debug("PHAPI返回 Entroprix 的保底[%s]内抽数", params.substring(26));
       return String.format("%s", EntroprixMain.Guarantee.getTries(player, params.substring(26)));
     }
 

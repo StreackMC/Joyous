@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
+import com.github.streackmc.Joyous.i18n;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
@@ -31,7 +32,7 @@ public class EnvExportCommand {
     try {
       String key = StringArgumentType.getString(ctx, "key");
       EnvExport.setEnv(key, null);
-      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("envexport.command.removed", key));
+      ctx.getSource().getSender().sendMessage(i18n.tr("envexport.command.removed", key));
       return 0;
     } catch (Exception e) {
       return 1;
@@ -43,7 +44,7 @@ public class EnvExportCommand {
       String key = StringArgumentType.getString(ctx, "key");
       String value = StringArgumentType.getString(ctx, "value");
       EnvExport.setEnv(key, value);
-      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("envexport.command.set", key, value));
+      ctx.getSource().getSender().sendMessage(i18n.tr("envexport.command.set", key, value));
       return 0;
     } catch (Exception e) {
       return 1;

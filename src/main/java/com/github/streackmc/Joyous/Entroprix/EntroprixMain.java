@@ -24,7 +24,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.types.SConfig;
@@ -82,10 +83,10 @@ public class EntroprixMain extends JoyousModel {
   public void onEnable() {
     if (Files.notExists(CONF_PATH)) {
       try {
-        logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
+        jlogger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
         SFile.mv(Joyous.getResourceAsFile("/" + NAMES.CONF_FILE), CONF_PATH.toFile());
       } catch (Exception e) {
-        logger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
+        jlogger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
       }
     }
     poolList = new SConfig(CONF_PATH, "yml");
@@ -93,7 +94,7 @@ public class EntroprixMain extends JoyousModel {
     try {
       Files.createDirectories(LOG_DIR);
     } catch (IOException e) {
-      logger.err("无法创建日志目录: %s", e.getLocalizedMessage());
+      jlogger.err("无法创建日志目录: %s", e.getLocalizedMessage());
     }
     Joyous.PlaceholderService.registerParser(PlaceholderService);
     CommandService.register();
@@ -119,12 +120,12 @@ public class EntroprixMain extends JoyousModel {
    */
   public static void roll(Player player, String poolName, int times) throws IllegalArgumentException {
     if (times <= 0 || times > 1000 || times > Joyous.conf.getInt("Entroprix.max", 100)) {
-      throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.invaild_times", 1, Math.min(1000, Joyous.conf.getInt("Entroprix.max", 100))));
+      throw new IllegalArgumentException(i18n.tr("entroprix.pool.invaild_times", 1, Math.min(1000, Joyous.conf.getInt("Entroprix.max", 100))));
     };
 
     // 1. 获取卡池配置
     if (!poolList.getSection("pools").containsKey(poolName)) {
-      throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.unknown", poolName));
+      throw new IllegalArgumentException(i18n.tr("entroprix.pool.unknown", poolName));
     }
     Map<String, Object> poolConfig = poolList.getSection("pools." + poolName);
     String guaranteeName = (String) poolConfig.get("guarantee");
@@ -132,13 +133,13 @@ public class EntroprixMain extends JoyousModel {
     List<Map<String, Object>> rewardsConfig = (List<Map<String, Object>>) poolConfig.get("rewards");
     
     if (guaranteeName == null || rewardsConfig == null || rewardsConfig.isEmpty()) {
-      throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.invaild", poolName));
+      throw new IllegalArgumentException(i18n.tr("entroprix.pool.invaild", poolName));
     }
     
     // 2. 获取保底配置
     Map<String, Object> guaranteeConfig = poolList.getSection("guarantee." + guaranteeName);
     if (guaranteeConfig == null || guaranteeConfig.isEmpty()) {
-      throw new IllegalArgumentException(Joyous.i18n.tr("entroprix.pool.missing_guarantee", poolName));
+      throw new IllegalArgumentException(i18n.tr("entroprix.pool.missing_guarantee", poolName));
     }
 
     // 3. 解析奖励列表
@@ -280,7 +281,7 @@ public class EntroprixMain extends JoyousModel {
         // 小保底：如果本次是大保底状态，理论上不应进入此分支，但防御性处理
         if (isNextUp) {
           // 异常情况：配置错误或概率溢出，强制重置大保底并警告
-          logger.warn("玩家 %s 处于大保底状态却抽到了小保底奖励，强制重置保底计数", guarantee.player.getName());
+          jlogger.warn("玩家 %s 处于大保底状态却抽到了小保底奖励，强制重置保底计数", guarantee.player.getName());
           resetCounts = true;
           incrementCounts = false;
         } else {
@@ -309,18 +310,18 @@ public class EntroprixMain extends JoyousModel {
      */
     private static RollResult forcePity(RewardSet rewardSet, boolean forceUp, boolean isHardPity) {
       if (isHardPity) {
-        logger.debug("强制保底触发");
+        jlogger.debug("强制保底触发");
       }
 
       if (forceUp) {
         if (rewardSet.upRewards.isEmpty()) {
-          throw new IllegalStateException(Joyous.i18n.tr("entroprix.pool.missing_up"));
+          throw new IllegalStateException(i18n.tr("entroprix.pool.missing_up"));
         }
         Reward selected = selectRewardByWeight(rewardSet.upRewards);
         return new RollResult(selected, 2, true, true, false);
       } else {
         if (rewardSet.normalRewards.isEmpty()) {
-          throw new IllegalStateException(Joyous.i18n.tr("entroprix.pool.missing_normal"));
+          throw new IllegalStateException(i18n.tr("entroprix.pool.missing_normal"));
         }
         Reward selected = selectRewardByWeight(rewardSet.normalRewards);
         return new RollResult(selected, 1, true, false, true);
@@ -620,14 +621,14 @@ public class EntroprixMain extends JoyousModel {
           .replace("[player]", player.getName());
       // PlaceholderAPI 已在插件启用时检查，直接调用
       if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-        cmd = Joyous.i18n.getPHparsed(player, cmd);
+        cmd = i18n.getPHparsed(player, cmd);
       }
       try {
         if (!Bukkit.dispatchCommand(Joyous.plugin.getServer().getConsoleSender(), cmd)) {
-          logger.warn(Joyous.i18n.tr("system.command.failed"), cmd);
+          jlogger.warn(i18n.tr("system.command.failed"), cmd);
         }
       } catch (Exception e) {
-        logger.err(Joyous.i18n.tr("system.command.unexpected"), cmd, e.getLocalizedMessage());
+        jlogger.err(i18n.tr("system.command.unexpected"), cmd, e.getLocalizedMessage());
       }
       //String clean = cmd.replaceAll("\\s+", " ").trim();
     }
@@ -685,7 +686,7 @@ public class EntroprixMain extends JoyousModel {
 
       } catch (Exception e) {
         // 降级：控制台输出，避免递归调用日志
-        logger.err("无法保存抽卡日志：" + e.getLocalizedMessage(), e);
+        jlogger.err("无法保存抽卡日志：" + e.getLocalizedMessage(), e);
       }
     }
 
@@ -716,7 +717,7 @@ public class EntroprixMain extends JoyousModel {
           currentDate = null;
         }
       } catch (IOException e) {
-        logger.err("无法关闭抽卡日志保存线程: " + e.getMessage(), e);
+        jlogger.err("无法关闭抽卡日志保存线程: " + e.getMessage(), e);
       }
     }
   }

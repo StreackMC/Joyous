@@ -7,7 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.utils.SFile;
 
@@ -63,9 +63,9 @@ public class JMenuMain extends JoyousModel {
       try {
         var tmp = Joyous.getResourceAsFile("/" + NAMES.MENU_FILE_DEFAULT);
         SFile.mv(tmp, MENU_PATH.resolve("example.jmenu").toFile());
-        logger.info("已释放示例菜单文件 example.jmenu");
+        jlogger.info("已释放示例菜单文件 example.jmenu");
       } catch (Exception e) {
-        logger.warn("无法写入 %s ： %s", MENU_PATH.resolve("example.jmenu"), e.getLocalizedMessage());
+        jlogger.warn("无法写入 %s ： %s", MENU_PATH.resolve("example.jmenu"), e.getLocalizedMessage());
       }
     }
 
@@ -81,7 +81,7 @@ public class JMenuMain extends JoyousModel {
     command = new JMenuCommand(manager);
     command.register();
 
-    logger.info("JMenu 模块已启用（Floodgate 可用：" + manager.isFloodgateAvailable() + "）");
+    jlogger.info("JMenu 模块已启用（Floodgate 可用：" + manager.isFloodgateAvailable() + "）");
   };
 
   @Override
@@ -91,6 +91,6 @@ public class JMenuMain extends JoyousModel {
       manager.ACTIVE_MENUS.clear();
       manager.invalidateAllCache();
     }
-    logger.info("JMenu 模块已禁用");
+    jlogger.info("JMenu 模块已禁用");
   };
 }

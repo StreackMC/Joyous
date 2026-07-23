@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.types.SConfig;
@@ -57,17 +57,17 @@ public class MailsMain extends JoyousModel {
     Joyous.addPermissions(PermDef.none("joyous.mails", "Mails 模块权限节点"));
     if (Files.notExists(CONF_PATH)) {
       try {
-        logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
+        jlogger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
         SFile.mv(Joyous.getResourceAsFile("/" + NAMES.CONF_FILE), CONF_PATH.toFile());
       } catch (Exception e) {
-        logger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
+        jlogger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
       }
     }
     try {
       mailConf = new SConfig(CONF_PATH.toFile(), "yml");
       mailConf.setAutoReload(true);
     } catch (Exception e) {
-      logger.err("Mails | 无法加载邮件配置: %s", e.getLocalizedMessage());
+      jlogger.err("Mails | 无法加载邮件配置: %s", e.getLocalizedMessage());
       return;
     }
 
@@ -75,10 +75,10 @@ public class MailsMain extends JoyousModel {
     Path shutdownTemplate = TEMPLATE_PATH.resolve("shutdown.html");
     if (Files.notExists(shutdownTemplate)) {
       try {
-        logger.debug("检查到 %s 不存在，自动新建默认模板", shutdownTemplate);
+        jlogger.debug("检查到 %s 不存在，自动新建默认模板", shutdownTemplate);
         SFile.mv(Joyous.getResourceAsFile("/" + NAMES.INTERNAL_ASSETS + "shutdown.html"), shutdownTemplate.toFile());
       } catch (Exception e) {
-        logger.err("警告：无法写入关服邮件模板 %s ： %s", shutdownTemplate, e.getLocalizedMessage(), e);
+        jlogger.err("警告：无法写入关服邮件模板 %s ： %s", shutdownTemplate, e.getLocalizedMessage(), e);
       }
     }
 
@@ -90,7 +90,7 @@ public class MailsMain extends JoyousModel {
     try {
       sendShutdownMail();
     } catch (Exception e) {
-      logger.err("Mails | 关服邮件发送异常: %s", e.getLocalizedMessage(), e);
+      jlogger.err("Mails | 关服邮件发送异常: %s", e.getLocalizedMessage(), e);
     }
     CommandService = null;
   }
@@ -98,12 +98,12 @@ public class MailsMain extends JoyousModel {
   /** 发送关服邮件 */
   private void sendShutdownMail() {
     if (shutdownMailDisabled) {
-      logger.info("Mails | 关服邮件已被临时禁用（/jmail tempswitch shutdown）");
+      jlogger.info("Mails | 关服邮件已被临时禁用（/jmail tempswitch shutdown）");
       return;
     }
 
     if (!mailConf.getBoolean("shutdown.enabled", true)) {
-      logger.debug("Mails | 关服邮件未启用（shutdown.enabled = false）");
+      jlogger.debug("Mails | 关服邮件未启用（shutdown.enabled = false）");
       return;
     }
 
@@ -114,7 +114,7 @@ public class MailsMain extends JoyousModel {
     boolean highPriority = mailConf.getBoolean("shutdown.high-pirority", false);
 
     if (to == null || to.isEmpty()) {
-      logger.warn("Mails | 关服邮件未设置收件人（shutdown.to）");
+      jlogger.warn("Mails | 关服邮件未设置收件人（shutdown.to）");
       return;
     }
 
@@ -127,11 +127,11 @@ public class MailsMain extends JoyousModel {
           .priority(highPriority ? 1 : 0)
           .build();
       mail.send();
-      logger.info("Mails | 关服邮件已发送至 %s", String.join(", ", to));
+      jlogger.info("Mails | 关服邮件已发送至 %s", String.join(", ", to));
     } catch (IllegalArgumentException e) {
-      logger.err("Mails | 发送关服邮件失败: 时间格式错误，发现了 %s", e.getLocalizedMessage(), e);
+      jlogger.err("Mails | 发送关服邮件失败: 时间格式错误，发现了 %s", e.getLocalizedMessage(), e);
     } catch (Exception e) {
-      logger.err("Mails | 发送关服邮件失败: %s", e.getLocalizedMessage(), e);
+      jlogger.err("Mails | 发送关服邮件失败: %s", e.getLocalizedMessage(), e);
     }
   }
 
@@ -142,7 +142,7 @@ public class MailsMain extends JoyousModel {
     try {
       template = Files.readString(templatePath);
     } catch (IOException e) {
-      logger.warn("Mails | 无法读取关服邮件模板 %s，使用内联默认值", templatePath);
+      jlogger.warn("Mails | 无法读取关服邮件模板 %s，使用内联默认值", templatePath);
       template = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Server Shutdown</title></head>"
           + "<body style='font-family: Arial, sans-serif; padding: 20px;'>"
           + "<h2>Server Shutdown</h2>"

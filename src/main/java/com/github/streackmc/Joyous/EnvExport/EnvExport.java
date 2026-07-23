@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
 import com.github.streackmc.StreackLib.types.SConfig;
@@ -42,10 +42,10 @@ public class EnvExport extends JoyousModel {
     Joyous.PlaceholderService.registerParser(PlaceholderService);
     if (Files.notExists(CONF_PATH)) {
       try {
-        logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
+        jlogger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
         SFile.mv(Joyous.getResourceAsFile("/" + NAMES.CONF_FILE), CONF_PATH.toFile());
       } catch (Exception e) {
-        logger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
+        jlogger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
       }
     }
     conf = new SConfig(CONF_PATH, "yml");
@@ -80,7 +80,7 @@ public class EnvExport extends JoyousModel {
     public String onPlaceholderRequest(Player player, @NotNull String params) {
       // %joyous_env_%
       if (params.toLowerCase().startsWith("env_")) {
-        logger.debug("PHAPI返回 EnvExport 的环境变量 [%s]", params.substring(4));
+        jlogger.debug("PHAPI返回 EnvExport 的环境变量 [%s]", params.substring(4));
         return getEnv(params.substring(4), "");
       }
 
@@ -88,10 +88,10 @@ public class EnvExport extends JoyousModel {
       if (params.toLowerCase().startsWith("envput_")) {
         String[] v = params.substring(7).split(":", 2);
         if (v.length == 2) {
-          logger.debug("PHAPI设置 EnvExport[%s] 的环境变量为 [%s]", v[0], v[1]);
+          jlogger.debug("PHAPI设置 EnvExport[%s] 的环境变量为 [%s]", v[0], v[1]);
           setEnv(v[0], v[1]);
         } else {
-          logger.debug("PHAPI设置 EnvExport[%s] 的环境变量为 []", v[0]);
+          jlogger.debug("PHAPI设置 EnvExport[%s] 的环境变量为 []", v[0]);
           setEnv(v[0], null);
         }
         return "v[1]";

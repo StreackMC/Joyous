@@ -45,7 +45,7 @@ public class PHAPI_Backend extends PlaceholderExpansion {
   @Override
   @Nullable
   public String onPlaceholderRequest(Player player, @NotNull String params) {
-    logger.debug("传入PHAPI请求: %s", params);
+    jlogger.debug("传入PHAPI请求: %s", params);
 
     String result = null;
     for (JoyousPHAPIhandler h : Joyous.PlaceholderService.usableParser) {

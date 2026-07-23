@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.StreackLib.types.SMail;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -78,11 +78,11 @@ public class MailsCommand {
           .build();
       mail.send();
       ctx.getSource().getSender().sendMessage("§a测试邮件已成功发送至 §f" + target);
-      logger.info("Mails | 测试邮件已通过 Profile[%s] 发送至 %s", profile, target);
+      jlogger.info("Mails | 测试邮件已通过 Profile[%s] 发送至 %s", profile, target);
       return 1;
     } catch (Exception e) {
       ctx.getSource().getSender().sendMessage("§c发送失败：" + e.getLocalizedMessage());
-      logger.err("Mails | 测试邮件发送失败: %s", e.getLocalizedMessage(), e);
+      jlogger.err("Mails | 测试邮件发送失败: %s", e.getLocalizedMessage(), e);
       return 0;
     }
   }

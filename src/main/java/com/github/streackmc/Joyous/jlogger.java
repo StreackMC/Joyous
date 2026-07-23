@@ -40,7 +40,7 @@ import com.github.streackmc.StreackLib.utils.MCColor;
  * @author kdxiaoyi 审计
  * @since 0.0.1
  */
-public class logger {
+public class jlogger {
 
     /* ===================== 对外 API ===================== */
 
@@ -155,7 +155,7 @@ public class logger {
 
   private static Backend backend() {
     if (BACKEND == null) {
-      synchronized (logger.class) {
+      synchronized (jlogger.class) {
         if (BACKEND == null) {
           BACKEND = detectBackend();
         }
@@ -219,7 +219,7 @@ public class logger {
 
   /** SLF4J 日志（无插件时） */
   private static final class Slf4jBackend implements Backend {
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(logger.class);
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(jlogger.class);
 
     public void debug(String msg) {
       LOG.info(MCColor.strip(msg));
@@ -240,7 +240,7 @@ public class logger {
 
   /** java.util.logging 保底 */
   private static final class JulBackend implements Backend {
-    private static final Logger LOG = Logger.getLogger(logger.class.getName());
+    private static final Logger LOG = Logger.getLogger(jlogger.class.getName());
 
     public void debug(String msg) {
       LOG.info(MCColor.strip(msg));
@@ -321,7 +321,7 @@ public class logger {
     return sw.toString();
   }
 
-  private logger() {
+  private jlogger() {
   } // 禁止实例化
 
 }

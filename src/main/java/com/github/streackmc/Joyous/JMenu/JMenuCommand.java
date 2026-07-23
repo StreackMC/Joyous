@@ -10,7 +10,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -89,7 +90,7 @@ public class JMenuCommand {
   private int open(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
-      sender.sendMessage(Joyous.i18n.tr("system.command.player_only"));
+      sender.sendMessage(i18n.tr("system.command.player_only"));
       return 0;
     }
     String menuPath = StringArgumentType.getString(ctx, "menu");
@@ -106,7 +107,7 @@ public class JMenuCommand {
           io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver.class)
           .resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
-      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"));
+      sender.sendMessage(i18n.tr("system.command.target_loss"));
       return 0;
     }
     return openForPlayer(target, menuPath, sender);
@@ -130,7 +131,7 @@ public class JMenuCommand {
   private int get(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
-      sender.sendMessage(Joyous.i18n.tr("system.command.player_only"));
+      sender.sendMessage(i18n.tr("system.command.player_only"));
       return 0;
     }
     return giveMenuItem(player, "", sender);
@@ -140,7 +141,7 @@ public class JMenuCommand {
   private int getMenu(CommandContext<CommandSourceStack> ctx) {
     CommandSender sender = ctx.getSource().getSender();
     if (!(sender instanceof Player player)) {
-      sender.sendMessage(Joyous.i18n.tr("system.command.player_only"));
+      sender.sendMessage(i18n.tr("system.command.player_only"));
       return 0;
     }
     String menuPath = StringArgumentType.getString(ctx, "menu");
@@ -185,13 +186,13 @@ public class JMenuCommand {
       if (!display.isEmpty()) {
         var serializer = LegacyComponentSerializer.legacySection();
         // 先解析 PAPI 占位符（带玩家上下文），再解析颜色代码
-        String papiName = Joyous.i18n.getPHparsed(player, display.get(0));
+        String papiName = i18n.getPHparsed(player, display.get(0));
         meta.displayName(ensureReset(
             serializer.deserialize(MCColor.parse("§r" + papiName))));
         if (display.size() > 1) {
           var lore = display.subList(1, display.size()).stream()
               .<Component>map(line -> {
-                String papiLine = Joyous.i18n.getPHparsed(player, line);
+                String papiLine = i18n.getPHparsed(player, line);
                 return ensureReset(
                     serializer.deserialize(MCColor.parse("§r" + papiLine)));
               })
@@ -225,7 +226,7 @@ public class JMenuCommand {
     manager.invalidateAllCache();
     Joyous.conf.reload();
     ctx.getSource().getSender().sendMessage(MCColor.parse("&a已重载所有菜单缓存"));
-    logger.info("菜单缓存已由 [%s] 重载", ctx.getSource().getSender().getName());
+    jlogger.info("菜单缓存已由 [%s] 重载", ctx.getSource().getSender().getName());
     return 1;
   }
 

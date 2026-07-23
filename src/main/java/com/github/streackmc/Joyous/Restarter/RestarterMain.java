@@ -31,7 +31,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.types.SConfig;
 
@@ -175,14 +176,14 @@ public class RestarterMain extends JoyousModel {
 
     // preventInterrupt 提示
     if (isPreventInterrupt()) {
-      logger.info("Restarter | preventInterrupt 已启用，只有 /jstop 可以安全关闭服务器。");
+      jlogger.info("Restarter | preventInterrupt 已启用，只有 /jstop 可以安全关闭服务器。");
     }
 
     // 内存池探测结果
     if (oldGenPool != null) {
-      logger.debug("Restarter | 老年代内存池: %s", oldGenPool.getName());
+      jlogger.debug("Restarter | 老年代内存池: %s", oldGenPool.getName());
     } else {
-      logger.warn("Restarter | 未找到老年代内存池，内存检测将使用整体堆内存。");
+      jlogger.warn("Restarter | 未找到老年代内存池，内存检测将使用整体堆内存。");
     }
   }
 
@@ -201,10 +202,10 @@ public class RestarterMain extends JoyousModel {
     // 如果 non-jstop 关闭且开启了 preventInterrupt，尝试重启
     if (isPreventInterrupt() && !stoppedByJstop) {
       if (!isRestartConfigured()) {
-        logger.err("Restarter | preventInterrupt 已启用且检测到非正常关闭，但重启脚本未配置，无法自动重启，改为关闭。");
+        jlogger.err("Restarter | preventInterrupt 已启用且检测到非正常关闭，但重启脚本未配置，无法自动重启，改为关闭。");
         return;
       }
-      logger.warn("Restarter | 检测到非正常关闭！preventInterrupt 已启用，将尝试重启服务器。");
+      jlogger.warn("Restarter | 检测到非正常关闭！preventInterrupt 已启用，将尝试重启服务器。");
       if (isFpEnabled())
         saveFakePlayers();
       // 异步重启以避免阻塞关闭流程
@@ -241,9 +242,9 @@ public class RestarterMain extends JoyousModel {
         datStore.putListOfString("fakePlayers", migrated);
         datStore.save();
         Files.deleteIfExists(oldFile);
-        logger.info("Restarter | 已从 fp.dat 迁移 %d 个假人到 dat.json", migrated.size());
+        jlogger.info("Restarter | 已从 fp.dat 迁移 %d 个假人到 dat.json", migrated.size());
       } catch (IOException e) {
-        logger.err("Restarter | 迁移 fp.dat 失败: %s", e.getLocalizedMessage(), e);
+        jlogger.err("Restarter | 迁移 fp.dat 失败: %s", e.getLocalizedMessage(), e);
       }
     }
 
@@ -264,7 +265,7 @@ public class RestarterMain extends JoyousModel {
    */
   public static boolean scheduleRestart(int seconds, String reason) {
     if (!isRestartConfigured()) {
-      logger.err("Restarter | 重启脚本未配置，拒绝执行重启。请在 spigot.yml 中设置 settings.restart-script。");
+      jlogger.err("Restarter | 重启脚本未配置，拒绝执行重启。请在 spigot.yml 中设置 settings.restart-script。");
       return false;
     }
     schedule(seconds, reason, true);
@@ -292,7 +293,7 @@ public class RestarterMain extends JoyousModel {
     totalSeconds = seconds;
     String effectiveReason = (reason != null && !reason.isEmpty())
         ? reason
-        : Joyous.i18n.tr("restarter.default-reason");
+        : i18n.tr("restarter.default-reason");
     RestarterMain.reason = effectiveReason;
 
     // 初始化 BossBar
@@ -309,7 +310,7 @@ public class RestarterMain extends JoyousModel {
 
     // 首次广播
     String notifyKey = isRestart ? "restarter.restart.notify" : "restarter.stop.notify";
-    Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(notifyKey, effectiveReason, seconds)));
+    Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(i18n.tr(notifyKey, effectiveReason, seconds)));
 
     // 启动倒计时（每秒）
     countdownTask = Server.getScheduler().runTaskTimer(Joyous.plugin, () -> {
@@ -329,7 +330,7 @@ public class RestarterMain extends JoyousModel {
       if (countdownSeconds <= 5 || countdownSeconds == 10 || countdownSeconds == 30
           || (countdownSeconds <= 60 && countdownSeconds % 30 == 0)
           || (countdownSeconds > 60 && countdownSeconds % 60 == 0)) {
-        Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(notifyKey, RestarterMain.reason, countdownSeconds)));
+        Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(i18n.tr(notifyKey, RestarterMain.reason, countdownSeconds)));
       }
     }, 0L, 20L);
   }
@@ -357,7 +358,7 @@ public class RestarterMain extends JoyousModel {
   /** 踢出所有在线玩家 */
   private static void kickAllPlayers(String kickKey, Object... args) {
     for (Player p : new ArrayList<>(Server.getOnlinePlayers())) {
-      p.kick(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(kickKey, args)));
+      p.kick(LegacyComponentSerializer.legacySection().deserialize(i18n.tr(kickKey, args)));
     }
   }
 
@@ -374,13 +375,13 @@ public class RestarterMain extends JoyousModel {
    */
   private static void performRestart() {
     if (!isRestartConfigured()) {
-      logger.err("Restarter | 重启脚本未配置，将执行关闭而非重启。");
+      jlogger.err("Restarter | 重启脚本未配置，将执行关闭而非重启。");
       Server.shutdown();
       return;
     }
     saveStateBeforeRestart();
     Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
-      logger.info("→\u200bJ\u200bo\u200by\u200bo\u200bu\u200bs\u200b←");
+      jlogger.info("→\u200bJ\u200bo\u200by\u200bo\u200bu\u200bs\u200b←");
       Server.restart();
     }, 20L);
   }
@@ -402,7 +403,7 @@ public class RestarterMain extends JoyousModel {
     String bcKey = isRestart
         ? "restarter.shutting-down.restart-broadcast"
         : "restarter.shutting-down.stop-broadcast";
-    Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(bcKey)));
+    Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(i18n.tr(bcKey)));
 
     String kickKey = isRestart
         ? "restarter.shutting-down.restart-kick"
@@ -442,7 +443,7 @@ public class RestarterMain extends JoyousModel {
     }
 
     String bossKey = restartMode ? "restarter.restart.bossbar" : "restarter.stop.bossbar";
-    bossBar.setTitle(Joyous.i18n.tr(bossKey, countdownSeconds));
+    bossBar.setTitle(i18n.tr(bossKey, countdownSeconds));
   }
 
   // ------------------------------------------------------------------------
@@ -461,17 +462,17 @@ public class RestarterMain extends JoyousModel {
 
       if (checkTimeConditions()) {
         if (!isRestartConfigured()) {
-          logger.err("Restarter | 满足时间条件，但重启脚本未配置，改为关闭。请在 spigot.yml 中设置 settings.restart-script。");
+          jlogger.err("Restarter | 满足时间条件，但重启脚本未配置，改为关闭。请在 spigot.yml 中设置 settings.restart-script。");
         }
         int timeout = getAutoRestartTimeout();
         if (timeout == 0) {
           // 立即重启
-          logger.info("Restarter | 满足时间条件，立即执行重启。");
-          Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr("restarter.auto-restart.immediate.broadcast")));
+          jlogger.info("Restarter | 满足时间条件，立即执行重启。");
+          Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(i18n.tr("restarter.auto-restart.immediate.broadcast")));
           kickAllPlayers("restarter.auto-restart.immediate.kick");
           performRestart();
         } else {
-          scheduleRestart(timeout, Joyous.i18n.tr("restarter.auto-restart.reason"));
+          scheduleRestart(timeout, i18n.tr("restarter.auto-restart.reason"));
         }
       }
     }, 20L, 20L); // 每秒
@@ -638,7 +639,7 @@ public class RestarterMain extends JoyousModel {
     int interval = getMemoryCheckInterval();
     long intervalTicks = Math.max(1L, interval * 20L);
 
-    logger.info("Restarter | 内存检测已启动，间隔 %d 秒，老年代阈值 %d%%", interval, getOldGenPercent());
+    jlogger.info("Restarter | 内存检测已启动，间隔 %d 秒，老年代阈值 %d%%", interval, getOldGenPercent());
 
     memoryCheckTask = Server.getScheduler().runTaskTimer(Joyous.plugin, () -> {
       if (scheduled)
@@ -667,8 +668,8 @@ public class RestarterMain extends JoyousModel {
       // 阈值检查
       if (oldGenRatio >= getOldGenPercent()) {
         consecutiveFailCount++;
-        logger.debug("Restarter | %s",
-            Joyous.i18n.tr("restarter.auto-restart.memory.sample-failed",
+        jlogger.debug("Restarter | %s",
+            i18n.tr("restarter.auto-restart.memory.sample-failed",
                 oldGenRatio, getOldGenPercent(), consecutiveFailCount, getMemorySamples()));
 
         if (consecutiveFailCount >= getMemorySamples()) {
@@ -728,8 +729,8 @@ public class RestarterMain extends JoyousModel {
           / oldest.oldGenUsed * 100;
 
       if (recoveryRate < getGCRecoveryThreshold()) {
-        logger.warn("Restarter | %s",
-            Joyous.i18n.tr("restarter.auto-restart.memory.leak-detected",
+        jlogger.warn("Restarter | %s",
+            i18n.tr("restarter.auto-restart.memory.leak-detected",
                 (double) oldest.oldGenUsed / oldest.oldGenMax * 100,
                 (double) newest.oldGenUsed / newest.oldGenMax * 100,
                 recoveryRate, getGCRecoveryThreshold()));
@@ -752,8 +753,8 @@ public class RestarterMain extends JoyousModel {
       long elapsed = System.currentTimeMillis() - lastMemoryRestart;
       long minMs = minInterval * 60L * 1000L;
       if (elapsed < minMs) {
-        logger.info("Restarter | %s",
-            Joyous.i18n.tr("restarter.auto-restart.memory.cooldown", minInterval));
+        jlogger.info("Restarter | %s",
+            i18n.tr("restarter.auto-restart.memory.cooldown", minInterval));
         return;
       }
     }
@@ -775,8 +776,8 @@ public class RestarterMain extends JoyousModel {
 
     // 确定重启理由
     String restartReason = isLeak
-        ? Joyous.i18n.tr("restarter.auto-restart.memory.leak-reason")
-        : Joyous.i18n.tr("restarter.auto-restart.memory.reason");
+        ? i18n.tr("restarter.auto-restart.memory.leak-reason")
+        : i18n.tr("restarter.auto-restart.memory.reason");
 
     int timeout = getAutoRestartTimeout();
 
@@ -789,12 +790,12 @@ public class RestarterMain extends JoyousModel {
           ? "restarter.auto-restart.memory.leak-kick"
           : "restarter.auto-restart.memory.kick";
 
-      logger.info("Restarter | 内存触发立即重启（%s）。", isLeak ? "内存泄漏" : "内存压力");
-      Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr(bcKey)));
+      jlogger.info("Restarter | 内存触发立即重启（%s）。", isLeak ? "内存泄漏" : "内存压力");
+      Server.broadcast(LegacyComponentSerializer.legacySection().deserialize(i18n.tr(bcKey)));
       kickAllPlayers(kickKey);
       performRestart();
     } else if (timeout > 0) {
-      logger.info("Restarter | 内存触发计划重启（%s），倒计时 %d 秒。", isLeak ? "内存泄漏" : "内存压力", timeout);
+      jlogger.info("Restarter | 内存触发计划重启（%s），倒计时 %d 秒。", isLeak ? "内存泄漏" : "内存压力", timeout);
       scheduleRestart(timeout, restartReason);
     }
   }
@@ -826,11 +827,11 @@ public class RestarterMain extends JoyousModel {
           new Object[] { dumpFile.getAbsolutePath(), true },
           new String[] { "java.lang.String", "boolean" });
 
-      logger.info("Restarter | %s",
-          Joyous.i18n.tr("restarter.auto-restart.memory.heap-dump-saved", dumpFile.getAbsolutePath()));
+      jlogger.info("Restarter | %s",
+          i18n.tr("restarter.auto-restart.memory.heap-dump-saved", dumpFile.getAbsolutePath()));
     } catch (Exception e) {
-      logger.err("Restarter | %s",
-          Joyous.i18n.tr("restarter.auto-restart.memory.heap-dump-failed"), e);
+      jlogger.err("Restarter | %s",
+          i18n.tr("restarter.auto-restart.memory.heap-dump-failed"), e);
     }
   }
 
@@ -884,7 +885,7 @@ public class RestarterMain extends JoyousModel {
       datStore.putListOfString("fakePlayers", new ArrayList<>(fakePlayers));
     }
     datStore.save();
-    logger.debug("Restarter | 已保存 %d 个假人到 dat.json", fakePlayers.size());
+    jlogger.debug("Restarter | 已保存 %d 个假人到 dat.json", fakePlayers.size());
   }
 
   /** 从 dat.json 读取假人名单 */
@@ -901,7 +902,7 @@ public class RestarterMain extends JoyousModel {
           fakePlayers.add(n);
       }
     }
-    logger.debug("Restarter | 从 dat.json 加载了 %d 个假人", fakePlayers.size());
+    jlogger.debug("Restarter | 从 dat.json 加载了 %d 个假人", fakePlayers.size());
   }
 
   /** 重启后恢复假人 */
@@ -922,7 +923,7 @@ public class RestarterMain extends JoyousModel {
 
     List<String> toRecover = new ArrayList<>(fakePlayers);
 
-    logger.info("Restarter | 将在 %d ms 后恢复 %d 个假人", delayMs, toRecover.size());
+    jlogger.info("Restarter | 将在 %d ms 后恢复 %d 个假人", delayMs, toRecover.size());
 
     Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
       // 清理持久化数据
@@ -935,17 +936,17 @@ public class RestarterMain extends JoyousModel {
         // 生成假人
         String spawn = spawnCmd.replace("%name%", name);
         Server.dispatchCommand(Server.getConsoleSender(), spawn);
-        logger.debug("Restarter | 已生成假人: %s", name);
+        jlogger.debug("Restarter | 已生成假人: %s", name);
 
         // 延迟登录
         Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
           String login = loginCmd.replace("%name%", name);
           Server.dispatchCommand(Server.getConsoleSender(), login);
-          logger.debug("Restarter | 假人已登录: %s", name);
+          jlogger.debug("Restarter | 假人已登录: %s", name);
         }, delayTicks);
       }
       fakePlayers.clear();
-      logger.info("Restarter | 假人恢复完成（%d 个）", toRecover.size());
+      jlogger.info("Restarter | 假人恢复完成（%d 个）", toRecover.size());
     }, delayTicks);
   }
 
@@ -977,7 +978,7 @@ public class RestarterMain extends JoyousModel {
     File serverRoot = Joyous.plugin.getDataFolder().getParentFile().getParentFile();
     File spigotYml = new File(serverRoot, "spigot.yml");
     if (!spigotYml.exists()) {
-      logger.warn("Restarter | 无法找到 spigot.yml，无法验证重启脚本配置。");
+      jlogger.warn("Restarter | 无法找到 spigot.yml，无法验证重启脚本配置。");
       return false;
     }
     YamlConfiguration spigotConfig = YamlConfiguration.loadConfiguration(spigotYml);
@@ -990,7 +991,7 @@ public class RestarterMain extends JoyousModel {
       scriptFile = new File(serverRoot, scriptPath);
     }
     if (!scriptFile.exists()) {
-      logger.warn("Restarter | 重启脚本 %s 不存在。", scriptFile.getAbsolutePath());
+      jlogger.warn("Restarter | 重启脚本 %s 不存在。", scriptFile.getAbsolutePath());
       return false;
     }
     return true;

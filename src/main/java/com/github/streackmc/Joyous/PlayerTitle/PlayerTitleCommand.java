@@ -7,7 +7,8 @@ import org.bukkit.entity.Player;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -55,13 +56,13 @@ public class PlayerTitleCommand {
 
   private int help(CommandContext<CommandSourceStack> ctx) {// 显示帮助
     CommandSender sender = ctx.getSource().getSender();
-    sender.sendMessage(Joyous.i18n.tr("titles.help"));
+    sender.sendMessage(i18n.tr("titles.help"));
     return 1;
   }
 
   private int preview_titleId(CommandContext<CommandSourceStack> ctx) {
     String titleId = StringArgumentType.getString(ctx, "titleId");
-    ctx.getSource().getSender().sendMessage(String.format(Joyous.i18n.tr("titles.preview"), PlayerTitleMain.getTitle(titleId)));;
+    ctx.getSource().getSender().sendMessage(String.format(i18n.tr("titles.preview"), PlayerTitleMain.getTitle(titleId)));;
     return 1;
   }
 
@@ -71,7 +72,7 @@ public class PlayerTitleCommand {
 
     // 不允许控制台执行
     if (!(sender instanceof Player player)) {
-      sender.sendMessage(Joyous.i18n.tr("system.command.player_only"));
+      sender.sendMessage(i18n.tr("system.command.player_only"));
       return 0;
     }
 
@@ -82,8 +83,8 @@ public class PlayerTitleCommand {
       sender.sendMessage(failure.getLocalizedMessage());
       return 0;
     } catch (Exception e) {
-      logger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
-      sender.sendMessage(Joyous.i18n.tr("titles.set.wrong"), e.getLocalizedMessage());
+      jlogger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
+      sender.sendMessage(i18n.tr("titles.set.wrong"), e.getLocalizedMessage());
       return 0;
     }
     return 1;
@@ -97,8 +98,8 @@ public class PlayerTitleCommand {
     try {// 读取玩家
       target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
-      logger.debug("无法设置为指定玩家设置称号：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
+      jlogger.debug("无法设置为指定玩家设置称号：%s", e.getLocalizedMessage(), e);
+      sender.sendMessage(i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
       return 0;
     }
 
@@ -108,11 +109,11 @@ public class PlayerTitleCommand {
       sender.sendMessage(failure.getLocalizedMessage());
       return 0;
     } catch (Exception e) {
-      logger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
-      sender.sendMessage(Joyous.i18n.tr("titles.set.wrong"));
+      jlogger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
+      sender.sendMessage(i18n.tr("titles.set.wrong"));
       return 0;
     }
-    sender.sendMessage(Joyous.i18n.tr("titles.set.done"), PlayerTitleMain.getTitle(target));
+    sender.sendMessage(i18n.tr("titles.set.done"), PlayerTitleMain.getTitle(target));
     return 1;
   }
 

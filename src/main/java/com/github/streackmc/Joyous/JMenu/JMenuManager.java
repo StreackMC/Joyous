@@ -13,7 +13,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
 import net.kyori.adventure.text.Component;
@@ -184,7 +185,7 @@ public class JMenuManager {
     int lines = menuData.getLines();
     String title = menuData.getTitle();
     // 解析 PAPI 占位符（带玩家上下文，替换 %player_name% 等玩家相关占位符）
-    String papiTitle = Joyous.i18n.getPHparsed(player, title);
+    String papiTitle = i18n.getPHparsed(player, title);
 
     Inventory inventory = Bukkit.createInventory(null, lines * 9,
         LegacyComponentSerializer.legacySection().deserialize(MCColor.parse(papiTitle)));
@@ -225,13 +226,13 @@ public class JMenuManager {
    */
   private void openBedrockMenu(JMenuEntry menuData, Player player) {
     if (!isFloodgateAvailable()) {
-      logger.debug("Floodgate 不可用，跳过基岩版菜单 [%s] 的打开", menuData.getMenuPath());
+      jlogger.debug("Floodgate 不可用，跳过基岩版菜单 [%s] 的打开", menuData.getMenuPath());
       return;
     }
 
     try {
       // 逐玩家解析 PAPI 后，去除所有颜色代码供基岩版表单使用
-      String title = MCColor.remove(Joyous.i18n.getPHparsed(player, menuData.getTitle()));
+      String title = MCColor.remove(i18n.getPHparsed(player, menuData.getTitle()));
       var buttons = menuData.getBedrockButtons();
 
       // 过滤可用按钮
@@ -278,7 +279,7 @@ public class JMenuManager {
           .sendForm(player.getUniqueId(), formBuilder.build());
 
     } catch (Exception e) {
-      logger.warn("无法为基岩版玩家 [%s] 打开菜单 [%s]：%s",
+      jlogger.warn("无法为基岩版玩家 [%s] 打开菜单 [%s]：%s",
           player.getName(), menuData.getMenuPath(), e.getLocalizedMessage(), e);
     }
   }
@@ -309,7 +310,7 @@ public class JMenuManager {
           openMenuFor(resolvedParam, player);
         } catch (IllegalArgumentException e) {
           player.sendMessage(MCColor.parse("&c菜单错误：" + e.getLocalizedMessage()));
-          logger.warn("玩家 [%s] 打开子菜单失败：[%s] %s",
+          jlogger.warn("玩家 [%s] 打开子菜单失败：[%s] %s",
               player.getName(), resolvedParam, e.getLocalizedMessage());
         }
       }
@@ -320,7 +321,7 @@ public class JMenuManager {
         try {
           Bukkit.dispatchCommand(player, resolvedParam);
         } catch (Exception e) {
-          logger.warn("以 OP 身份为 [%s] 执行命令 [%s] 失败：%s",
+          jlogger.warn("以 OP 身份为 [%s] 执行命令 [%s] 失败：%s",
               player.getName(), resolvedParam, e.getLocalizedMessage());
         } finally {
           if (!wasOp) player.setOp(false);
@@ -330,15 +331,15 @@ public class JMenuManager {
       case "url" -> {
         if (!isBedrockPlayer(player)) {
           player.sendMessage(
-              Component.text(MCColor.parse(Joyous.i18n.tr("jmenu.open_url", param)))
+              Component.text(MCColor.parse(i18n.tr("jmenu.open_url", param)))
                   .color(NamedTextColor.AQUA)
                   .decorate(TextDecoration.UNDERLINED)
                   .clickEvent(ClickEvent.openUrl(resolvedParam)));
         } else {
-          player.sendMessage(MCColor.parse(Joyous.i18n.tr("jmenu.open_url_be", param)));
+          player.sendMessage(MCColor.parse(i18n.tr("jmenu.open_url_be", param)));
         }
       }
-      default -> logger.debug("菜单按钮动作 [%s] 未被识别，无操作", action);
+      default -> jlogger.debug("菜单按钮动作 [%s] 未被识别，无操作", action);
     }
   }
 
@@ -383,7 +384,7 @@ public class JMenuManager {
     try {
       return org.geysermc.geyser.api.GeyserApi.api().isBedrockPlayer(player.getUniqueId());
     } catch (Exception e) {
-      logger.debug("检测基岩版玩家失败：%s", e.getLocalizedMessage());
+      jlogger.debug("检测基岩版玩家失败：%s", e.getLocalizedMessage());
       return false;
     }
   }

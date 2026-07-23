@@ -12,7 +12,8 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.utils.MCColor;
@@ -58,10 +59,10 @@ public class PlayerTitleMain extends JoyousModel {
     Joyous.addPermissions(PermDef.none("joyous.titles", "用于决定一个玩家是否具有指定称号"));
     if (Files.notExists(CONF_PATH)) {
       try {
-        logger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
+        jlogger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
         SFile.mv(Joyous.getResourceAsFile("/" + NAMES.CONF_FILE), CONF_PATH.toFile());
       } catch (Exception e) {
-        logger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
+        jlogger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
       }
     }
     titleList = new SConfig(CONF_PATH, "yml");
@@ -103,8 +104,8 @@ public class PlayerTitleMain extends JoyousModel {
 
     // 检查是否过期
     if (!checkTitlePermission(player, titleId)) {
-      player.sendMessage(Joyous.i18n.tr("titles.status.outdated"));
-      logger.info("玩家 [%s] 持有的称号 [%s] 已过期", player.getName(), titleId);
+      player.sendMessage(i18n.tr("titles.status.outdated"));
+      jlogger.info("玩家 [%s] 持有的称号 [%s] 已过期", player.getName(), titleId);
       pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
       return "";
     }
@@ -113,15 +114,15 @@ public class PlayerTitleMain extends JoyousModel {
     String title = titleList.getString(titleId, "");
     if (title.isEmpty() && titleId.toLowerCase() == "empty") {
       title = "";
-      player.sendMessage(Joyous.i18n.tr("titles.status.missing"), titleId);
-      logger.warn("找不到玩家 [%s] 持有的称号 [%s]", player.getName(), titleId);
+      player.sendMessage(i18n.tr("titles.status.missing"), titleId);
+      jlogger.warn("找不到玩家 [%s] 持有的称号 [%s]", player.getName(), titleId);
       pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, "empty");
     } else {
       title = String.format("&r&7%s&r&f%s&r&7%s&r",
           Joyous.conf.getString("PlayerTitle.prefix", "「"),
           title,
           Joyous.conf.getString("PlayerTitle.suffix", "」"));
-      logger.debug("玩家 [%s] 持有的称号 [%s] 为 [%s]", player.getName(), titleId, title);
+      jlogger.debug("玩家 [%s] 持有的称号 [%s] 为 [%s]", player.getName(), titleId, title);
     }
     return MCColor.parse(title);
   }
@@ -140,11 +141,11 @@ public class PlayerTitleMain extends JoyousModel {
     if (forced == null || !forced) {
       // 检查是否存在
       if (titleList.getString(titleId, null) == null)
-        throw new IllegalArgumentException(Joyous.i18n.tr("titles.set.unknown"));
+        throw new IllegalArgumentException(i18n.tr("titles.set.unknown"));
 
       // 检查是否持有
       if (!checkTitlePermission(player, titleId))
-        throw new IllegalArgumentException(Joyous.i18n.tr("titles.status.not_have_yet"));
+        throw new IllegalArgumentException(i18n.tr("titles.status.not_have_yet"));
     }
 
     // 设置
@@ -152,7 +153,7 @@ public class PlayerTitleMain extends JoyousModel {
 
     // 通知目标玩家
     if (!(slience == null || slience))
-      player.sendMessage(Joyous.i18n.tr("titles.set.done"), getTitle(player));
+      player.sendMessage(i18n.tr("titles.set.done"), getTitle(player));
   }
 
   /**

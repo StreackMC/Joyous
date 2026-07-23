@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
+import com.github.streackmc.Joyous.i18n;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -34,7 +35,7 @@ public class RestarterCommand {
         .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.restarter.restart"))
         .executes(ctx -> {
           if (!RestarterMain.scheduleRestart(RestarterMain.getDefaultTimeout(), "")) {
-            ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.restart-not-configured"));
+            ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.restart-not-configured"));
             return 0;
           }
           return 1;
@@ -44,7 +45,7 @@ public class RestarterCommand {
                 .executes(ctx -> {
                   int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
                   if (!RestarterMain.scheduleRestart(seconds, "")) {
-                    ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.restart-not-configured"));
+                    ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.restart-not-configured"));
                     return 0;
                   }
                   return 1;
@@ -55,7 +56,7 @@ public class RestarterCommand {
                           int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
                           String reason = StringArgumentType.getString(ctx, "reason");
                           if (!RestarterMain.scheduleRestart(seconds, reason)) {
-                            ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.restart-not-configured"));
+                            ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.restart-not-configured"));
                             return 0;
                           }
                           return 1;
@@ -117,11 +118,11 @@ public class RestarterCommand {
   /** /jrestarter cancel — 取消计划 */
   private int cancelAction(CommandContext<CommandSourceStack> ctx) {
     if (!RestarterMain.scheduled) {
-      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.no-plan"));
+      ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.no-plan"));
       return 1;
     }
     RestarterMain.cancelCountdown();
-    Bukkit.broadcast(LegacyComponentSerializer.legacySection().deserialize(Joyous.i18n.tr("restarter.command.cancelled", ctx.getSource().getSender().getName())));
+    Bukkit.broadcast(LegacyComponentSerializer.legacySection().deserialize(i18n.tr("restarter.command.cancelled", ctx.getSource().getSender().getName())));
     return 1;
   }
 
@@ -129,9 +130,9 @@ public class RestarterCommand {
   private int fpAdd(CommandContext<CommandSourceStack> ctx) {
     String name = StringArgumentType.getString(ctx, "player");
     if (RestarterMain.addFakePlayer(name)) {
-      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.added", name));
+      ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.fp.added", name));
     } else {
-      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.already", name));
+      ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.fp.already", name));
     }
     return 1;
   }
@@ -140,9 +141,9 @@ public class RestarterCommand {
   private int fpRemove(CommandContext<CommandSourceStack> ctx) {
     String name = StringArgumentType.getString(ctx, "player");
     if (RestarterMain.removeFakePlayer(name)) {
-      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.removed", name));
+      ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.fp.removed", name));
     } else {
-      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.not-exists", name));
+      ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.fp.not-exists", name));
     }
     return 1;
   }
@@ -151,10 +152,10 @@ public class RestarterCommand {
   private int fpList(CommandContext<CommandSourceStack> ctx) {
     Set<String> fps = RestarterMain.fakePlayers;
     if (fps.isEmpty()) {
-      ctx.getSource().getSender().sendMessage(Joyous.i18n.tr("restarter.command.fp.list-empty"));
+      ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.fp.list-empty"));
     } else {
       ctx.getSource().getSender()
-          .sendMessage(Joyous.i18n.tr("restarter.command.fp.list", fps.size(), String.join(", ", fps)));
+          .sendMessage(i18n.tr("restarter.command.fp.list", fps.size(), String.join(", ", fps)));
     }
     return 1;
   }

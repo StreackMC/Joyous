@@ -14,7 +14,8 @@ import org.nanohttpd.protocols.http.response.Response;
 import org.nanohttpd.protocols.http.response.Status;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 
 public class WebPhAPI {
   /** 启用对PlaceholderAPI的查询支持 */
@@ -61,12 +62,12 @@ public class WebPhAPI {
         /* 解析目标并返回 */
         String parsed;
         if (target == null || target.equalsIgnoreCase("server") || target.equalsIgnoreCase("console")) {
-          parsed = Joyous.i18n.getPHparsed(null, query);
+          parsed = i18n.getPHparsed(null, query);
           return newPlaceholderJsonResponse(200, "OK: Operation has been completed successfully.", parsed, null, null);
           // TODO: 兼容离线玩家处理并接入StreackLib的玩家
         } else {
           Player targetPlayer = Bukkit.getPlayer(target);
-          parsed = Joyous.i18n.getPHparsed(targetPlayer, query);
+          parsed = i18n.getPHparsed(targetPlayer, query);
           if (targetPlayer == null) {
             return newPlaceholderJsonResponse(200, "OK: Operation has been completed successfully.", parsed, null,
                 null);
@@ -76,11 +77,11 @@ public class WebPhAPI {
           }
         }
       } catch (Exception e) {
-        logger.err("无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
+        jlogger.err("无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
         return newPlaceholderJsonResponse(500, "Internal Server Error: Unknown error emerged.", null, null, null);
       }
     });
-    logger.info("已注册PlaceholderAPI查询处理器： " + path);
+    jlogger.info("已注册PlaceholderAPI查询处理器： " + path);
   }
 
   /**
@@ -103,7 +104,7 @@ public class WebPhAPI {
           try {
             return Pattern.compile(str.substring(6)).matcher(placeholder).find();
           } catch (PatternSyntaxException ignored) {
-            logger.debug("忽略一处正则表达式错误：" + ignored.getLocalizedMessage(), ignored);
+            jlogger.debug("忽略一处正则表达式错误：" + ignored.getLocalizedMessage(), ignored);
             return false;
           }
         }

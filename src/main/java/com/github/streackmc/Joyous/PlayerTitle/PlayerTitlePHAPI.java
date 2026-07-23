@@ -3,7 +3,7 @@ package com.github.streackmc.Joyous.PlayerTitle;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
 
 public class PlayerTitlePHAPI implements JoyousPHAPIhandler {
@@ -16,13 +16,13 @@ public class PlayerTitlePHAPI implements JoyousPHAPIhandler {
 
     // %joyous_title2% → 返回玩家称号，带有兼容性的
     if (params.toLowerCase().startsWith("title2")) {
-      logger.debug("PHAPI请求寻找玩家的称号");
+      jlogger.debug("PHAPI请求寻找玩家的称号");
       return PlayerTitleMain.getTitle(player).replaceAll("§", "&");
     }
 
     // %joyous_title% → 返回玩家称号
     if (params.toLowerCase().startsWith("title")) {
-      logger.debug("PHAPI请求寻找玩家的称号");
+      jlogger.debug("PHAPI请求寻找玩家的称号");
       return PlayerTitleMain.getTitle(player);
     }
 

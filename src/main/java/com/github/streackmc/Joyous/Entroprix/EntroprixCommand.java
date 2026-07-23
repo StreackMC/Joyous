@@ -7,7 +7,8 @@ import org.bukkit.entity.Player;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
-import com.github.streackmc.Joyous.logger;
+import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -103,15 +104,15 @@ public class EntroprixCommand {
     try {// 读取玩家
       player = ctx.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
-      logger.debug("无法设置为指定玩家触发抽卡：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
+      jlogger.debug("无法设置为指定玩家触发抽卡：%s", e.getLocalizedMessage(), e);
+      sender.sendMessage(i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
       return 0;
     }
     try {
       EntroprixMain.roll(player, name, times);
     } catch (Exception e) {
       sender.sendMessage(e.getLocalizedMessage());
-      logger.severe("无法为 %s 在卡池 [%s] 中抽卡：%s", player.getName(), name, e.getLocalizedMessage(), e);
+      jlogger.severe("无法为 %s 在卡池 [%s] 中抽卡：%s", player.getName(), name, e.getLocalizedMessage(), e);
       return 0;
     }
     return 1;
@@ -130,19 +131,19 @@ public class EntroprixCommand {
     try {// 读取玩家
       player = ctx.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
-      logger.debug("无法设置为指定玩家设置保底状态：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
+      jlogger.debug("无法设置为指定玩家设置保底状态：%s", e.getLocalizedMessage(), e);
+      sender.sendMessage(i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
       return 0;
     }
 
     switch (type) {
       case GUARANTEE_TYPE.COUNTS:
         EntroprixMain.Guarantee.setCounts(player, name, times);
-        sender.sendMessage(Joyous.i18n.tr("entroprix.set.tries", LegacyComponentSerializer.legacySection().serialize(player.displayName()), name, times));
+        sender.sendMessage(i18n.tr("entroprix.set.tries", LegacyComponentSerializer.legacySection().serialize(player.displayName()), name, times));
         return 1;
       case GUARANTEE_TYPE.TRIES:
         EntroprixMain.Guarantee.setTries(player, name, times);
-        sender.sendMessage(Joyous.i18n.tr("entroprix.set.counts", LegacyComponentSerializer.legacySection().serialize(player.displayName()), name, times));
+        sender.sendMessage(i18n.tr("entroprix.set.counts", LegacyComponentSerializer.legacySection().serialize(player.displayName()), name, times));
         return 1;
       default:
         return 0;
@@ -157,13 +158,13 @@ public class EntroprixCommand {
     try {// 读取玩家
       player = ctx.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
-      logger.debug("无法设置为指定玩家设置保底状态：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
+      jlogger.debug("无法设置为指定玩家设置保底状态：%s", e.getLocalizedMessage(), e);
+      sender.sendMessage(i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
       return 0;
     }
     EntroprixMain.Guarantee.setCounts(player, name, 0);
     EntroprixMain.Guarantee.setTries(player, name, 0);
-    sender.sendMessage(Joyous.i18n.tr("entroprix.set.reset", LegacyComponentSerializer.legacySection().serialize(player.displayName()), name));
+    sender.sendMessage(i18n.tr("entroprix.set.reset", LegacyComponentSerializer.legacySection().serialize(player.displayName()), name));
     return 1;
   }
 
@@ -175,28 +176,28 @@ public class EntroprixCommand {
     try {// 读取玩家
       player = ctx.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
-      logger.debug("无法获取玩家的保底状态：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(Joyous.i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
+      jlogger.debug("无法获取玩家的保底状态：%s", e.getLocalizedMessage(), e);
+      sender.sendMessage(i18n.tr("system.command.player_loss"), e.getLocalizedMessage());
       return 0;
     }
 
     // 读取数据
     Integer counts_times = EntroprixMain.Guarantee.getCounts(player, name);
     Integer tries_times = EntroprixMain.Guarantee.getTries(player, name);
-    String who = Joyous.i18n.tr("system.i18n.you");
+    String who = i18n.tr("system.i18n.you");
     if (!sender.equals(player)) {
       who = LegacyComponentSerializer.legacySection().serialize(player.displayName());
     }
 
     switch (type) {
       case "":
-        sender.sendMessage(Joyous.i18n.tr("entroprix.get.normal", who, counts_times, name, tries_times));
+        sender.sendMessage(i18n.tr("entroprix.get.normal", who, counts_times, name, tries_times));
         return 1;
       case GUARANTEE_TYPE.COUNTS:
-        sender.sendMessage(Joyous.i18n.tr("entroprix.get.tries", who, name, counts_times));
+        sender.sendMessage(i18n.tr("entroprix.get.tries", who, name, counts_times));
         return counts_times;
       case GUARANTEE_TYPE.TRIES:
-        sender.sendMessage(Joyous.i18n.tr("entroprix.get.counts", who, name, tries_times));
+        sender.sendMessage(i18n.tr("entroprix.get.counts", who, name, tries_times));
         return tries_times;
       default:
         return 0;
