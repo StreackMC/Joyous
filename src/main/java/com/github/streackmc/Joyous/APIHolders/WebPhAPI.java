@@ -1,7 +1,5 @@
 package com.github.streackmc.Joyous.APIHolders;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,10 +17,12 @@ import org.nanohttpd.protocols.http.response.Status;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.i18n;
 import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.types.SConfig;
 
 public class WebPhAPI {
   /** 启用对PlaceholderAPI的查询支持 */
+  @SuppressWarnings("unchecked")
   static void enablePH(String path) throws Exception {
     APIHoldersMain.httpServer.registerHandler(path, session -> {
       try {
@@ -32,21 +32,13 @@ public class WebPhAPI {
               NanoHTTPD.MIME_PLAINTEXT, "Method GET Allowed Only.");
         }
 
-        /* 提取 URL ? 之后的原始查询字符串，作为 JSON5 解析 */
-        String uri = session.getUri();
-        String queryString = "";
-        int qIndex = uri.indexOf('?');
-        if (qIndex < 0 || qIndex + 1 >= uri.length()) {
-          return newErrorResponse("Missing query string. Expected JSON5 after '?'.");
-        }
-        queryString = URLDecoder.decode(uri.substring(qIndex + 1), StandardCharsets.UTF_8);
-
-        SConfig input;
-        try {
-          input = new SConfig(queryString, "jsonc");
-        } catch (Exception e) {
-          return newErrorResponse("Invalid JSON5 query: " + e.getLocalizedMessage());
-        }
+        /* 提取参数 payload 的原始查询字符串，作为 JSON5 解析 */
+        Map<String, List<String>> params = session.getParameters();
+        List<String> queryStringList = params.get("payload");
+        if (queryStringList == null) return newErrorResponse("Missing 'payload' argument.");
+        String queryString = queryStringList.getLast();
+        SConfig input = new SConfig(queryString, "jsonc", null);
+        jlogger.debug("处理 Placeholder 查询：", queryString);
 
         // 解析 target (可为 String 或 null)
         String outerTarget = input.getString("target");
@@ -77,9 +69,11 @@ public class WebPhAPI {
             results.add("");
           }
         }
+        long timestamp = System.currentTimeMillis();
+        jlogger.debug("返回 Placeholder 查询请求：", StreackLib.formatTime(timestamp, null), " → ", results);
 
         JSONObject body = new JSONObject();
-        body.put("timestamp", System.currentTimeMillis());
+        body.put("timestamp", timestamp);
         body.put("result", results);
         Response rsp = Response.newFixedLengthResponse(Status.OK,
             "application/json", body.toJSONString());
