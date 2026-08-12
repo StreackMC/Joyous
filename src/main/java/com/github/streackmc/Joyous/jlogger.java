@@ -57,9 +57,9 @@ public class jlogger {
     }
     Payload p = extract(args);
     if (p.t != null) {
-      backend().debug(p.msg + "\n" + throwableToString(p.t));
+      backend().info(p.msg + "\n" + throwableToString(p.t));
     } else {
-      backend().debug(p.msg);
+      backend().info(p.msg);
     }
   }
 
