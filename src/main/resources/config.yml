@@ -219,6 +219,10 @@ Restarter:
       # login 在玩家加入后执行的延迟毫秒
       delayOfJoin: 2000
 
+## 数据库档案名
+# 需要在 StreackLib 中配置这个数据库档案
+dbprofile: 'profile_mysql'
+
 ## 配置文件版本
-version: 000205
+version: 000300
 # 如无必要请勿修改

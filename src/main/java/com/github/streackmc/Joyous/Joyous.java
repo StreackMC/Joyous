@@ -21,6 +21,7 @@ import org.jetbrains.annotations.ApiStatus.Internal;
 
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.types.SConfig;
+import com.github.streackmc.StreackLib.types.SDatabase.SdbDatabase;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -52,6 +53,8 @@ public class Joyous {
   public volatile static PluginManager pluginManager;
   /** PlaceholderAPI Service */
   public volatile static PHAPI PlaceholderService;
+  /** 数据库对象 */
+  public volatile static SdbDatabase database;
 
   /**
    * 是否启用调试模式

@@ -21,6 +21,7 @@ import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.errors.IgnoredException;
 import com.github.streackmc.StreackLib.self.manager;
 import com.github.streackmc.StreackLib.types.SConfig;
+import com.github.streackmc.StreackLib.types.SDatabase.SdbDatabase;
 import com.github.streackmc.StreackLib.utils.SEventCentral;
 import com.github.streackmc.StreackLib.utils.SFile;
 
@@ -88,7 +89,7 @@ public class entry extends JavaPlugin {
       }
     }
 
-    /* 检查依赖 */
+    // 检查依赖
     try {
       CheckDependencies();
     } catch (RuntimeException e) {
@@ -97,11 +98,20 @@ public class entry extends JavaPlugin {
       return;
     }
 
-    /* 初始化配置文件相关 */
+    // 初始化配置文件相关
     CheckConfigUpdate(); // 检查更新
     AdaptConfigReloadNotification(); // 自动重载事件监听并提示
 
-    /* 子模块 */
+    // 数据库操作
+    try {
+      Joyous.database = new SdbDatabase(Joyous.conf.getString("dbprofile"));
+    } catch (Exception e) {
+      jlogger.severe("无法初始化数据库连接：" + e.getLocalizedMessage(), e);
+      Joyous.pluginManager.disablePlugin(this);
+      return;
+    }
+
+    // 子模块
     jlogger.info("正在启用子模块...");
     Models.models.forEach((name, model) -> {
       try {
