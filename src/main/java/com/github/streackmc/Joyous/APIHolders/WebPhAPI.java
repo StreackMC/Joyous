@@ -1,9 +1,10 @@
 package com.github.streackmc.Joyous.APIHolders;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -16,6 +17,7 @@ import org.nanohttpd.protocols.http.response.Status;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.i18n;
 import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.StreackLib.types.SConfig;
 
 public class WebPhAPI {
   /** 启用对PlaceholderAPI的查询支持 */
@@ -27,149 +29,110 @@ public class WebPhAPI {
           return Response.newFixedLengthResponse(Status.METHOD_NOT_ALLOWED,
               NanoHTTPD.MIME_PLAINTEXT, "Method GET Allowed Only.");
         }
-        /* 读取参数 */
-        Map<String, List<String>> param = session.getParameters();
-        String query;
-        String target;
-        if (param.get("query") == null && param.get("text") == null) {
-          return newPlaceholderJsonResponse(400, "Bad Request: Missing parameter [query] or [text].", null, null, null);
-        } // TODO:添加查询缓存机制
-        if (param.get("query") != null) {
-          query = String.join("", param.get("query"));
-          if (!query.startsWith("%")) {
-            query = "%" + query;
-          }
-          if (!query.endsWith("%")) {
-            query = query + "%";
-          }
-        } else {
-          query = String.join("", param.get("text"));
-          if (!Joyous.conf.getBoolean("APIHolders.allow_blurred_ph", false)) {
-            return newPlaceholderJsonResponse(403,
-                "Forbidden: The Query [text] was forbidden by server admin. Contact them for help.", null, null, null);
-          }
+
+        /* 提取 URL ? 之后的原始查询字符串，作为 JSON5 解析 */
+        String uri = session.getUri();
+        String queryString = "";
+        int qIndex = uri.indexOf('?');
+        if (qIndex < 0 || qIndex + 1 >= uri.length()) {
+          return newErrorResponse("Missing query string. Expected JSON5 after '?'.");
         }
-        if (param.get("target") == null) {
-          target = null;
-        } else {
-          target = String.join("", param.get("target"));
+        queryString = URLDecoder.decode(uri.substring(qIndex + 1), StandardCharsets.UTF_8);
+
+        SConfig input;
+        try {
+          input = new SConfig(queryString, "jsonc");
+        } catch (Exception e) {
+          return newErrorResponse("Invalid JSON5 query: " + e.getLocalizedMessage());
         }
-        /* 名单过滤 */
-        if (!isUsableHolder(query)) {
-          return newPlaceholderJsonResponse(403,
-              "Forbidden: The Placeholder was forbidden by server admin. Contact them for help.", null, null, null);
+
+        // 解析 target (可为 String 或 null)
+        String outerTarget = input.getString("target");
+        if (outerTarget != null && outerTarget.isBlank()) outerTarget = null;
+
+        // 解析 query 数组
+        List<Object> rawQuery = input.getList("query");
+        if (rawQuery == null || rawQuery.isEmpty()) {
+          return newErrorResponse("Missing 'query' array.");
         }
-        /* 解析目标并返回 */
-        String parsed;
-        if (target == null || target.equalsIgnoreCase("server") || target.equalsIgnoreCase("console")) {
-          parsed = i18n.getPHparsed(null, query);
-          return newPlaceholderJsonResponse(200, "OK: Operation has been completed successfully.", parsed, null, null);
-          // TODO: 兼容离线玩家处理并接入StreackLib的玩家
-        } else {
-          Player targetPlayer = Bukkit.getPlayer(target);
-          parsed = i18n.getPHparsed(targetPlayer, query);
-          if (targetPlayer == null) {
-            return newPlaceholderJsonResponse(200, "OK: Operation has been completed successfully.", parsed, null,
-                null);
+
+        // 逐项处理
+        List<String> results = new ArrayList<>();
+        for (Object item : rawQuery) {
+          if (item instanceof String text) {
+            results.add(resolvePlaceholder(text, outerTarget));
+          } else if (item instanceof Map<?, ?> map) {
+            String innerTarget = map.containsKey("target") ? toStringOrNull(map.get("target")) : null;
+            Object keyObj = map.get("key");
+            if (keyObj == null) {
+              results.add("");
+            } else {
+              String key = keyObj.toString();
+              results.add(resolvePlaceholder(key, innerTarget));
+            }
           } else {
-            return newPlaceholderJsonResponse(203, "OK: Notice that your target player is offline or can't be found.",
-                parsed, null, null);
+            // 未知类型 → 空结果
+            results.add("");
           }
         }
+
+        JSONObject body = new JSONObject();
+        body.put("timestamp", System.currentTimeMillis());
+        body.put("result", results);
+        Response rsp = Response.newFixedLengthResponse(Status.OK,
+            "application/json", body.toJSONString());
+        rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
+        return rsp;
+
       } catch (Exception e) {
         jlogger.err("无法处理PlaceholderAPI查询：" + e.getLocalizedMessage(), e);
-        return newPlaceholderJsonResponse(500, "Internal Server Error: Unknown error emerged.", null, null, null);
+        return newErrorResponse("Internal Server Error: " + e.getLocalizedMessage());
       }
     });
     jlogger.info("已注册PlaceholderAPI查询处理器： " + path);
   }
 
   /**
-   * 判定输入的Placeholder是否允许使用
-   * 
-   * @param placeholder 要判断的PlaceholderAPI
-   * @return boolean
-   * @since 0.0.1
+   * 解析单个 Placeholder 并返回结果。
+   *
+   * @param key    占位符键（可能已含 % 或未含）
+   * @param target 目标玩家名，null 表示服务端上下文
    */
-  private static boolean isUsableHolder(String placeholder) {
-    if (APIHoldersMain.CONF.rawList() == null || APIHoldersMain.CONF.rawList().isEmpty()) {
-      /* 空名单：白名单默认拒绝，黑名单默认通过 */
-      return !APIHoldersMain.CONF.whiteMode();
+  private static String resolvePlaceholder(String key, String target) {
+    if (key == null || key.isBlank()) return "";
+
+    // 智能 % 包裹：两侧都有 % 则保持原样，否则包裹
+    String wrapped;
+    if (key.startsWith("%") && key.endsWith("%")) {
+      wrapped = key;
+    } else {
+      wrapped = "%" + key + "%";
     }
-    boolean matchAny = APIHoldersMain.CONF.rawList().stream().anyMatch(obj -> {
-      if (obj instanceof String) {
-        String str = (String) obj;
-        /* 正则 */
-        if (str.startsWith("regex:")) {
-          try {
-            return Pattern.compile(str.substring(6)).matcher(placeholder).find();
-          } catch (PatternSyntaxException ignored) {
-            jlogger.debug("忽略一处正则表达式错误：" + ignored.getLocalizedMessage(), ignored);
-            return false;
-          }
-        }
-        /* 普通字符串 */
-        return str.toLowerCase().contains(placeholder.toLowerCase());
-      }
-      return false;
-    });
-    return APIHoldersMain.CONF.whiteMode() ? matchAny : !matchAny;
+
+    // 确定解析目标
+    Player targetPlayer = null;
+    if (target != null && !target.isBlank()) {
+      targetPlayer = Bukkit.getPlayer(target);
+    }
+
+    return i18n.getPHparsed(targetPlayer, wrapped);
   }
 
-  /**
-   * 快速封装适用于Placeholder的JSON响应
-   * 
-   * @param int    code: HTTP状态码，默认500
-   * @param String info: 对状态码的解释，默认空
-   * @param String mc: 以MC格式返回的结果，默认空
-   * @param Long   expire_at: 缓存过期时间戳，默认当前时间戳
-   * @return 封装完毕的JSON对象
-   * @since 0.0.1
-   */
+  /** 将 Object 安全转为 String，null / blank 视为 null */
+  private static String toStringOrNull(Object obj) {
+    if (obj == null) return null;
+    String s = obj.toString();
+    return s.isBlank() ? null : s;
+  }
+
+  /** 返回错误 JSON 响应体 */
   @SuppressWarnings("unchecked")
-  private static Response newPlaceholderJsonResponse(Integer code, String info, String mc, Long timestamp,
-      Long expire_at) {
-    Long FALLBACK_TIMESTAMP = (Long) System.currentTimeMillis();
-
-    // 处理参数
-    if (code == null) {
-      code = 500;
-    }
-    if (mc == null) {
-      mc = "";
-    }
-    if (info == null) {
-      info = "";
-    }
-    if (timestamp == null) {
-      timestamp = FALLBACK_TIMESTAMP;
-    }
-    if (expire_at == null) {
-      expire_at = FALLBACK_TIMESTAMP;
-    }
-
-    // 时间相关
-    JSONObject cache = new JSONObject();
-    cache.put("timestamp", timestamp);
-    cache.put("expire_at", expire_at);
-
-    // 响应的基本信息
-    JSONObject status = new JSONObject();
-    status.put("code", code);
-    status.put("info", info);
-
-    // 响应的结果
-    JSONObject respond = new JSONObject();
-    respond.put("mc", mc);
-    respond.put("plain", mc.replaceAll("§[0-9a-zA-Z]", ""));
-
-    // 拼接响应
-    JSONObject root = new JSONObject();
-    root.put("cache", cache);
-    root.put("status", status);
-    root.put("result", respond);
-    Response rsp = Response.newFixedLengthResponse(Status.lookup(code),
-        "application/json", root.toJSONString());
+  private static Response newErrorResponse(String message) {
+    JSONObject body = new JSONObject();
+    body.put("timestamp", System.currentTimeMillis());
+    body.put("error", message);
+    Response rsp = Response.newFixedLengthResponse(Status.BAD_REQUEST,
+        "application/json", body.toJSONString());
     rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
     return rsp;
   }
