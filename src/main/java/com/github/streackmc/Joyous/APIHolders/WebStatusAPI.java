@@ -17,28 +17,40 @@ import com.github.streackmc.StreackLib.utils.MCColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class WebStatusAPI {
+  @SuppressWarnings("unchecked")// put 方法类型安全
   static void enableStatus(String path) throws Exception {
     // 启用对StatusAPI的查询支持
     APIHoldersMain.httpServer.registerHandler(path, session -> {
       try {
-        /* 仅处理 GET */
+        // 仅处理 GET
         if (!Method.GET.equals(session.getMethod())) {
           return Response.newFixedLengthResponse(Status.METHOD_NOT_ALLOWED,
               NanoHTTPD.MIME_PLAINTEXT, "Method GET Allowed Only.");
         }
-        /* 构建状态数据（合并后的单一方法） */
+
+        // 构建状态数据（合并后的单一方法）
         JSONObject statusData = buildServerStatusData();
-        /* 返回JSON响应 */
+        // 返回JSON响应
         Response rsp = Response.newFixedLengthResponse(
             Status.OK,
             "application/json",
             statusData.toJSONString());
-        rsp.addHeader("Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
+        rsp.addHeader(/* CORS策略 */"Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
         return rsp;
       } catch (Exception e) {
+        // 出错
         jlogger.err("无法处理StatusAPI查询：" + e.getLocalizedMessage(), e);
-        return Response.newFixedLengthResponse(Status.INTERNAL_ERROR,
-            NanoHTTPD.MIME_PLAINTEXT, "500 Internal Server Error: " + e.getLocalizedMessage());
+        JSONObject statusData = new JSONObject();
+        statusData.put("online", false);
+        statusData.put("response", "500 Internal Server Error");
+        statusData.put("retrieved_at", System.currentTimeMillis());
+        statusData.put("expires_at", cache.lastBuiltTime);
+        Response rsp = Response.newFixedLengthResponse(
+            Status.INTERNAL_ERROR,
+            "application/json",
+            statusData.toJSONString());
+        rsp.addHeader(/* CORS策略 */"Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
+        return rsp;
       }
     });
     jlogger.info("已注册StatusAPI查询处理器： " + path);
@@ -71,18 +83,19 @@ public class WebStatusAPI {
     }
     jlogger.debug("status请求未命中缓存，因为当前时间戳%s距离上次构建%s时间超过了%s：", timestamp, cache.lastBuiltTime, APIHoldersMain.CONF.cache());
 
-    JSONObject data = new JSONObject();
+    // 缓存过期，准备生成
+    JSONObject rspData = new JSONObject();
     org.bukkit.Server server = Bukkit.getServer();
 
-    /* 版本信息（移除protocol） */
+    // 版本信息
     JSONObject version = new JSONObject();
     String rawVersion = server.getVersion();
     version.put("mc", "§f" + rawVersion);
     version.put("text", rawVersion);
     version.put("html", MCColor.toHtml("§f" + rawVersion));
-    data.put("version", version);
+    rspData.put("version", version);
 
-    /* 玩家信息 */
+    // 玩家信息
     JSONObject players = new JSONObject();
     java.util.Collection<? extends org.bukkit.entity.Player> onlinePlayers = server.getOnlinePlayers();
     players.put("online", onlinePlayers.size());
@@ -100,37 +113,53 @@ public class WebStatusAPI {
       sampleList.add(p);
     });
     players.put("list", sampleList);
-    data.put("players", players);
+    rspData.put("players", players);
 
-    /* MOTD信息 */
+    // MOTD信息
     JSONObject motd = new JSONObject();
     String rawMotd = LegacyComponentSerializer.legacySection().serialize(server.motd());
     motd.put("mc", rawMotd);
     motd.put("text", MCColor.strip(rawMotd));
     motd.put("html", MCColor.toHtml(rawMotd));
-    data.put("motd", motd);
-    
-    /* TPS信息 */
-    data.put("tps", getTPSDataAsJSON());
+    rspData.put("motd", motd);
 
-    /* JVM内存信息 */
+    // TPS信息
+    JSONObject tps = getTPSDataAsJSON();
+    rspData.put("tps", tps);
+
+    // JVM内存信息
+    JSONObject memory = new JSONObject();
     MemoryUsage mmxbH = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
     MemoryUsage mmxbNH = ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage();
-    JSONObject mem = new JSONObject();
-    mem.put("used", mmxbH.getUsed() + mmxbNH.getUsed() / 1024 / 1024);
-    mem.put("max", mmxbH.getMax() + mmxbNH.getMax() / 1024 / 1024);
-    data.put("memory", mem);
+    memory.put("used", mmxbH.getUsed() + mmxbNH.getUsed() / 1024 / 1024);
+    memory.put("max", mmxbH.getMax() + mmxbNH.getMax() / 1024 / 1024);
+    rspData.put("memory", memory);
 
-    /* 基础状态 */
-    timestamp = System.currentTimeMillis();
-    data.put("online", true);
-    data.put("retrieved_at", timestamp);
-    data.put("expires_at", timestamp + APIHoldersMain.CONF.cache());
-    cache.lastBuilt = data;
+    // 世界（维度）信息
+    JSONObject worlds = new JSONObject();
+    server.getWorlds().forEach(world -> {
+      JSONObject worldInfo = new JSONObject();
+      worldInfo.put("environment", world.getEnvironment().name()); // 如 NORMAL, NETHER, THE_END [citation:2]
+      worldInfo.put("inday_time", world.getTime());
+      worldInfo.put("full_time", world.getFullTime());
+      worldInfo.put("has_storm", world.hasStorm());
+      worldInfo.put("is_thundering", world.isThundering());
+      worlds.put(world.getName(), worldInfo);
+    });
+    rspData.put("worlds", worlds);
+
+    // 响应基础状态
+    timestamp/* 更新下时间戳，防止中间过程耗时导致语义不一致 */ = System.currentTimeMillis();
+    rspData.put("online", true);
+    rspData.put("response", "200 OK");
+    rspData.put("retrieved_at", timestamp);
+    rspData.put("expires_at", timestamp + APIHoldersMain.CONF.cache());
+
+    // 收尾工作
+    cache.lastBuilt = rspData;
     cache.lastBuiltTime = timestamp;
-
-    jlogger.debug("status数据构建完成：" + data.toString());
-    return data;
+    jlogger.debug("status数据构建完成：" + rspData.toString());
+    return rspData;
   }
 
   /**
