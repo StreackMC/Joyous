@@ -14,7 +14,7 @@ public class i18n {
   public static volatile SConfig currentMap;
 
   protected static void init(File parent) {
-    defaultMap = new SConfig(parent.toPath().resolve("language.yml"), "yml");
+    currentMap = new SConfig(parent.toPath().resolve("language.yml"), "yml");
     currentMap.setAutoReload(true);
 
     // 载入缺省翻译
