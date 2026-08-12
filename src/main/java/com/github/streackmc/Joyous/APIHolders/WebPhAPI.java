@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -94,6 +96,7 @@ public class WebPhAPI {
 
   /**
    * 解析单个 Placeholder 并返回结果。
+   * 未通过白名单/黑名单过滤的查询返回 "[forbidden]"。
    *
    * @param key    占位符键（可能已含 % 或未含）
    * @param target 目标玩家名，null 表示服务端上下文
@@ -101,12 +104,20 @@ public class WebPhAPI {
   private static String resolvePlaceholder(String key, String target) {
     if (key == null || key.isBlank()) return "";
 
+    // 提取裸的 placeholder 名称（去除首尾 %）
+    String bare = key;
+    if (bare.startsWith("%")) bare = bare.substring(1);
+    if (bare.endsWith("%")) bare = bare.substring(0, bare.length() - 1);
+
+    // 名单过滤
+    if (!isAllowed(bare)) return "[forbidden]";
+
     // 智能 % 包裹：两侧都有 % 则保持原样，否则包裹
     String wrapped;
     if (key.startsWith("%") && key.endsWith("%")) {
       wrapped = key;
     } else {
-      wrapped = "%" + key + "%";
+      wrapped = "%" + bare + "%";
     }
 
     // 确定解析目标
@@ -123,6 +134,37 @@ public class WebPhAPI {
     if (obj == null) return null;
     String s = obj.toString();
     return s.isBlank() ? null : s;
+  }
+
+  /**
+   * 检查 placeholder 裸名称是否允许查询。
+   *
+   * @param bare 裸名称（不含 %）
+   * @return true 允许
+   */
+  private static boolean isAllowed(String bare) {
+    boolean whiteMode = Joyous.conf.getBoolean("APIHolders.white-mode", true);
+    List<String> list = Joyous.conf.getListOfString("APIHolders.ph_list");
+
+    // 空名单：白名单默认全部拒绝，黑名单默认全部允许
+    if (list == null || list.isEmpty()) {
+      return !whiteMode;
+    }
+
+    boolean matchAny = list.stream().anyMatch(rule -> {
+      if (rule.startsWith("regex:")) {
+        try {
+          return Pattern.compile(rule.substring(6)).matcher(bare).find();
+        } catch (PatternSyntaxException ignored) {
+          jlogger.debug("忽略正则表达式错误：" + ignored.getLocalizedMessage(), ignored);
+          return false;
+        }
+      }
+      // 普通字符串：忽略大小写全匹配
+      return rule.equalsIgnoreCase(bare);
+    });
+
+    return whiteMode ? matchAny : !matchAny;
   }
 
   /** 返回错误 JSON 响应体 */

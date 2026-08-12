@@ -15,7 +15,7 @@
 ## 模块清单 (6个)
 1. **JMenu** — 双端通用菜单(Java箱子GUI + 基岩版Floodgate表单), JSON格式菜单文件(.jmenu), 带缓存TTL
 2. **Entroprix** — 熵流抽卡系统(米池规则), 权重制概率/大小保底/概率提升, PDC持久化保底状态
-3. **APIHolders** — HTTP API服务端(基于StreackLib的HTTPServer), 提供Placeholder查询和服务器状态查询
+3. **APIHolders** — HTTP API服务端(基于StreackLib的HTTPServer), 提供Placeholder查询(JSON5协议)和服务器状态查询
 4. **PlayerTitle** — 轻量玩家称号系统(Placeholder+权限控制)
 5. **Mails** — 关服邮件通知(基于StreackLib的SMail)
 6. **EnvExport** — 环境变量KV存储(可通过占位符和命令读写)
@@ -25,7 +25,7 @@
    - 语义化执行: performRestart()/performShutdown() 封装最终逻辑
 
 ## 外部依赖 (全部 provided scope)
-- StreackLib 0.5.2 (核心库,硬依赖)
+- StreackLib 0.6.1 (核心库,硬依赖)
 - PlaceholderAPI 2.11.6 (软依赖)
 - Geyser/Floodgate API (软依赖,基岩版支持)
 - Paper API 1.21.8 / Spigot API 1.21.5
