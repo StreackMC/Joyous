@@ -44,7 +44,7 @@ public class JMenuMain extends JoyousModel {
     /** 菜单目录（相对于插件数据目录） */
     public final static String MENU_PATH = "models/JMenu/";
     /** 默认菜单模板资源路径 */
-    public final static String MENU_FILE_DEFAULT = "models/JMenu.default.json";
+    public final static String MENU_FILE_DEFAULT = "assets/JMenu.default.json";
     /** 权限前缀 */
     public final static String PERMISSION_PREFIX = "joyous.jmenu.";
   };
