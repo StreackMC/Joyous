@@ -1,6 +1,7 @@
 package com.github.streackmc.Joyous.Entroprix;
 
 import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,7 +30,6 @@ import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.types.SConfig;
-import com.github.streackmc.StreackLib.utils.SFile;
 
 /**
  * 熵流抽卡系统主类
@@ -80,14 +80,9 @@ public class EntroprixMain extends JoyousModel {
   // ------------------------------------------------------------------------
 
   @Override
-  public void onEnable() {
-    if (Files.notExists(CONF_PATH)) {
-      try {
-        jlogger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
-        SFile.mv(Joyous.getResourceAsFile("/" + NAMES.CONF_FILE), CONF_PATH.toFile());
-      } catch (Exception e) {
-        jlogger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
-      }
+  public void onEnable() throws FileNotFoundException, Exception {
+    if (!Joyous.requireFileAndCheck(NAMES.CONF_FILE, NAMES.CONF_FILE, null)) {
+      throw new FileNotFoundException("无法找到文件" + CONF_PATH);
     }
     poolList = new SConfig(CONF_PATH, "yml");
     poolList.setAutoReload(true);

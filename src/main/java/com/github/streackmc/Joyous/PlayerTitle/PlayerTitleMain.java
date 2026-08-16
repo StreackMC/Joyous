@@ -1,6 +1,6 @@
 package com.github.streackmc.Joyous.PlayerTitle;
 
-import java.nio.file.Files;
+import java.io.FileNotFoundException;
 import java.nio.file.Path;
 
 import javax.annotation.Nullable;
@@ -17,7 +17,6 @@ import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.utils.MCColor;
-import com.github.streackmc.StreackLib.utils.SFile;
 
 /**
  * 玩家称号
@@ -33,6 +32,7 @@ public class PlayerTitleMain extends JoyousModel {
   public PlayerTitleMain() {
   };
 
+  /** 配置文件路径 */
   volatile static Path CONF_PATH = Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE);
 
   public final static class NAMES {
@@ -54,16 +54,11 @@ public class PlayerTitleMain extends JoyousModel {
   public static SConfig titleList;
 
   @Override
-  public final void onEnable() {
+  public final void onEnable() throws Exception {
     NAMES.PLAYER_USING_TITLE_NAMESPACED = new NamespacedKey(Joyous.plugin, NAMES.PLAYER_USING_TITLE);
     Joyous.addPermissions(PermDef.none("joyous.titles", "用于决定一个玩家是否具有指定称号"));
-    if (Files.notExists(CONF_PATH)) {
-      try {
-        jlogger.debug("检查到 %s 不存在，自动新建默认文件", CONF_PATH);
-        SFile.mv(Joyous.getResourceAsFile("/" + NAMES.CONF_FILE), CONF_PATH.toFile());
-      } catch (Exception e) {
-        jlogger.err("警告：无法写入 %s ： %s", NAMES.CONF_FILE, e.getLocalizedMessage(), e);
-      }
+    if (!Joyous.requireFileAndCheck(NAMES.CONF_FILE, NAMES.CONF_FILE, null)) {
+      throw new FileNotFoundException("无法找到文件" + CONF_PATH);
     }
     titleList = new SConfig(CONF_PATH, "yml");
     titleList.putString("empty", "");
