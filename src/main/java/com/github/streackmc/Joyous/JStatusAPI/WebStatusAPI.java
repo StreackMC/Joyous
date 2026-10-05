@@ -1,10 +1,11 @@
-package com.github.streackmc.Joyous.APIHolders;
+package com.github.streackmc.Joyous.JStatusAPI;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
 
 import org.bukkit.Bukkit;
 import org.json.simple.JSONObject;
+import org.nanohttpd.protocols.http.IHTTPSession;
 import org.nanohttpd.protocols.http.NanoHTTPD;
 import org.nanohttpd.protocols.http.request.Method;
 import org.nanohttpd.protocols.http.response.Response;
@@ -16,74 +17,68 @@ import com.github.streackmc.StreackLib.utils.MCColor;
 
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
-public class WebStatusAPI {
-  @SuppressWarnings("unchecked")// put 方法类型安全
-  static void enableStatus(String path) throws Exception {
-    // 启用对StatusAPI的查询支持
-    APIHoldersMain.httpServer.registerHandler(path, session -> {
-      try {
-        // 仅处理 GET
-        if (!Method.GET.equals(session.getMethod())) {
-          return Response.newFixedLengthResponse(Status.METHOD_NOT_ALLOWED,
-              NanoHTTPD.MIME_PLAINTEXT, "Method GET Allowed Only.");
-        }
+public class WebStatusAPI extends JStatusApiSubhandler {
+  /** 该端点无参数，使用固定缓存键 */
+  private static final String CACHE_KEY = "status";
 
-        // 构建状态数据（合并后的单一方法）
-        JSONObject statusData = buildServerStatusData();
-        // 返回JSON响应
-        Response rsp = Response.newFixedLengthResponse(
-            Status.OK,
-            "application/json",
-            statusData.toJSONString());
-        rsp.addHeader(/* CORS策略 */"Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
-        return rsp;
-      } catch (Exception e) {
-        // 出错
-        jlogger.err("无法处理StatusAPI查询：" + e.getLocalizedMessage(), e);
-        JSONObject statusData = new JSONObject();
-        statusData.put("online", false);
-        statusData.put("response", "500 Internal Server Error");
-        statusData.put("retrieved_at", System.currentTimeMillis());
-        statusData.put("expires_at", cache.lastBuiltTime);
-        Response rsp = Response.newFixedLengthResponse(
-            Status.INTERNAL_ERROR,
-            "application/json",
-            statusData.toJSONString());
-        rsp.addHeader(/* CORS策略 */"Access-Control-Allow-Origin", APIHoldersMain.CONF.corsHeader());
-        return rsp;
-      }
-    });
-    jlogger.info("已注册StatusAPI查询处理器： " + path);
+  @Override
+  String getPath() {
+    return "status";
   }
 
-  /** 用于执行缓存策略 */
-  private static class cache {
-    static JSONObject lastBuilt = null;
-    static long lastBuiltTime = -1L;
+  @Override
+  String getSubhandlerName() {
+    return "StatusAPI";
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  Response handleRequest(IHTTPSession session) throws Exception {
+    try {
+      // 仅处理 GET
+      if (!Method.GET.equals(session.getMethod())) {
+        return Response.newFixedLengthResponse(Status.METHOD_NOT_ALLOWED,
+            NanoHTTPD.MIME_PLAINTEXT, "Method GET Allowed Only.");
+      }
+
+      // 构建状态数据（缓存由基类统一声明维护）
+      JSONObject statusData = this.cached(CACHE_KEY, WebStatusAPI::buildServerStatusData);
+      // 返回JSON响应
+      Response rsp = Response.newFixedLengthResponse(
+          Status.OK,
+          "application/json",
+          statusData.toJSONString());
+      rsp.addHeader(/* CORS策略 */CORS_HEADER, JStatusAPIMain.CONF.corsHeader());
+      return rsp;
+    } catch (Exception e) {
+      // 出错
+      jlogger.err("无法处理 StatusAPI 查询：" + e.getLocalizedMessage(), e);
+      JSONObject statusData = new JSONObject();
+      statusData.put("online", false);
+      statusData.put("response", "500 Internal Server Error");
+      statusData.put("retrieved_at", System.currentTimeMillis());
+      statusData.put("expires_at", this.cachedAt(CACHE_KEY));
+      Response rsp = Response.newFixedLengthResponse(
+          Status.INTERNAL_ERROR,
+          "application/json",
+          statusData.toJSONString());
+      rsp.addHeader(/* CORS策略 */CORS_HEADER, JStatusAPIMain.CONF.corsHeader());
+      return rsp;
+    }
   }
 
   /**
    * 构建服务器完整状态数据
-   * 包含：online, retrieved_at, expires_at, version, players, motd, tps
+   * 包含：online, response, version, players, motd, tps, memory, worlds
+   * <p>
+   * 注意：retrieved_at / expires_at 由基类的缓存设施统一填写，此处不写入。
    * 
    * @return 符合result.json结构的JSONObject（精简版）
    * @since 0.0.2
    */
   @SuppressWarnings("unchecked")
   private static JSONObject buildServerStatusData() {
-    long timestamp = System.currentTimeMillis();
-
-    // 缓存命中检查
-    if (cache.lastBuiltTime + APIHoldersMain.CONF.cache() > 0L
-        && cache.lastBuilt != null
-        && (cache.lastBuiltTime + APIHoldersMain.CONF.cache()) >= timestamp) {
-      cache.lastBuilt.put("retrieved_at", timestamp);
-      jlogger.debug("status请求命中缓存，因为当前时间戳%s已距离上次构建%s时间不足%s：" + cache.lastBuilt.toString(), timestamp, cache.lastBuiltTime, APIHoldersMain.CONF.cache());
-      return cache.lastBuilt;
-    }
-    jlogger.debug("status请求未命中缓存，因为当前时间戳%s距离上次构建%s时间超过了%s：", timestamp, cache.lastBuiltTime, APIHoldersMain.CONF.cache());
-
-    // 缓存过期，准备生成
+    // 准备生成
     JSONObject rspData = new JSONObject();
     org.bukkit.Server server = Bukkit.getServer();
 
@@ -149,15 +144,9 @@ public class WebStatusAPI {
     rspData.put("worlds", worlds);
 
     // 响应基础状态
-    timestamp/* 更新下时间戳，防止中间过程耗时导致语义不一致 */ = System.currentTimeMillis();
     rspData.put("online", true);
     rspData.put("response", "200 OK");
-    rspData.put("retrieved_at", timestamp);
-    rspData.put("expires_at", timestamp + APIHoldersMain.CONF.cache());
 
-    // 收尾工作
-    cache.lastBuilt = rspData;
-    cache.lastBuiltTime = timestamp;
     jlogger.debug("status数据构建完成：" + rspData.toString());
     return rspData;
   }

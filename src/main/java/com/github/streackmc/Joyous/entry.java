@@ -9,10 +9,10 @@ import java.util.Map;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.github.streackmc.Joyous.APIHolders.APIHoldersMain;
 import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
 import com.github.streackmc.Joyous.EnvExport.EnvExport;
 import com.github.streackmc.Joyous.JMenu.JMenuMain;
+import com.github.streackmc.Joyous.JStatusAPI.JStatusAPIMain;
 import com.github.streackmc.Joyous.Mails.MailsMain;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
 import com.github.streackmc.Joyous.Restarter.RestarterMain;
@@ -36,7 +36,7 @@ public class entry extends JavaPlugin {
     }
 
     static {// 在这里统一注册模块，下方自动遍历处理。
-      addModel(new APIHoldersMain());
+      addModel(new JStatusAPIMain());
       addModel(new EntroprixMain());
       addModel(new EnvExport());
       addModel(new PlayerTitleMain());
@@ -196,7 +196,6 @@ public class entry extends JavaPlugin {
     SEventCentral.addEventListener(SConfig.EVENTS.CHANGED, event -> {
       if (event.CALLER_ID.equals(Joyous.conf.INSTANCE_ID)) {
         jlogger.info("已重载配置");
-        jlogger.debug("测试性读取： APIHolders.path.status = %s", APIHoldersMain.CONF.statusPath());
       };
       if (event.CALLER_ID.equals(Joyous.confDefault.INSTANCE_ID) || event.CALLER_ID.equals(Joyous.confBuild.INSTANCE_ID)) {
         jlogger.warn("缓存的临时配置文件被修改，这会导致意外的行为！谁干的？ " + manager.getCaller(manager.getCallerMethod.NO_STREACKLIB));
