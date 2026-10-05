@@ -77,8 +77,8 @@ public class Joyous {
    * @since 0.0.1
    */
   public static int getConfigVerisonDiff() {
-    Long cfgVer = conf.getLong("config-version", 000000L);
-    int diff = Long.compare(cfgVer, confDefault.getLong("config-version", 000000L));// TODO: bug,无法正常检测
+    Long cfgVer = conf.getLong("version", 000000L);
+    int diff = Long.compare(cfgVer, confDefault.getLong("version", 000000L));
     jlogger.debug(String.format("配置文件版本：%d，适配版本：%d，差值：%d", cfgVer, confDefault.getLong("config-version", 000000L), diff));
     return diff;
   }
