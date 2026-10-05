@@ -25,6 +25,10 @@ public class PHAPI {
   public PHAPI(boolean usable) {
     this.available = usable;
     if (usable) {
+      // 注册 CommonPhApi
+      this.registerParser(new commonPHAPI());
+
+      // 注册 PhApi Hub
       this.expansion = new PHAPI_Backend();
       this.expansion.register();
     } else {
