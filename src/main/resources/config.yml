@@ -21,8 +21,8 @@ JMenu:
     ## 显示
     # 至少1行。首行为物品名，其它为描述
     display:
-      - &b菜单
-      - &7Powered by StreackMC/Joyous.
+      - "&b菜单"
+      - "&7Powered by StreackMC/Joyous."
       - 每行开头无需手动重置样式，会自动重置。这行文本就不是斜体嫣紫的。
     ## 给予
     # 进入服务器时背包没有菜单是否要给一个新的
