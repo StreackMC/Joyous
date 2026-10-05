@@ -33,34 +33,16 @@ public class RestarterCommand {
     // /jrestart [秒数] [理由]
     Joyous.registerCommand(Commands.literal("jrestart")
         .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.restarter.restart"))
-        .executes(ctx -> {
-          if (!RestarterMain.scheduleRestart(RestarterMain.getDefaultTimeout(), "")) {
-            ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.restart-not-configured"));
-            return 0;
-          }
-          return 1;
-        })
+        .executes(ctx -> scheduleRestartAction(ctx, RestarterMain.getDefaultTimeout(), ""))
         .then(
             Commands.argument("seconds", IntegerArgumentType.integer(1, 3600))
-                .executes(ctx -> {
-                  int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
-                  if (!RestarterMain.scheduleRestart(seconds, "")) {
-                    ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.restart-not-configured"));
-                    return 0;
-                  }
-                  return 1;
-                })
+                .executes(ctx -> scheduleRestartAction(ctx,
+                    IntegerArgumentType.getInteger(ctx, "seconds"), ""))
                 .then(
                     Commands.argument("reason", StringArgumentType.greedyString())
-                        .executes(ctx -> {
-                          int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
-                          String reason = StringArgumentType.getString(ctx, "reason");
-                          if (!RestarterMain.scheduleRestart(seconds, reason)) {
-                            ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.restart-not-configured"));
-                            return 0;
-                          }
-                          return 1;
-                        })))
+                        .executes(ctx -> scheduleRestartAction(ctx,
+                            IntegerArgumentType.getInteger(ctx, "seconds"),
+                            StringArgumentType.getString(ctx, "reason")))))
         .build(), "计划重启服务器", List.of());
 
     // /jstop [秒数] [理由]
@@ -113,6 +95,22 @@ public class RestarterCommand {
                 .executes(this::cancelAction))
         .then(fpNode)
         .build(), "服务器重启管理", List.of());
+  }
+
+  /**
+   * 计划重启的公共入口。
+   * <p>
+   * 若当前未启用自行重启（{@code preventInterrupt=false}），本次"重启"实际会退化为
+   * 直接关闭服务器，因此额外给发起者一条说明。
+   */
+  private int scheduleRestartAction(CommandContext<CommandSourceStack> ctx, int seconds, String reason) {
+    if (!RestarterMain.scheduleRestart(seconds, reason)) {
+      ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.restart-not-configured"));
+      return 0;
+    }
+    if (!RestarterMain.willRestartNatively())
+      ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.external-restart-mode"));
+    return 1;
   }
 
   /** /jrestarter cancel — 取消计划 */

@@ -155,11 +155,11 @@ public class entry extends JavaPlugin {
     }
     if (diff > 0) {
       jlogger.warn("你的配置文件版本过高？请勿自行修改或强行应用高版本配置文件，否则可能引发意料之外的错误。当前版本：" + Joyous.conf.getInt("version", 0) + "，适配版本："
-          + Joyous.confDefault.getLong("config-version", 000000L));
+          + Joyous.confDefault.getLong("version", 000000L));
     }
     if (diff < 0) {
       jlogger.severe("注意：你的配置文件版本过低，请参阅config.new.yml修改你的配置文件；现在未配置的项将使用默认值。当前版本：" + Joyous.conf.getInt("version", 0)
-          + "，适配版本：" + Joyous.confDefault.getLong("config-version", 000000L));
+          + "，适配版本：" + Joyous.confDefault.getLong("version", 000000L));
       try {
         if (!SFile.cp(Joyous.conf.getFile(), new File(Joyous.dataPath, "config.new.yml")))
           throw new IOException("无法复制配置文件");

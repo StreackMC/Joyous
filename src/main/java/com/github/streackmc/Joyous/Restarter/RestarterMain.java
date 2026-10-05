@@ -2,7 +2,6 @@ package com.github.streackmc.Joyous.Restarter;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryType;
@@ -152,13 +151,14 @@ public class RestarterMain extends JoyousModel {
     final long timestamp;
     final long oldGenUsed;
     final long oldGenMax;
-    final long fullGCCount;
+    /** GC 后地板（{@link #getOldGenFloor()}），不可用时为 -1 */
+    final long floor;
 
-    MemorySample(long timestamp, long oldGenUsed, long oldGenMax, long fullGCCount) {
+    MemorySample(long timestamp, long oldGenUsed, long oldGenMax, long floor) {
       this.timestamp = timestamp;
       this.oldGenUsed = oldGenUsed;
       this.oldGenMax = oldGenMax;
-      this.fullGCCount = fullGCCount;
+      this.floor = floor;
     }
   }
 
@@ -195,10 +195,18 @@ public class RestarterMain extends JoyousModel {
 
     CommandService.register();
 
-    // preventInterrupt：注册 JVM 关闭钩子
-    if (isPreventInterrupt()) {
+    // preventInterrupt：同时充当"是否由本模块自行接管重启"的总开关
+    if (isNativeRestartAllowed()) {
       installShutdownHook();
       jlogger.info("Restarter | preventInterrupt 已启用，只有 /jstop 可以安全关闭服务器。");
+    } else {
+      jlogger.info("Restarter | preventInterrupt 未启用：本模块不自行重启，所有“重启”都将直接关闭服务器，需配合外部重启。");
+    }
+
+    // 自动重启（含内存检测、泄漏检测）的总开关是 autoRestart.timeout，<0 时整个 while 段都不会启动。
+    // 这条日志是为了让"为什么检测没生效"变得可见——此前它只存在于配置注释里。
+    if (getAutoRestartTimeout() < 0) {
+      jlogger.info("Restarter | 自动重启未启用（Restarter.autoRestart.timeout < 0）：时间条件、内存检测与泄漏检测都不会启动。");
     }
 
     // 内存池探测结果
@@ -341,13 +349,26 @@ public class RestarterMain extends JoyousModel {
   // ------------------------------------------------------------------------
 
   /**
-   * 计划重启服务器
+   * 计划重启服务器。
+   * <p>
+   * 两种模式下都可调用：
+   * <ul>
+   * <li>允许自行重启（{@code preventInterrupt=true}）：需要 spigot.yml 配置了重启脚本，
+   * 否则拒绝并返回 false。</li>
+   * <li>不自行重启（{@code preventInterrupt=false}）：本次"重启"退化为直接关闭服务器，
+   * 由外部守护进程拉起，因此不要求重启脚本。</li>
+   * </ul>
    *
    * @param seconds 倒计时秒数
    * @param reason  理由
-   * @return true 如果计划成功；false 如果重启脚本未配置
+   * @return true 如果计划成功；false 如果要求自行重启但重启脚本未配置
    */
   public static boolean scheduleRestart(int seconds, String reason) {
+    if (!isNativeRestartAllowed()) {
+      jlogger.info("Restarter | 当前未启用自行重启，本次“重启”将退化为直接关闭服务器（需配合外部重启）。");
+      schedule(seconds, reason, true);
+      return true;
+    }
     if (!isRestartConfigured()) {
       jlogger.err("Restarter | 重启脚本未配置，拒绝执行重启。请在 spigot.yml 中设置 settings.restart-script。");
       return false;
@@ -473,35 +494,42 @@ public class RestarterMain extends JoyousModel {
       saveFakePlayers();
   }
 
-  /**
-   * 执行服务器重启
-   * <p>
-   * 检查重启脚本配置 → 延迟执行 {@link Server#restart()}；假人在踢人前已保存
-   * （见 {@link #saveStateAndKickAllPlayers(String, Object...)}）。
-   */
+  /** 执行服务器重启（是否真的重启由 {@link #willRestartNatively()} 决定） */
   private static void performRestart() {
-    exitIntent = true;
-    if (!isRestartConfigured()) {
-      jlogger.err("Restarter | 重启脚本未配置，将执行关闭而非重启。");
-      saveStateBeforeRestart();
-      Server.shutdown();
-      return;
-    }
-    Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
-      jlogger.info("→\u200bJ\u200bo\u200by\u200bo\u200bu\u200bs\u200b←");
-      Server.restart();
-    }, 20L);
+    performExit(true);
+  }
+
+  /** 执行服务器关闭 */
+  private static void performShutdown() {
+    performExit(false);
   }
 
   /**
-   * 执行服务器关闭
+   * 最终执行入口：延迟一拍后重启或关闭服务器。
    * <p>
-   * 延迟执行 {@link Server#shutdown()}；假人在踢人前已保存。
+   * {@code restartRequested} 为 true 且当前允许自行重启（{@code preventInterrupt=true}
+   * 且 spigot.yml 已配置重启脚本）时才调用 {@link Server#restart()}；
+   * 其余情况一律退化为 {@link Server#shutdown()}，由外部守护进程负责拉起。
+   * <p>
+   * 假人已在踢人前保存（见 {@link #saveStateAndKickAllPlayers(String, Object...)}）。
    */
-  private static void performShutdown() {
+  private static void performExit(boolean restartRequested) {
+    // 本次关服由本模块接管：关闭钩子不得再把它当成"异常关闭"
     exitIntent = true;
+
+    boolean nativeRestart = restartRequested && willRestartNatively();
+    if (restartRequested && !nativeRestart) {
+      jlogger.warn("Restarter | %s，本次改为直接关闭服务器（需配合外部重启）。",
+          isNativeRestartAllowed() ? "重启脚本未配置" : "未启用自行重启（preventInterrupt=false）");
+    }
+
     Server.getScheduler().runTaskLater(Joyous.plugin, () -> {
-      Server.shutdown();
+      if (nativeRestart) {
+        jlogger.info("→\u200bJ\u200bo\u200by\u200bo\u200bu\u200bs\u200b←");
+        Server.restart();
+      } else {
+        Server.shutdown();
+      }
     }, 20L);
   }
 
@@ -577,9 +605,10 @@ public class RestarterMain extends JoyousModel {
 
       String autoReason = i18n.tr("restarter.auto-restart.reason");
 
-      // 重启脚本未配置时 Server.restart() 只会停机不会重启，因此真正降级为"计划关闭"，
-      // 而不是只打一条日志、实际什么都不做。
-      if (!isRestartConfigured()) {
+      // 要求自行重启但重启脚本没配：Server.restart() 只会停机不会重启，
+      // 因此真正降级为"计划关闭"，而不是只打一条日志、实际什么都不做。
+      // （未启用自行重启时不走这里——那种模式下"重启"本来就等于关闭，是预期行为）
+      if (isNativeRestartAllowed() && !isRestartConfigured()) {
         jlogger.err("Restarter | 满足时间条件，但重启脚本未配置，改为关闭。请在 spigot.yml 中设置 settings.restart-script。");
         if (timeout == 0) {
           executeShutdown(false);
@@ -757,15 +786,28 @@ public class RestarterMain extends JoyousModel {
     return Joyous.conf.getBoolean("Restarter.autoRestart.while.leakDetection.enabled", true);
   }
 
-  /** 泄漏检测时间窗口（分钟） */
-  private static int getLeakWindowMinutes() {
-    return Joyous.conf.getInt("Restarter.autoRestart.while.leakDetection.windowMinutes", 5);
+  /**
+   * 泄漏检测的基线长度（分钟）。实际比较的是相邻两个等长的基线。
+   * <p>
+   * 需要权衡：基线太短则老年代的自然锯齿（两次回收之间的增长）会被误判为泄漏；
+   * 基线越长噪声越小，但发现泄漏也越晚。
+   */
+  private static int getLeakBaselineMinutes() {
+    return Math.max(1, Joyous.conf.getInt("Restarter.autoRestart.while.leakDetection.baselineMinutes", 10));
   }
 
-  /** Full GC 回收率阈值（百分比） */
-  private static int getGCRecoveryThreshold() {
-    return Joyous.conf.getInt("Restarter.autoRestart.while.leakDetection.gcRecoveryThreshold", 5);
+  /**
+   * 地板抬升阈值（百分比）。
+   * <p>
+   * 实测参考（JDK 24 + G1，常驻集固定的健康锯齿负载）：相邻基线地板抬升 0.0%～1.1%；
+   * 每 tick 稳定泄漏的场景：抬升 25% 以上。默认 10% 有足够余量。
+   */
+  private static int getFloorGrowthPercent() {
+    return Joyous.conf.getInt("Restarter.autoRestart.while.leakDetection.floorGrowthPercent", 10);
   }
+
+  /** 判定地板是否有效所需的、跨度内的最小回落幅度（占上限的百分比） */
+  private static final double LEAK_MIN_DROP_PERCENT = 3.0;
 
   /** 是否启用堆转储 */
   private static boolean isHeapDumpEnabled() {
@@ -786,19 +828,27 @@ public class RestarterMain extends JoyousModel {
     return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
   }
 
-  /** 获取 Full GC 次数 */
-  private static long getFullGCCount() {
-    long count = 0;
-    for (GarbageCollectorMXBean gc : ManagementFactory.getGarbageCollectorMXBeans()) {
-      String name = gc.getName().toLowerCase();
-      if (name.contains("old") || name.contains("marksweep")
-          || name.contains("zgc") || name.contains("shenandoah")) {
-        long c = gc.getCollectionCount();
-        if (c > 0)
-          count += c;
-      }
-    }
-    return count;
+  /**
+   * 获取老年代"GC 后地板"：最近一次 GC 之后的老年代占用。
+   * <p>
+   * 这是泄漏检测的核心信号——它天然是"回收后的水平"，不受采样滞后影响。
+   * 拿不到时返回 -1（例如池不支持 collectionUsage、或退化为整体堆内存）。
+   * <p>
+   * 注意：<b>不要</b>改回去用 GarbageCollectorMXBean 的 Full GC 计数。
+   * 现代 G1（JDK 14+）把并发周期拆到了独立的 {@code G1 Concurrent GC} bean，
+   * 而 {@code G1 Old Generation} 只在真正的 Pause Full 时递增——实测老年代涨到 94%、
+   * 跑了多次 Mixed GC 后它仍然是 0，任何以"发生过 Full GC"为前提的判断都会变成死分支。
+   */
+  private static long getOldGenFloor() {
+    if (oldGenPool == null)
+      return -1L;
+    MemoryUsage postGc = oldGenPool.getCollectionUsage();
+    return postGc == null ? -1L : postGc.getUsed();
+  }
+
+  /** 地板信号是否可用（不可用时泄漏检测无法工作） */
+  private static boolean isFloorAvailable() {
+    return getOldGenFloor() >= 0;
   }
 
   /** 启动内存检测（独立调度器，间隔由配置决定） */
@@ -807,6 +857,9 @@ public class RestarterMain extends JoyousModel {
     long intervalTicks = Math.max(1L, interval * 20L);
 
     jlogger.info("Restarter | 内存检测已启动，间隔 %d 秒，老年代阈值 %d%%", interval, getOldGenPercent());
+    if (isLeakDetectionEnabled() && !isFloorAvailable()) {
+      jlogger.warn("Restarter | 无法读取老年代 GC 后占用（collectionUsage 不可用），泄漏检测将不会生效。");
+    }
 
     memoryCheckTask = Server.getScheduler().runTaskTimer(Joyous.plugin, () -> {
       if (scheduled)
@@ -815,19 +868,18 @@ public class RestarterMain extends JoyousModel {
       // 采样
       long now = System.currentTimeMillis();
       MemoryUsage usage = getOldGenUsage();
-      long fullGCCount = getFullGCCount();
 
       if (usage.getMax() <= 0)
         return; // 无法检测
 
       MemorySample sample = new MemorySample(
-          now, usage.getUsed(), usage.getMax(), fullGCCount);
+          now, usage.getUsed(), usage.getMax(), getOldGenFloor());
 
-      // 维护采样窗口
+      // 维护采样历史：泄漏检测要比较相邻两个基线，所以至少要留 2 个基线的长度
       synchronized (sampleWindow) {
         sampleWindow.add(sample);
-        int windowMs = getLeakWindowMinutes() * 60 * 1000;
-        sampleWindow.removeIf(s -> (now - s.timestamp) > windowMs);
+        long keepMs = getLeakBaselineMinutes() * 2L * 60_000L + 60_000L;
+        sampleWindow.removeIf(s -> (now - s.timestamp) > keepMs);
       }
 
       double oldGenRatio = (double) sample.oldGenUsed / sample.oldGenMax * 100;
@@ -855,73 +907,90 @@ public class RestarterMain extends JoyousModel {
   }
 
   /**
-   * 检查内存泄漏。
+   * 检查内存泄漏：比较相邻两个等长基线的「GC 后地板」中位数。
    * <p>
    * 判据（需同时成立）：
    * <ol>
-   * <li>窗口内老年代整体仍在上涨（结束值高于起始值）；</li>
-   * <li>窗口内确实发生过 Full GC；</li>
-   * <li>窗口内<b>最后一次</b> Full GC 的回收率低于阈值 —— 即 Full GC 也回收不掉，这才是泄漏特征。
-   * 健康服务器上 Full GC 后老年代会明显回落，回收率高，不会误触发。</li>
+   * <li>跨度内出现过明显回落（{@link #LEAK_MIN_DROP_PERCENT}），证明地板读数确实来自"回收之后"，
+   * 否则（例如服务器空闲、根本没发生回收）直接不判；</li>
+   * <li>两个基线各自的有效地板样本都足够多；</li>
+   * <li>后一个基线的地板中位数相对前一个抬升 ≥ {@code floorGrowthPercent}。</li>
    * </ol>
    * <p>
-   * 说明：回收率用"GC 前一次采样"与"GC 后一次采样"估算，精度受
-   * {@code checkInterval} 影响（间隔越大，GC 后的采样越滞后，读数偏高、回收率偏低）。
-   * 因此 {@code gcRecoveryThreshold} 调小会更保守（更少误报），调大则更敏感。
+   * 为什么比较"跨基线"而不是"窗内前后段"：老年代在两次回收之间的自然增长幅度很容易超过 10%，
+   * 用同一个短窗口的前后段比较会把正常锯齿判成泄漏——实测健康负载下误报率极高。
+   * 把比较对象换成相邻的等长基线后，锯齿的相位噪声会被中位数抹平：
+   * 实测健康负载抬升 0.0%～1.1%，稳定泄漏抬升 25% 以上。
+   * <p>
+   * 已知局限：如果业务本身的常驻数据在基线跨度内显著增长（例如在线人数翻倍），
+   * 地板也会抬升并被判为泄漏。这与"真泄漏"在信号上无法区分，
+   * 由 {@code minRestartInterval} 的重启间隔下限兜底。
    *
    * @return true 如果检测到内存泄漏
    */
   private static boolean checkLeakDetection() {
     synchronized (sampleWindow) {
       long now = System.currentTimeMillis();
-      long windowMs = getLeakWindowMinutes() * 60L * 1000L;
+      long baselineMs = getLeakBaselineMinutes() * 60_000L;
 
-      // 获取窗口内的采样
-      List<MemorySample> window = new ArrayList<>();
+      List<Long> prevFloors = new ArrayList<>();
+      List<Long> curFloors = new ArrayList<>();
+      long peak = 0, trough = Long.MAX_VALUE, max = 0;
+
       for (MemorySample s : sampleWindow) {
-        if (now - s.timestamp <= windowMs)
-          window.add(s);
+        long age = now - s.timestamp;
+        if (age > baselineMs * 2)
+          continue;
+        peak = Math.max(peak, s.oldGenUsed);
+        trough = Math.min(trough, s.oldGenUsed);
+        max = Math.max(max, s.oldGenMax);
+        if (s.floor <= 0)
+          continue; // 地板不可用
+        if (age <= baselineMs)
+          curFloors.add(s.floor);
+        else
+          prevFloors.add(s.floor);
       }
 
-      if (window.size() < 2)
+      // 1. 跨度内必须出现过明显回落，地板读数才有意义
+      if (max <= 0)
+        return false;
+      double drop = (double) (peak - trough) / max * 100.0;
+      if (drop < LEAK_MIN_DROP_PERCENT)
         return false;
 
-      MemorySample oldest = window.get(0);
-      MemorySample newest = window.get(window.size() - 1);
-
-      // 1. 老年代整体必须仍在上涨
-      if (newest.oldGenUsed <= oldest.oldGenUsed)
+      // 2. 两个基线都要有足够的有效样本
+      if (prevFloors.size() < 4 || curFloors.size() < 4)
         return false;
 
-      // 2. 找到窗口内最后一次 Full GC 的「前一次 / 后一次」采样
-      MemorySample beforeGc = null;
-      MemorySample afterGc = null;
-      for (int i = 1; i < window.size(); i++) {
-        MemorySample prev = window.get(i - 1);
-        MemorySample cur = window.get(i);
-        if (cur.fullGCCount > prev.fullGCCount) {
-          beforeGc = prev;
-          afterGc = cur;
-        }
-      }
-      if (beforeGc == null || afterGc == null || beforeGc.oldGenUsed <= 0)
+      // 3. 地板中位数抬升
+      double prev = median(prevFloors);
+      double cur = median(curFloors);
+      if (prev <= 0)
         return false;
+      double growth = (cur - prev) / prev * 100.0;
 
-      // 3. 回收率 = (GC 前占用 - GC 后占用) / GC 前占用
-      double recoveryRate = (double) (beforeGc.oldGenUsed - afterGc.oldGenUsed)
-          / beforeGc.oldGenUsed * 100.0;
-
-      if (recoveryRate < getGCRecoveryThreshold()) {
+      if (growth >= getFloorGrowthPercent()) {
         jlogger.warn("Restarter | %s",
             i18n.tr("restarter.auto-restart.memory.leak-detected",
-                (double) beforeGc.oldGenUsed / beforeGc.oldGenMax * 100.0,
-                (double) afterGc.oldGenUsed / afterGc.oldGenMax * 100.0,
-                recoveryRate, getGCRecoveryThreshold()));
+                prev / max * 100.0, cur / max * 100.0, growth, getFloorGrowthPercent()));
         return true;
       }
 
       return false;
     }
+  }
+
+  /** 中位数（入参不会被修改） */
+  private static double median(List<Long> values) {
+    List<Long> sorted = new ArrayList<>(values);
+    sorted.sort(null);
+    int n = sorted.size();
+    if (n == 0)
+      return -1;
+    return n % 2 == 1
+        ? sorted.get(n / 2)
+        : (sorted.get(n / 2 - 1) + sorted.get(n / 2)) / 2.0;
   }
 
   /**
@@ -1221,8 +1290,28 @@ public class RestarterMain extends JoyousModel {
     return Joyous.conf.getInt("Restarter.defaultTimeout", 60);
   }
 
+  /**
+   * 是否由本模块自行接管重启（配置项 {@code Restarter.preventInterrupt}）。
+   * <p>
+   * 它是本模块的"自行重启总开关"，同时决定两件事：
+   * <ul>
+   * <li>是否需要 {@code preventInterrupt} 保护——非 /jstop 的关闭会被转成重启；</li>
+   * <li>下文所有"重启"是否真的重启。为 false 时它们一律退化为直接关闭服务器，
+   * 需要外部守护进程（systemd / Docker / 面板）重新拉起。</li>
+   * </ul>
+   */
   public static boolean isPreventInterrupt() {
     return Joyous.conf.getBoolean("Restarter.preventInterrupt", false);
+  }
+
+  /** @see #isPreventInterrupt() */
+  public static boolean isNativeRestartAllowed() {
+    return isPreventInterrupt();
+  }
+
+  /** 本次"重启"最终是否会真的执行重启（而不是退化为关闭） */
+  public static boolean willRestartNatively() {
+    return isNativeRestartAllowed() && isRestartConfigured();
   }
 
   public static boolean isFpCommandCapable() {
