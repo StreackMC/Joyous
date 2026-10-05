@@ -121,7 +121,7 @@ public class RestarterCommand {
       ctx.getSource().getSender().sendMessage(i18n.tr("restarter.command.no-plan"));
       return 1;
     }
-    RestarterMain.cancelCountdown();
+    RestarterMain.cancelPlan();
     Bukkit.broadcast(LegacyComponentSerializer.legacySection().deserialize(i18n.tr("restarter.command.cancelled", ctx.getSource().getSender().getName())));
     return 1;
   }

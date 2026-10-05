@@ -2,7 +2,7 @@
 
 ## 项目概述
 - **Joyous** 是「栈流Streack」Minecraft 服务器的玩法功能插件
-- groupId: `com.github.streackmc`, artifactId: `Joyous`, version: `0.2.5`
+- groupId: `com.github.streackmc`, artifactId: `Joyous`, version: `0.3.0`
 - 基于 Paper 1.21.8 API + Java 21
 - 许可证: GPL-3.0
 - 仓库: https://github.com/StreackMC/Joyous
@@ -12,7 +12,7 @@
 - 核心层: `Joyous`(全局上下文) / `PHAPI`(PlaceholderAPI桥接) / `logger`(多后端日志) / `i18n`(多语言)
 - 入口: `entry extends JavaPlugin` — onEnable 中初始化配置→检查依赖→遍历注册模块
 
-## 模块清单 (6个)
+## 模块清单 (7个)
 1. **JMenu** — 双端通用菜单(Java箱子GUI + 基岩版Floodgate表单), JSON格式菜单文件(.jmenu), 带缓存TTL
 2. **Entroprix** — 熵流抽卡系统(米池规则), 权重制概率/大小保底/概率提升, PDC持久化保底状态
 3. **APIHolders** — HTTP API服务端(基于StreackLib的HTTPServer), 提供Placeholder查询(JSON5协议)和服务器状态查询
@@ -23,6 +23,7 @@
    - 内存检测: Old Gen占用率(MemoryPoolMXBean)、连续采样、泄漏检测(Full GC回收率)、堆转储、重启间隔保护
    - 持久化: dat.json (SConfig JSON)，存储 fakePlayers + lastMemoryRestart
    - 语义化执行: performRestart()/performShutdown() 封装最终逻辑
+   - ⚠️ 2026-10-05 审计出 4 个 P0（onDisable 调度任务必被取消致 preventInterrupt 失效、计划重启被误判为异常关闭、假人名单在踢人后才采集致丢失、时间条件 List 强转 CCE），详见 memory/2026-10-05.md
 
 ## 外部依赖 (全部 provided scope)
 - StreackLib 0.6.1 (核心库,硬依赖)
