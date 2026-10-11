@@ -97,6 +97,16 @@ public class NeonaicConfig {
     return conf.getString("connect.http.server-path", "/neonai/invoke");
   }
 
+  /**
+   * 是否在模块启用时自动建立连接。
+   * <p>
+   * 缺省 {@code false}：连接的开始/结束由公开 API 与 {@code /neonaic} 命令掌控，
+   * 不由插件生命周期负责（避免「插件一启用就必须连上」的耦合）。
+   */
+  public boolean autoConnect() {
+    return conf.getBoolean("connect.auto-connect", false);
+  }
+
   public long handshakeTimeout() {
     return conf.getLong("connect.timeout.handshake", 5000L);
   }

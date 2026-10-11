@@ -29,15 +29,22 @@ public class NeonaicCommand {
 
   public void register() {
     Joyous.addPermissions(
-        PermDef.op("joyous.commands.neonaic.status", "查看 Neonaic 桥接状态"),
-        PermDef.all("joyous.commands.neonaic.bind", "绑定聊天身份"),
+        PermDef.op("joyous.commands.neonaic.status", "查看与管理 Neonaic 桥接状态"),
+        PermDef.op("joyous.commands.neonaic.bind", "绑定聊天身份"),
         PermDef.all("joyous.neonaic.ai.ask", "通过 @ 或命令请求 AI 回复"));
 
     Joyous.registerCommand(
         Commands.literal("neonaic")
-            .then(Commands.literal("status")
+            .then(Commands.literal("bridge")
                 .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.neonaic.status"))
-                .executes(this::status))
+                .then(Commands.literal("status")
+                    .executes(this::status))
+                .then(Commands.literal("start")
+                    .executes(this::start))
+                .then(Commands.literal("stop")
+                    .executes(this::stop))
+                .then(Commands.literal("restart")
+                    .executes(this::restart)))
             .then(Commands.literal("bind")
                 .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.neonaic.bind"))
                 .then(Commands.argument("profile", StringArgumentType.word())
@@ -59,8 +66,10 @@ public class NeonaicCommand {
   }
 
   private void registerBotNameCommand(String name) {
-    if (name == null || name.isBlank()) return;
-    if (!subsystem.byCmdEnabled()) return;
+    if (name == null || name.isBlank())
+      return;
+    if (!subsystem.byCmdEnabled())
+      return;
     Joyous.registerCommand(
         Commands.literal(name)
             .requires(ctx -> ctx.getSender().hasPermission("joyous.neonaic.ai.ask"))
@@ -79,6 +88,42 @@ public class NeonaicCommand {
       sender.sendMessage(MCColor.parse(line));
     }
     return 1;
+  }
+
+  /** /neonaic bridge start —— 建立连接（仅建链；UDS 模式下本端开始监听，等待对端拨入） */
+  private int start(CommandContext<CommandSourceStack> ctx) {
+    CommandSender sender = ctx.getSource().getSender();
+    if (subsystem.isConnectionRunning()) {
+      sender.sendMessage(MCColor.parse("&e连接已处于建立状态，无需重复建立。"));
+      return 1;
+    }
+    boolean ok = subsystem.startConnection();
+    sender.sendMessage(MCColor.parse(ok
+        ? "&a已建立连接（模式 " + subsystem.connectionMode() + "）。UDS 模式下等待对端拨入握手。"
+        : "&c建立连接失败，请查看控制台日志（检查套接字路径/端口/权限）。"));
+    return ok ? 1 : 0;
+  }
+
+  /** /neonaic bridge stop —— 断开连接并释放监听 */
+  private int stop(CommandContext<CommandSourceStack> ctx) {
+    CommandSender sender = ctx.getSource().getSender();
+    if (!subsystem.isConnectionRunning()) {
+      sender.sendMessage(MCColor.parse("&e连接本就未建立。"));
+      return 1;
+    }
+    subsystem.stopConnection();
+    sender.sendMessage(MCColor.parse("&a已断开连接并释放监听。"));
+    return 1;
+  }
+
+  /** /neonaic bridge restart —— 重连（先断开再建立） */
+  private int restart(CommandContext<CommandSourceStack> ctx) {
+    CommandSender sender = ctx.getSource().getSender();
+    boolean ok = subsystem.restartConnection();
+    sender.sendMessage(MCColor.parse(ok
+        ? "&a已重连（模式 " + subsystem.connectionMode() + "）。"
+        : "&c重连失败，请查看控制台日志。"));
+    return ok ? 1 : 0;
   }
 
   private int bind(CommandContext<CommandSourceStack> ctx, String code) {

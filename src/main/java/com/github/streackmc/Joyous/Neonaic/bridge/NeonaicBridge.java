@@ -18,6 +18,10 @@ import com.github.streackmc.Joyous.jlogger;
  * 桥接门面（组合根）：把「选 UDS 还是 HTTP」「本端自述」「对外方法注册」
  * 与「出站调用路由」收拢到一处。
  * <p>
+ * <b>连接与生命周期解耦</b>：本类不负责「何时连接」——{@link #start()} / {@link #stop()}
+ * 可被反复调用（模块启用、公开 API、命令都只是调用它们），对象本身在 stop 后仍可再次 start。
+ * 调度器与 HTTP 客户端随连接创建/销毁。
+ * <p>
  * 与游戏侧的接口：
  * <ul>
  *   <li>启动前用 {@link #registerMethod} 注册本端对外提供的方法（{@code status.query} / {@code chat.broadcast}）；</li>
@@ -46,10 +50,11 @@ public class NeonaicBridge {
   }
 
   private final Config config;
-  private final ScheduledExecutorService scheduler;
-  private final HttpBridgeClient httpClient;
   private final Map<String, BridgeSession.MethodHandler> methods = new LinkedHashMap<>();
+  private final AtomicInteger threadSeq = new AtomicInteger();
 
+  private volatile ScheduledExecutorService scheduler;
+  private volatile HttpBridgeClient httpClient;
   private volatile UdsServer udsServer;
   private volatile BridgeSession activeSession;
   private volatile Map<String, Object> peer;
@@ -60,18 +65,11 @@ public class NeonaicBridge {
 
   public NeonaicBridge(Config config) {
     this.config = config;
-    AtomicInteger idx = new AtomicInteger();
-    this.scheduler = Executors.newScheduledThreadPool(2, r -> {
-      Thread t = new Thread(r, "Joyous-Neonaic-Bridge-" + idx.incrementAndGet());
-      t.setDaemon(true);
-      return t;
-    });
-    this.httpClient = new HttpBridgeClient(config.requestTimeoutMs());
   }
 
   // ---- 装配（启动前调用） ----
 
-  /** 注册本端对 Neonaic 提供的方法（必须在 {@link #start()} 之前调用） */
+  /** 注册本端对 Neonaic 提供的方法（可在每次 {@link #start()} 之前随时调用，会作用于后续所有会话） */
   public void registerMethod(String name, BridgeSession.MethodHandler handler) {
     methods.put(name, handler);
   }
@@ -82,36 +80,64 @@ public class NeonaicBridge {
     this.onPeerClosed = peerClosed;
   }
 
-  // ---- 生命周期 ----
+  // ---- 连接生命周期（可反复调用） ----
 
   /**
-   * 启动桥接。
+   * 建立连接。
+   * <ul>
+   *   <li>UDS：创建并开始监听套接字（本端已连接，等待对端拨入）；</li>
+   *   <li>HTTP：仅准备出站客户端，无监听。</li>
+   * </ul>
+   * 幂等：已处于连接态时直接返回。
    *
    * @throws IOException UDS 绑定失败（且模式不允许回退）
    */
-  public void start() throws IOException {
+  public synchronized void start() throws IOException {
     if (running) return;
-    running = true;
+    this.scheduler = Executors.newScheduledThreadPool(2, r -> {
+      Thread t = new Thread(r, "Joyous-Neonaic-Bridge-" + threadSeq.incrementAndGet());
+      t.setDaemon(true);
+      return t;
+    });
+    this.httpClient = new HttpBridgeClient(config.requestTimeoutMs());
+    this.running = true;
 
-    if (prefersUds()) {
-      if (!UdsServer.isSupported()) {
-        if (isUdsOnly()) {
-          throw new IOException("当前平台不支持 AF_UNIX，无法以 UDS 模式启动（请改用 HTTP 模式）");
+    try {
+      if (prefersUds()) {
+        if (!UdsServer.isSupported()) {
+          if (isUdsOnly()) {
+            throw new IOException("当前平台不支持 AF_UNIX，无法以 UDS 模式启动（请改用 HTTP 模式）");
+          }
+          jlogger.warn("[NeonaicBridge] 当前平台不支持 AF_UNIX，自动回退到 HTTP 模式");
+        } else {
+          UdsServer server = new UdsServer(config.udsPath(), this::createSession);
+          server.start();
+          this.udsServer = server;
         }
-        jlogger.warn("[NeonaicBridge] 当前平台不支持 AF_UNIX，自动回退到 HTTP 模式");
       } else {
-        UdsServer server = new UdsServer(config.udsPath(), this::createSession);
-        server.start();
-        this.udsServer = server;
+        jlogger.info("[NeonaicBridge] 以 HTTP 模式运行，不建立 UDS 监听");
       }
-    } else {
-      jlogger.info("[NeonaicBridge] 以 HTTP 模式运行，不建立 UDS 监听");
+    } catch (IOException e) {
+      // 半启动比不启动更糟：回滚干净再抛出
+      running = false;
+      ScheduledExecutorService s = this.scheduler;
+      this.scheduler = null;
+      this.httpClient = null;
+      if (s != null) s.shutdownNow();
+      throw e;
     }
   }
 
-  /** 停止桥接并释放资源 */
-  public void stop() {
-    running = false;
+  /**
+   * 断开连接并释放资源。幂等：未连接时直接返回。
+   * <p>
+   * UDS 会关闭监听套接字并删除本端创建的套接字文件；处于 READY 的会话被正常关闭，
+   * 未完成的请求以错误结清（见 {@code BridgeSession.transportClosed}）。
+   */
+  public synchronized void stop() {
+    if (!running) return;
+    this.running = false;
+
     UdsServer server = this.udsServer;
     this.udsServer = null;
     if (server != null) server.stop();
@@ -122,15 +148,31 @@ public class NeonaicBridge {
       session.close("桥接已停止");
     }
     this.peer = null;
-    scheduler.shutdown();
+
+    ScheduledExecutorService s = this.scheduler;
+    this.scheduler = null;
+    if (s != null) s.shutdown();
+    this.httpClient = null;
+  }
+
+  /**
+   * 断开后重新建立连接（等价于 {@code stop()} + {@code start()}）。
+   *
+   * @throws IOException UDS 绑定失败
+   */
+  public synchronized void restart() throws IOException {
+    stop();
+    start();
   }
 
   // ---- 状态 ----
 
+  /** 是否处于「已建立连接」状态（UDS 为已监听；HTTP 为已就绪的客户端） */
   public boolean running() {
     return running;
   }
 
+  /** UDS 链路是否已完成握手（HTTP 模式恒为 false） */
   public boolean udsReady() {
     BridgeSession s = activeSession;
     return s != null && s.ready();
@@ -148,44 +190,48 @@ public class NeonaicBridge {
     return config.udsPath();
   }
 
+  /** 供门面内部（如定时任务）复用调度器；未连接时为 null */
+  public ScheduledExecutorService scheduler() {
+    return scheduler;
+  }
+
   // ---- 出站调用 ----
 
-  /** {@code chat.publish}：把 MC 聊天外发到 Neonaic */
   public CompletableFuture<Map<String, Object>> chatPublish(Map<String, Object> payload) {
     return outbound(BridgeProtocol.Methods.CHAT_PUBLISH, payload);
   }
 
-  /** {@code ai.request}：请求 Neonaic 生成 AI 回复 */
   public CompletableFuture<Map<String, Object>> aiRequest(Map<String, Object> payload) {
     return outbound(BridgeProtocol.Methods.AI_REQUEST, payload);
   }
 
-  /** {@code identity.bind}：绑定 MC↔聊天身份 */
   public CompletableFuture<Map<String, Object>> identityBind(Map<String, Object> payload) {
     return outbound(BridgeProtocol.Methods.IDENTITY_BIND, payload);
   }
 
-  /** {@code identity.resolve}：查询身份绑定 */
   public CompletableFuture<Map<String, Object>> identityResolve(Map<String, Object> payload) {
     return outbound(BridgeProtocol.Methods.IDENTITY_RESOLVE, payload);
   }
 
-  /** {@code command.execute}：请 Neonaic 执行一条命令 */
   public CompletableFuture<Map<String, Object>> executeCommand(Map<String, Object> payload) {
     if (prefersUds() && udsReady()) {
       return activeSession.request(BridgeProtocol.Methods.COMMAND_EXECUTE, payload, config.requestTimeoutMs());
     }
-    if (hasText(config.httpCommandUrl())) {
+    ScheduledExecutorService s = this.scheduler;
+    HttpBridgeClient http = this.httpClient;
+    if (s != null && http != null && hasText(config.httpCommandUrl())) {
       return CompletableFuture.supplyAsync(
-          () -> httpClient.executeCommand(config.httpCommandUrl(), config.httpToken(), payload), scheduler);
+          () -> http.executeCommand(config.httpCommandUrl(), config.httpToken(), payload), s);
     }
     return failedFuture(notReady("command.execute"));
   }
 
   // ---- 内部 ----
 
-  private BridgeSession createSession(java.util.function.Consumer<String> write,
-      java.util.function.Consumer<String> teardown) {
+  private BridgeSession createSession(Consumer<String> write, Consumer<String> teardown) {
+    ScheduledExecutorService s = this.scheduler;
+    if (s == null) throw new IllegalStateException("桥接尚未启动，无法建立会话");
+
     BridgeSession[] holder = new BridgeSession[1];
     BridgeSession.Listener listener = new BridgeSession.Listener() {
       @Override
@@ -245,7 +291,7 @@ public class NeonaicBridge {
         config.handshakeTimeoutMs(),
         config.requestTimeoutMs(),
         config.heartbeatMs(),
-        scheduler,
+        s,
         listener);
 
     for (Map.Entry<String, BridgeSession.MethodHandler> e : methods.entrySet()) {
@@ -259,9 +305,11 @@ public class NeonaicBridge {
     if (prefersUds() && udsReady()) {
       return activeSession.request(method, payload, config.requestTimeoutMs());
     }
-    if (hasText(config.httpInvokeUrl())) {
+    ScheduledExecutorService s = this.scheduler;
+    HttpBridgeClient http = this.httpClient;
+    if (s != null && http != null && hasText(config.httpInvokeUrl())) {
       return CompletableFuture.supplyAsync(
-          () -> httpClient.invoke(config.httpInvokeUrl(), config.httpToken(), method, payload), scheduler);
+          () -> http.invoke(config.httpInvokeUrl(), config.httpToken(), method, payload), s);
     }
     return failedFuture(notReady(method));
   }
@@ -290,11 +338,6 @@ public class NeonaicBridge {
     CompletableFuture<T> f = new CompletableFuture<>();
     f.completeExceptionally(e);
     return f;
-  }
-
-  /** 供门面内部（如定时任务）复用调度器 */
-  public ScheduledExecutorService scheduler() {
-    return scheduler;
   }
 
   /** 阻塞等待一次出站调用的便捷方法（带超时） */

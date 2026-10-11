@@ -45,6 +45,10 @@ connect:
   # "auto" 优先 UDS，平台不支持或未就绪时回退 HTTP
   # 注意：Windows 下 Java 无法建立 AF_UNIX，请使用 "http"
   method: 'uds'
+  ## 是否在模块启用时自动建立连接
+  # 缺省 false：连接的开始/结束由公开 API 与命令 /neonaic connect|disconnect|reconnect 掌控，
+  # 不随插件生命周期自动建立。设为 true 则模块启用即连接（仍可用命令断开/重连）
+  auto-connect: false
   ## UDS 设置
   uds:
     ## 套接字路径（POSIX）

@@ -58,6 +58,17 @@ public class NeonaicSubsystem extends JoyousModel {
   private volatile String peerName = "";
   private volatile String peerSubname = "";
 
+  /** 连接是否处于「已建立」状态（与模块是否启用解耦） */
+  private volatile boolean connectionRunning = false;
+
+  /** 当前实例（模块启用期间非 null），供公开 API / 命令访问 */
+  private static volatile NeonaicSubsystem INSTANCE;
+
+  /** 获取当前实例；模块未启用时为 null */
+  public static NeonaicSubsystem get() {
+    return INSTANCE;
+  }
+
   @Override
   public void onEnable() throws Exception {
     // 1. 释放并载入配置
@@ -67,7 +78,7 @@ public class NeonaicSubsystem extends JoyousModel {
     conf.setAutoReload(true);
     this.config = new NeonaicConfig(conf);
 
-    // 2. 构建传输桥接
+    // 2. 构建传输桥接（此时**不**建立连接）
     NeonaicBridge.Config bridgeConfig = new NeonaicBridge.Config(
         config.method(),
         Path.of(config.udsPath()),
@@ -90,55 +101,120 @@ public class NeonaicSubsystem extends JoyousModel {
       peerSubname = str(peer.get("subname"));
       jlogger.info("[Neonaic] 对端已就绪：%s / %s", peerName, peerSubname);
     }, () -> {
+      jlogger.info("[Neonaic] 对端连接已断开，本端继续保持监听，等待对端重连");
       peerName = "";
       peerSubname = "";
     });
 
-    // 4. 业务对象
+    // 4. 业务对象（监听器/占位符/命令随模块启用即就绪，与连接状态无关）
     this.aiController = new AiReplyController(config);
     this.groupSync = new GroupChatSync(config, bridge, this::resolvedName, this::resolvedSubname);
     this.chatListener = new ChatListener(config, bridge, aiController, groupSync,
         this::resolvedName, this::resolvedSubname);
 
-    // 5. 启动桥接
-    bridge.start();
-
-    // 6. 监听聊天
+    // 5. 监听聊天
     Bukkit.getPluginManager().registerEvents(chatListener, Joyous.plugin);
 
-    // 7. 占位符
+    // 6. 占位符
     this.phapi = new NeonaicPHAPI(this::resolvedName, this::resolvedSubname);
     if (Joyous.PlaceholderService != null && Joyous.PlaceholderService.available) {
       Joyous.PlaceholderService.registerParser(phapi);
     }
 
-    // 8. 命令
+    // 7. 命令
     new NeonaicCommand(this).register();
 
-    // 9. HTTP 入站端点（非 uds 模式时）
-    registerHttpInbound();
+    INSTANCE = this;
+
+    // 8. 连接是否自动建立，由配置决定；缺省 false（交由 API / 命令掌控）
+    if (config.autoConnect()) {
+      if (!startConnection()) {
+        jlogger.warn("[Neonaic] auto-connect 已开启，但连接建立失败，请检查配置或稍后手动 /neonaic connect");
+      }
+    } else {
+      jlogger.info("[Neonaic] 模块已启用（未自动连接）。请用 /neonaic connect 或公开 API 建立连接");
+    }
 
     jlogger.info("[Neonaic] 模块已启用：传输 %s，Bot 名 %s", config.method(), resolvedName());
   }
 
   @Override
   public void onDisable() throws Exception {
+    INSTANCE = null;
+    stopConnection(); // 仅做资源清理（关闭套接字/端点），不代表「生命周期负责连接」
     if (phapi != null && Joyous.PlaceholderService != null) {
       Joyous.PlaceholderService.unregisiterParser(phapi);
     }
-    if (httpInboundServer != null && httpInboundPath != null) {
-      try {
-        httpInboundServer.removeHandler(httpInboundPath);
-      } catch (Exception e) {
-        jlogger.warn("[Neonaic] 移除 HTTP 入站端点失败：%s", e.getLocalizedMessage());
+    jlogger.info("[Neonaic] 模块已禁用");
+  }
+
+  // ====================================================================
+  // 公开 API：连接的开始与结束（不由插件生命周期管理）
+  // ====================================================================
+
+  /**
+   * 建立连接。
+   * <p>
+   * UDS 模式：创建并开始监听套接字（本端此时"已连接"，等待 Neonaic 拨入并握手）；
+   * HTTP 模式：准备出站客户端（无监听、无长连接）。幂等。
+   *
+   * @return 是否已处于连接态（已连接时返回 true；失败返回 false 并已记录日志）
+   */
+  public boolean startConnection() {
+    synchronized (this) {
+      if (bridge == null) {
+        jlogger.warn("[Neonaic] 模块尚未启用，无法建立连接");
+        return false;
       }
-      httpInboundServer = null;
-      httpInboundPath = null;
+      if (connectionRunning) return true;
+      try {
+        bridge.start();
+        connectionRunning = true;
+        registerHttpInbound();
+        jlogger.info("[Neonaic] 连接已建立（模式 %s）", config.method());
+        return true;
+      } catch (Exception e) {
+        jlogger.error("[Neonaic] 建立连接失败：%s", e.getLocalizedMessage(), e);
+        connectionRunning = false;
+        return false;
+      }
     }
+  }
+
+  /** 断开连接（关闭监听套接字、结束会话、释放调度器）。幂等。 */
+  public synchronized void stopConnection() {
+    if (!connectionRunning && bridge == null) return;
     if (bridge != null) {
       bridge.stop();
     }
-    jlogger.info("[Neonaic] 模块已禁用");
+    connectionRunning = false;
+    unregisterHttpInbound();
+    jlogger.info("[Neonaic] 连接已断开");
+  }
+
+  /**
+   * 重连：先断开再建立（等价于 {@code stopConnection()} + {@code startConnection()}）。
+   *
+   * @return 是否最终处于连接态
+   */
+  public boolean restartConnection() {
+    stopConnection();
+    return startConnection();
+  }
+
+  /** 连接是否处于「已建立」状态（UDS 为已监听；HTTP 为客户端已就绪） */
+  public boolean isConnectionRunning() {
+    return connectionRunning;
+  }
+
+  /** UDS 链路是否已完成握手、可收发业务帧（HTTP 模式恒为 false） */
+  public boolean isPeerReady() {
+    return bridge != null && bridge.udsReady();
+  }
+
+  /** 当前传输模式（http / uds / auto） */
+  public String connectionMode() {
+    return config != null ? config.method() : "unknown";
   }
 
   // ---- 供命令层使用 ----
@@ -166,7 +242,9 @@ public class NeonaicSubsystem extends JoyousModel {
       lines.add("&7· 模块未启用");
       return lines;
     }
-    lines.add("&7· 传输模式：&f" + config.method());
+    lines.add("&7· 传输模式：&f" + config.method() + " &7(自动连接：&f" + config.autoConnect() + "&7)");
+    lines.add("&7· 连接状态：&f" + (connectionRunning ? "&a已建立" : "&c未建立")
+        + " &7(会话就绪：&f" + (isPeerReady() ? "&a是" : "&c否") + "&7)");
     lines.add("&7· UDS 路径：&f" + bridge.udsPath());
     lines.add("&7· UDS 就绪：&f" + (bridge.udsReady() ? "&a是" : "&c否"));
     Map<String, Object> peer = bridge.peer();
@@ -220,8 +298,10 @@ public class NeonaicSubsystem extends JoyousModel {
 
   // ---- HTTP 入站 ----
 
+  /** 注册 HTTP 入站端点（幂等；仅非 uds 模式）。UDS 模式下入站经会话到达，无需 HTTP 端点。 */
   private void registerHttpInbound() {
     if ("uds".equalsIgnoreCase(config.method())) return;
+    if (httpInboundPath != null) return; // 已注册
     String path = config.httpServerPath();
     if (path == null || path.isBlank()) return;
 
@@ -237,6 +317,21 @@ public class NeonaicSubsystem extends JoyousModel {
       jlogger.info("[Neonaic] 已注册 HTTP 入站端点 %s", path);
     } catch (Exception e) {
       jlogger.error("[Neonaic] 注册 HTTP 入站端点 %s 失败：%s", path, e.getLocalizedMessage(), e);
+    }
+  }
+
+  /** 注销 HTTP 入站端点（幂等） */
+  private void unregisterHttpInbound() {
+    HTTPServer server = this.httpInboundServer;
+    String path = this.httpInboundPath;
+    this.httpInboundServer = null;
+    this.httpInboundPath = null;
+    if (server == null || path == null) return;
+    try {
+      server.removeHandler(path);
+      jlogger.info("[Neonaic] 已注销 HTTP 入站端点 %s", path);
+    } catch (Exception e) {
+      jlogger.warn("[Neonaic] 注销 HTTP 入站端点 %s 失败：%s", path, e.getLocalizedMessage());
     }
   }
 
