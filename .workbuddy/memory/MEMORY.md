@@ -37,6 +37,8 @@
      + 命令 `/neonaic bridge status|start|stop|restart`；`connect.auto-connect` 默认 false
    - **重连**：Joyous 是监听端、不主动重连；对端断开后 accept 循环继续，等 Neonaic 指数退避重拨
    - `chat/` 玩法: 聊天格式渲染、AI 随机/@/命令触发、群服互联(from-mc/to-mc)
+     · to-mc 入站的**已绑定来源显示 MC 玩家名**(非 QQ 昵称)——`chat.broadcast` 的 `user` 带 `uuid`/`name`/`nickname`，
+       绑定解析只能由 Neonaic 侧做(它持有关联)；新增 `[nickname]` token，`*-cover` 悬浮也走 token 替换
    - **身份绑定**（2026-10-11 重构）: 自助**绑定代码流程**——MC `/neonaicbindidentity` 取一次性代码(缺省5分钟)
      → 聊天侧 `/joyous:bind <code>` 经 `identity.claim` 认领 → MC `/neonaicunbindidentity` 经 `identity.unbind` 解绑；
      关联(qUSR#… ↔ UUID)权威持有方是 Neonaic；旧「直接设置」保留为管理员命令 `/neonaic bind ...`(默认 OP)

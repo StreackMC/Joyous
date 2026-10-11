@@ -18,7 +18,9 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * 聊天格式渲染（{@code Neonaic.yml} 的 {@code *-msg / *-cover / *-click}）。
  * <p>
  * 占位符：{@code [msg]} 聊天内容、{@code [name]} Bot 名、{@code [subname]} Bot 副名、
- * {@code [user]} 产生回复的玩家名；同时支持 PlaceholderAPI 与 {@code &} 颜色码。
+ * {@code [user]} 消息来源展示名（群服互联已绑定时为 MC 玩家名）、
+ * {@code [nickname]} 消息来源在聊天软件侧的原始昵称；
+ * 同时支持 PlaceholderAPI 与 {@code &} 颜色码。
  * <p>
  * 单遍替换：{@code msg} 里若含有形如 {@code [name]} 的文本不会被二次替换。
  *
@@ -26,7 +28,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  */
 public final class ChatMessageRenderer {
 
-  private static final Pattern TOKEN = Pattern.compile("\\[(msg|name|subname|user)\\]");
+  private static final Pattern TOKEN = Pattern.compile("\\[(msg|name|subname|user|nickname)\\]");
 
   private ChatMessageRenderer() {
   }
@@ -39,18 +41,28 @@ public final class ChatMessageRenderer {
    * @param msg      聊天内容
    * @param name     Bot 名
    * @param subname  Bot 副名
-   * @param user     触发/来源用户名
-   * @param cover    悬浮提示（多行，可为空）
+   * @param user     消息来源展示名（群服互联已绑定时为 MC 玩家名，否则为聊天昵称）
+   * @param cover    悬浮提示（多行，可为空；同样支持上述 token 与 PlaceholderAPI）
    * @param clickCmd 点击动作类型（none/url/menu/cmd/op/con/copy），可为空
    * @param clickArg 点击动作参数
    */
   public static Component render(@Nullable Player player, String format, String msg, String name, String subname,
       String user, String cover, String clickCmd, String clickArg) {
+    return render(player, format, msg, name, subname, user, "", cover, clickCmd, clickArg);
+  }
+
+  /**
+   * 渲染一条聊天消息为组件（支持 {@code [nickname]}）。
+   *
+   * @param nickname 消息来源在聊天软件侧的原始昵称（用于群服互联已绑定时保留可辨识信息），可为空
+   */
+  public static Component render(@Nullable Player player, String format, String msg, String name, String subname,
+      String user, String nickname, String cover, String clickCmd, String clickArg) {
     String safeFormat = format == null ? "" : format;
-    Component base = toComponent(player, substitute(safeFormat, msg, name, subname, user));
+    Component base = toComponent(player, substitute(safeFormat, msg, name, subname, user, nickname));
 
     if (cover != null && !cover.isBlank()) {
-      Component hover = toComponent(player, cover);
+      Component hover = toComponent(player, substitute(cover, msg, name, subname, user, nickname));
       base = base.hoverEvent(HoverEvent.showText(hover));
     }
 
@@ -83,6 +95,11 @@ public final class ChatMessageRenderer {
 
   /** 用单遍替换填充 token，避免内容中的伪 token 被二次替换 */
   static String substitute(String format, String msg, String name, String subname, String user) {
+    return substitute(format, msg, name, subname, user, "");
+  }
+
+  /** 用单遍替换填充 token（含 {@code [nickname]}），避免内容中的伪 token 被二次替换 */
+  static String substitute(String format, String msg, String name, String subname, String user, String nickname) {
     Matcher m = TOKEN.matcher(format);
     StringBuilder sb = new StringBuilder();
     while (m.find()) {
@@ -91,6 +108,7 @@ public final class ChatMessageRenderer {
         case "name" -> name;
         case "subname" -> subname;
         case "user" -> user;
+        case "nickname" -> nickname;
         default -> "";
       };
       m.appendReplacement(sb, Matcher.quoteReplacement(value == null ? "" : value));

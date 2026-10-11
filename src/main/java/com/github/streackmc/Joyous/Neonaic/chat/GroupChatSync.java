@@ -22,7 +22,9 @@ import net.kyori.adventure.text.Component;
  * 群服互联（{@code group-chat-sync}）。
  * <ul>
  *   <li>from-mc：把 MC 聊天经 {@code chat.publish} 外发到配置的 profile/频道；</li>
- *   <li>to-mc：作为 {@code chat.broadcast} 的方法处理器，把外部消息渲染后内播；</li>
+ *   <li>to-mc：作为 {@code chat.broadcast} 的方法处理器，把外部消息渲染后内播；
+ *       若发送者已绑定身份（{@code user.uuid}），则显示其 **MC 玩家名** 而非聊天昵称，
+ *       原始昵称经 {@code [nickname]} 保留；</li>
  *   <li>bind-identity：经 {@code identity.bind} 绑定 MC↔聊天身份。</li>
  * </ul>
  *
@@ -94,8 +96,18 @@ public class GroupChatSync {
     String message = str(payload.get("message"), "");
     String visibility = str(payload.get("visibility"), "public");
     Map<String, Object> user = asMap(payload.get("user"));
-    String userName = user != null ? str(user.get("name"), "") : "";
-    String userSub = user != null ? str(user.get("subname"), "") : "";
+
+    // 消息来源展示名：已绑定身份 → MC 玩家名（在线取实时名）；未绑定 → 聊天昵称
+    String uuidStr = user != null ? str(user.get("uuid"), "") : "";
+    boolean bound = !uuidStr.isBlank();
+    Player boundPlayer = bound ? resolveBoundPlayer(uuidStr) : null;
+    String chatName = user != null ? str(user.get("name"), "") : "";
+    String chatSub = user != null ? str(user.get("subname"), "") : "";
+    String nickname = user != null ? str(user.get("nickname"), "") : "";
+    if (nickname.isBlank() && !bound) nickname = chatName;
+
+    String userLabel = sourceLabel(bound, boundPlayer != null ? boundPlayer.getName() : null,
+        chatName, chatSub, nickname);
 
     boolean isPrivate = "private".equalsIgnoreCase(visibility);
 
@@ -113,12 +125,13 @@ public class GroupChatSync {
         return result;
       }
       Component component = ChatMessageRenderer.render(
-          receiver, config.privateMsg(), message, name.get(), subname.get(), userName,
+          receiver, config.privateMsg(), message, name.get(), subname.get(), userLabel, nickname,
           config.privateCover(), config.privateClickCmd(), config.privateClickArg());
       schedule(() -> receiver.sendMessage(component));
       result.put("rendered", true);
       result.put("visibility", "private");
       result.put("recipients", 1);
+      result.put("bound", bound);
       return result;
     }
 
@@ -128,15 +141,16 @@ public class GroupChatSync {
       return result;
     }
     String format = config.syncToMcFormat().isBlank() ? config.publicMsg() : config.syncToMcFormat();
-    String userLabel = userSub.isBlank() ? userName : userName + userSub;
     Component component = ChatMessageRenderer.render(
-        null, format, message, name.get(), subname.get(), userLabel,
+        boundPlayer, format, message, name.get(), subname.get(), userLabel, nickname,
         config.publicCover(), config.publicClickCmd(), config.publicClickArg());
     schedule(() -> Bukkit.broadcast(component));
 
     result.put("rendered", true);
     result.put("visibility", "public");
     result.put("recipients", Bukkit.getOnlinePlayers().size());
+    result.put("bound", bound);
+    if (bound) result.put("user", userLabel);
     return result;
   }
 
@@ -165,6 +179,25 @@ public class GroupChatSync {
     return MCColor.strip(MCColor.parse(papi));
   }
 
+  /**
+   * 计算消息来源的展示名。
+   * <ul>
+   *   <li>已绑定：优先 MC 实时名（{@code liveName}），否则用 Neonaic 的名称快照（{@code chatName}）；</li>
+   *   <li>未绑定：用聊天昵称（{@code chatName}），并按旧行为追加副名；</li>
+   *   <li>兜底：均为空时退回原始昵称（{@code nickname}）。</li>
+   * </ul>
+   */
+  static String sourceLabel(boolean bound, String liveName, String chatName, String chatSub, String nickname) {
+    String name = str(chatName, "");
+    String sub = str(chatSub, "");
+    String display = bound
+        ? (liveName != null && !liveName.isBlank() ? liveName : name)
+        : name;
+    if (display.isBlank()) display = str(nickname, "");
+    if (!bound && !sub.isBlank()) display = display + sub;
+    return display;
+  }
+
   private static void schedule(Runnable task) {
     Bukkit.getScheduler().runTask(Joyous.plugin, task);
   }
@@ -181,6 +214,15 @@ public class GroupChatSync {
     }
     Object nameObj = target.get("name");
     return nameObj != null ? Bukkit.getPlayerExact(String.valueOf(nameObj)) : null;
+  }
+
+  /** 按 MC UUID 解析在线玩家；非法 UUID 或不在线时返回 null（此时用 Neonaic 提供的名称快照） */
+  private static Player resolveBoundPlayer(String uuid) {
+    try {
+      return Bukkit.getPlayer(UUID.fromString(uuid));
+    } catch (IllegalArgumentException ignored) {
+      return null;
+    }
   }
 
   private static String str(Object o, String def) {

@@ -14,8 +14,10 @@ subname: ""
 # [msg] 表示聊天内容
 # [name] 即上文的 name
 # [subname] 同理
-# [user] Neonaic 对哪个玩家产生的回复
+# [user] 消息来源的展示名：群服互联时若来源已绑定身份则为 MC 玩家名，否则为聊天昵称
+# [nickname] 消息来源在聊天软件侧的原始昵称（群服互联 to-mc 可用，用于悬浮提示等）
 # 可以使用 PlaceholderAPI
+# 悬浮提示（*-cover）同样支持上述占位符
 # 公屏
 public-msg: "[name]→ [msg]"
 # 当指向聊天消息时的悬浮提示框
@@ -125,6 +127,8 @@ group-chat-sync:
     format: ""
   ## 从聊天软件同步到服务器
   # 要对用户禁用，可以授予 Neonaic 侧的 joyous.chatsync.disabled 权限
+  # 已绑定身份的用户（Neonaic 在 user 中附带 uuid/name）将显示其 MC 玩家名，
+  # 而非聊天昵称；原始昵称经 [nickname] 保留，可放入悬浮提示（*-cover）中。
   # 同时，
   to-mc:
     enabled: true
