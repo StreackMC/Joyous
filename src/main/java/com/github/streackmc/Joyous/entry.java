@@ -14,6 +14,7 @@ import com.github.streackmc.Joyous.EnvExport.EnvExport;
 import com.github.streackmc.Joyous.JMenu.JMenuMain;
 import com.github.streackmc.Joyous.JStatusAPI.JStatusAPIMain;
 import com.github.streackmc.Joyous.Mails.MailsMain;
+import com.github.streackmc.Joyous.Neonaic.NeonaicSubsystem;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
 import com.github.streackmc.Joyous.Restarter.RestarterMain;
 import com.github.streackmc.Joyous._Model.JoyousModel;
@@ -43,6 +44,7 @@ public class entry extends JavaPlugin {
       addModel(new JMenuMain());
       addModel(new MailsMain());
       addModel(new RestarterMain());
+      addModel(new NeonaicSubsystem());
     }
   }
 

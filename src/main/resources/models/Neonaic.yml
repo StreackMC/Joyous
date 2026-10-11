@@ -1,0 +1,132 @@
+### ---
+## Neonai Connector Subsystem for Joyous
+# 桥接服务器与 Neonaic 的关键桥梁
+### ---
+
+## Bot名称设置，没有设置将从 Neonaic 处获取
+# 按照 Neonai Connector 项目协议，不推荐在此处覆写
+name: ""
+subname: ""
+# 可以使用 %joyous_neonaic_name% 和 %joyous_neonaic_subname% 来通过 PhAPI 调用
+# （PlaceholderAPI 以第一个 "_" 切分标识符与参数，故用下划线连接）
+
+## Bot 使用的“聊天”格式
+# [msg] 表示聊天内容
+# [name] 即上文的 name
+# [subname] 同理
+# [user] Neonaic 对哪个玩家产生的回复
+# 可以使用 PlaceholderAPI
+# 公屏
+public-msg: "[name]→ [msg]"
+# 当指向聊天消息时的悬浮提示框
+public-cover: |
+  悬浮文本
+  支持多行
+# 点击聊天消息执行的操作，详见 JMenu
+public-click:
+  cmd: "none"
+  arg: ""
+# 私聊
+private-msg: "Private: [name]→ [msg]"
+# 当指向聊天消息时的悬浮提示框
+private-cover: |
+  私聊悬浮文本
+  支持多行
+# 点击聊天消息执行的操作，详见 JMenu
+private-click :
+  cmd: "none"
+  arg: ""
+
+## Neonaic 如何与本插件通信
+connect:
+  ## 使用什么模式
+  # "http" 使用 HTTP 服务器进行通信（插件作客户端调用 Neonaic，并按 server-path 监听入站）
+  # "uds"  使用 UnixDomainSocket 进行通信（插件建立并监听套接字，Neonaic 主动连接）
+  # "auto" 优先 UDS，平台不支持或未就绪时回退 HTTP
+  # 注意：Windows 下 Java 无法建立 AF_UNIX，请使用 "http"
+  method: 'uds'
+  ## UDS 设置
+  uds:
+    ## 套接字路径（POSIX）
+    # 本插件创建并监听该路径；Neonaic 主动连接同名路径
+    path: '/tmp/neonai-joyous.sock'
+  ## HTTP 设置（method 为 http，或 auto 且 UDS 不可用时使用）
+  http:
+    ## Neonaic 提供的通用调用端点（承载 chat.publish / ai.request / identity.*）
+    invoke-url: 'http://127.0.0.1:8081/neonai/invoke'
+    ## Neonaic 提供的命令端点（承载 command.execute）
+    command-url: 'http://127.0.0.1:8081/neonai/command'
+    ## 共享令牌（对应 Neonaic 的 httpServer.token），留空则不携带
+    token: ''
+    ## 本插件 HTTP 服务端上接收 Neonaic 调用的路径（承载 chat.broadcast）
+    # 复用 StreackLib 的 HTTP 服务端（与 JStatusAPI 共用），空则不注册
+    server-path: '/neonai/invoke'
+  ## 各阶段超时（毫秒）
+  timeout:
+    handshake: 5000
+    request: 10000
+    heartbeat: 30000
+    command: 30000
+
+## 控制本插件借助 Neonaic 进行 AI 调用的行为
+# 玩家想要使用 AI Profile 需要有权限 joyous.neonaic.ai.profiles.[aiProfile]
+ai:
+  ## 随机玩家聊天回复
+  # 触发者需要有权限 joyous.neonaic.ai.inchat.trigger
+  # 要被计入上下文需要有权限 joyous.neonaic.ai.inchat.context
+  reply-chat-randomly:
+    enabled: true
+    ## 至少间隔多少秒同一个玩家能触发回复
+    interval-player: 10
+    ## 至少间隔多少秒所有玩家能触发回复
+    # 实现上，只有本间隔过后才会对聊天进行判定
+    interval-global: 10
+    ## 当玩家聊天时，有多大概率被回复
+    possiblility: 0.2
+    ## 上下文设置
+    context:
+      ## 捕捉多少秒以内的聊天消息
+      when-is-recent: 60
+      ## 最多捕捉多少条触发者的聊天消息
+      # 0 为不限制
+      max-of-trigger: 0
+      ## 最多捕捉多少条其他玩家的聊天消息
+      # 0 为不限制
+      max-of-others: 0
+  ## 玩家指定 Neonaic 进行回复
+  # 需要权限 joyous.neonaic.ai.ask
+  reply-by-at:
+    ## 可以以什么形式触发
+    trigger:
+      ## 通过 @{botName} 或 @{botSubName} 触发
+      # 此时 Neonaic 将在公屏回复
+      at-name: true
+      ## 通过命令 /${botName} 或 /${botSubName} 触发
+      # 此时 Neonaic 将会私聊玩家
+      by-cmd: true
+
+## 群服互联
+group-chat-sync:
+  enabled: true
+  ## 使用哪些 Profile 的哪些用户标识
+  profile: 
+    "profileName":
+      - qGRP#12345678901234567890@aaabbbcccdddeeefff
+  ## 从服务器同步到聊天软件
+  # 要对玩家禁用，可以授予MC侧的 joyous.neonaic.chatsync.disabled 权限
+  from-mc:
+    enabled: true
+    ## 设置公屏格式
+    # 可使用的占位符见上
+    format: ""
+  ## 从聊天软件同步到服务器
+  # 要对用户禁用，可以授予 Neonaic 侧的 joyous.chatsync.disabled 权限
+  # 同时，
+  to-mc:
+    enabled: true
+    ## 设置公屏格式
+    # 可使用的占位符见上
+    format: ""
+  ## 身份绑定设置
+  bind-identity:
+    enabled: true

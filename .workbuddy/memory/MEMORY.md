@@ -12,7 +12,7 @@
 - 核心层: `Joyous`(全局上下文) / `PHAPI`(PlaceholderAPI桥接) / `logger`(多后端日志) / `i18n`(多语言)
 - 入口: `entry extends JavaPlugin` — onEnable 中初始化配置→检查依赖→遍历注册模块
 
-## 模块清单 (7个)
+## 模块清单 (8个)
 1. **JMenu** — 双端通用菜单(Java箱子GUI + 基岩版Floodgate表单), JSON格式菜单文件(.jmenu), 带缓存TTL
 2. **Entroprix** — 熵流抽卡系统(米池规则), 权重制概率/大小保底/概率提升, PDC持久化保底状态
 3. **JStatusAPI** — 声明式 HTTP 查询API(基于StreackLib的HTTPServer, 由 APIHolders 重构而来)
@@ -31,6 +31,11 @@
    - 持久化: dat.json (SConfig JSON)，存储 fakePlayers + lastMemoryRestart
    - 语义化执行: performRestart()/performShutdown() 封装最终逻辑
    - ⚠️ 2026-10-05 审计出 4 个 P0（onDisable 调度任务必被取消致 preventInterrupt 失效、计划重启被误判为异常关闭、假人名单在踢人后才采集致丢失、时间条件 List 强转 CCE），详见 memory/2026-10-05.md
+8. **Neonaic** — 与 Neonaic（Neonai-Connector, NodeJS AI/聊天机器人）的桥接 + 玩法特性
+   - `bridge/` 传输层: JSON+LF 分帧 / 握手 / 请求响应 / 心跳；UDS(AF_UNIX 监听) 与 HTTP 双通道
+   - `chat/` 玩法: 聊天格式渲染、AI 随机/@/命令触发、群服互联(from-mc/to-mc)、身份绑定
+   - 占位符 `%joyous_neonaic_name%` / `%joyous_neonaic_subname%`；命令 `/neonaic status|bind|ask`
+   - 协议 V2 设计见 `docs/neonaic/PROTOCOL-V2.md`（⚠️ `docs/neonaic` 在 .gitignore，属本地文档）
 
 ## 外部依赖 (全部 provided scope)
 - StreackLib 0.6.1 (核心库,硬依赖)

@@ -116,6 +116,14 @@ Mails:
   # * 不支持热重载
   enabled: true
 
+## Neonaic 模块
+# Neonai Connector 是 StreackMC 编写的另外一个用于 AI 和聊天机器人的 NodeJS 应用
+# 这是总开关
+Neonaic:
+  ## 是否启用
+  # * 不支持热重载
+  enabled: true
+
 ## Restarter 模块
 # 本模块的基本用法是
 # /jrestart [秒数] [理由] - 计划重启并全服通知

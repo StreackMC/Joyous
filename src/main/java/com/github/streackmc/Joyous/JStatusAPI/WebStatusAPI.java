@@ -77,7 +77,7 @@ public class WebStatusAPI extends JStatusApiSubhandler {
    * @since 0.0.2
    */
   @SuppressWarnings("unchecked")
-  private static JSONObject buildServerStatusData() {
+  public static JSONObject buildServerStatusData() {
     // 准备生成
     JSONObject rspData = new JSONObject();
     org.bukkit.Server server = Bukkit.getServer();
