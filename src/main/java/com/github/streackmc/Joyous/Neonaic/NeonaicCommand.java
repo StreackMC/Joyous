@@ -58,26 +58,19 @@ public class NeonaicCommand {
                     .executes(this::ask)))
             .build(),
         "Neonaic 桥接管理",
-        List.of("neonai"));
+          List.of());
 
     // by-cmd 触发：把配置的 Bot 名 / 副名注册为命令（仅当配置显式给出时）
-    registerBotNameCommand(subsystem.botName());
-    registerBotNameCommand(subsystem.botSubname());
-  }
-
-  private void registerBotNameCommand(String name) {
-    if (name == null || name.isBlank())
-      return;
     if (!subsystem.byCmdEnabled())
       return;
     Joyous.registerCommand(
-        Commands.literal(name)
+        Commands.literal("ask")
             .requires(ctx -> ctx.getSender().hasPermission("joyous.neonaic.ai.ask"))
             .then(Commands.argument("text", StringArgumentType.greedyString())
                 .executes(this::ask))
             .build(),
-        "向 " + name + " 提问（私聊回复）",
-        List.of());
+        "向 " + subsystem.botSubname() + " 提问（私聊回复）",
+        List.of(subsystem.botName(), subsystem.botSubname()));
   }
 
   // ---- 子命令实现 ----
