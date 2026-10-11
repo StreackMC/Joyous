@@ -132,5 +132,28 @@ group-chat-sync:
     # 可使用的占位符见上
     format: ""
   ## 身份绑定设置
+  # 绑定流程（自助）：
+  #   1) 玩家在游戏内执行 /neonaicbindidentity（名/别名见下）获得一次性代码；
+  #   2) 玩家在聊天软件中发送 /joyous:bind <code> 完成绑定（Neonaic 侧保存 用户标识↔UUID 关联）；
+  #   3) 玩家执行 /neonaicunbindidentity 解绑，或在聊天软件发 /joyous:bind clear。
+  # 管理员仍可用 /neonaic bind <profile> <chatId> [code] 直接设置（旧流程）。
   bind-identity:
     enabled: true
+    ## 玩家发起绑定（生成代码）
+    bind:
+      ## 游戏内命令名
+      name: "neonaicbindidentity"
+      ## 命令别名
+      alias: []
+    ## 玩家解除绑定
+    unbind:
+      ## 游戏内命令名
+      name: "neonaicunbindidentity"
+      ## 命令别名
+      alias: []
+    ## 绑定代码有效期（秒），缺省 300 = 5 分钟
+    code-ttl: 300
+    ## 绑定代码长度（位），取值范围 [4,12]，缺省 6
+    code-length: 6
+    ## 同一玩家两次请求绑定代码的冷却（秒），0 表示不限
+    request-cooldown: 0

@@ -57,6 +57,10 @@ public final class BridgeProtocol {
     public static final String AI_REQUEST = "ai.request";
     public static final String IDENTITY_BIND = "identity.bind";
     public static final String IDENTITY_RESOLVE = "identity.resolve";
+    /** Neonaic → Joyous：用绑定代码换取 MC 身份（绑定代码流程） */
+    public static final String IDENTITY_CLAIM = "identity.claim";
+    /** Joyous → Neonaic：解除某个 MC 身份的全部绑定 */
+    public static final String IDENTITY_UNBIND = "identity.unbind";
     public static final String PING = "ping";
 
     private Methods() {
@@ -72,6 +76,8 @@ public final class BridgeProtocol {
     public static final String AI_REQUEST = "ai.request";
     public static final String IDENTITY_BIND = "identity.bind";
     public static final String IDENTITY_RESOLVE = "identity.resolve";
+    public static final String IDENTITY_CLAIM = "identity.claim";
+    public static final String IDENTITY_UNBIND = "identity.unbind";
 
     private Capabilities() {
     }

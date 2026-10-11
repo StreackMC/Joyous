@@ -19,11 +19,13 @@ import org.nanohttpd.protocols.http.response.Status;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.JStatusAPI.WebStatusAPI;
+import com.github.streackmc.Joyous.Neonaic.bridge.BridgeException;
 import com.github.streackmc.Joyous.Neonaic.bridge.BridgeProtocol;
 import com.github.streackmc.Joyous.Neonaic.bridge.NeonaicBridge;
 import com.github.streackmc.Joyous.Neonaic.chat.AiReplyController;
 import com.github.streackmc.Joyous.Neonaic.chat.ChatListener;
 import com.github.streackmc.Joyous.Neonaic.chat.GroupChatSync;
+import com.github.streackmc.Joyous.Neonaic.chat.IdentityBindingService;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.StreackLib.StreackLib;
@@ -49,6 +51,7 @@ public class NeonaicSubsystem extends JoyousModel {
   private NeonaicBridge bridge;
   private AiReplyController aiController;
   private GroupChatSync groupSync;
+  private IdentityBindingService bindingService;
   private ChatListener chatListener;
   private NeonaicPHAPI phapi;
 
@@ -96,6 +99,7 @@ public class NeonaicSubsystem extends JoyousModel {
     // 3. 注册本端对外提供的方法
     bridge.registerMethod(BridgeProtocol.Methods.STATUS_QUERY, this::onStatusQuery);
     bridge.registerMethod(BridgeProtocol.Methods.CHAT_BROADCAST, this::onChatBroadcast);
+    bridge.registerMethod(BridgeProtocol.Methods.IDENTITY_CLAIM, this::onIdentityClaim);
     bridge.setPeerListener(peer -> {
       peerName = str(peer.get("name"));
       peerSubname = str(peer.get("subname"));
@@ -109,6 +113,7 @@ public class NeonaicSubsystem extends JoyousModel {
     // 4. 业务对象（监听器/占位符/命令随模块启用即就绪，与连接状态无关）
     this.aiController = new AiReplyController(config);
     this.groupSync = new GroupChatSync(config, bridge, this::resolvedName, this::resolvedSubname);
+    this.bindingService = new IdentityBindingService(config, bridge);
     this.chatListener = new ChatListener(config, bridge, aiController, groupSync,
         this::resolvedName, this::resolvedSubname);
 
@@ -235,6 +240,16 @@ public class NeonaicSubsystem extends JoyousModel {
     return config != null && config.bindIdentityEnabled();
   }
 
+  /** 模块配置（只读访问，供命令层读取命令名/别名等） */
+  public NeonaicConfig config() {
+    return config;
+  }
+
+  /** 身份绑定服务；模块未启用时为 null */
+  public IdentityBindingService binding() {
+    return bindingService;
+  }
+
   public List<String> statusLines() {
     List<String> lines = new ArrayList<>();
     lines.add("&6Neonaic 桥接状态：");
@@ -246,7 +261,6 @@ public class NeonaicSubsystem extends JoyousModel {
     lines.add("&7· 连接状态：&f" + (connectionRunning ? "&a已建立" : "&c未建立")
         + " &7(会话就绪：&f" + (isPeerReady() ? "&a是" : "&c否") + "&7)");
     lines.add("&7· UDS 路径：&f" + bridge.udsPath());
-    lines.add("&7· UDS 就绪：&f" + (bridge.udsReady() ? "&a是" : "&c否"));
     Map<String, Object> peer = bridge.peer();
     if (peer != null) {
       lines.add("&7· 对端：&f" + str(peer.get("name")) + " &7v&f" + str(peer.get("version"))
@@ -261,7 +275,8 @@ public class NeonaicSubsystem extends JoyousModel {
     return lines;
   }
 
-  public CompletableFuture<Map<String, Object>> bind(Player player, String profile, String chatId, String code) {
+  /** 管理员直接设置绑定（旧流程，{@code /neonaic bind <profile> <chatId> [code]}） */
+  public CompletableFuture<Map<String, Object>> adminBind(Player player, String profile, String chatId, String code) {
     if (groupSync == null) {
       CompletableFuture<Map<String, Object>> f = new CompletableFuture<>();
       f.completeExceptionally(new IllegalStateException("Neonaic 模块未启用"));
@@ -294,6 +309,15 @@ public class NeonaicSubsystem extends JoyousModel {
       return result;
     }
     return gs.onBroadcast(payload);
+  }
+
+  /** {@code identity.claim}（Neonaic → 本端）：用绑定代码换取 MC 身份 */
+  private Map<String, Object> onIdentityClaim(Map<String, Object> payload) {
+    IdentityBindingService service = this.bindingService;
+    if (service == null) {
+      throw new BridgeException(BridgeProtocol.Errors.INTERNAL_ERROR, "身份绑定服务未就绪");
+    }
+    return service.claim(payload);
   }
 
   // ---- HTTP 入站 ----

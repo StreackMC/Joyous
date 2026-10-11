@@ -209,4 +209,47 @@ public class NeonaicConfig {
   public boolean bindIdentityEnabled() {
     return conf.getBoolean("group-chat-sync.bind-identity.enabled", true);
   }
+
+  // ---- 身份绑定：自助绑定代码流程 ----
+
+  /** 玩家发起绑定（生成代码）的命令名 */
+  public String bindCommandName() {
+    String s = conf.getString("group-chat-sync.bind-identity.bind.name", "neonaicbindidentity");
+    return s == null || s.isBlank() ? "neonaicbindidentity" : s.trim();
+  }
+
+  /** 玩家发起绑定的命令别名 */
+  public List<String> bindCommandAlias() {
+    return conf.getListOfString("group-chat-sync.bind-identity.bind.alias", List.of());
+  }
+
+  /** 玩家解除绑定的命令名 */
+  public String unbindCommandName() {
+    String s = conf.getString("group-chat-sync.bind-identity.unbind.name", "neonaicunbindidentity");
+    return s == null || s.isBlank() ? "neonaicunbindidentity" : s.trim();
+  }
+
+  /** 玩家解除绑定的命令别名 */
+  public List<String> unbindCommandAlias() {
+    return conf.getListOfString("group-chat-sync.bind-identity.unbind.alias", List.of());
+  }
+
+  /** 绑定代码有效期（秒），缺省 300（5 分钟）；<=0 回退缺省 */
+  public int bindCodeTtlSeconds() {
+    int v = conf.getInt("group-chat-sync.bind-identity.code-ttl", 300);
+    return v > 0 ? v : 300;
+  }
+
+  /** 绑定代码长度（位），缺省 6；限制在 [4,12] */
+  public int bindCodeLength() {
+    int v = conf.getInt("group-chat-sync.bind-identity.code-length", 6);
+    if (v < 4) return 4;
+    if (v > 12) return 12;
+    return v;
+  }
+
+  /** 同一玩家两次请求绑定代码的冷却（秒），缺省 0（不限） */
+  public int bindRequestCooldownSeconds() {
+    return Math.max(0, conf.getInt("group-chat-sync.bind-identity.request-cooldown", 0));
+  }
 }

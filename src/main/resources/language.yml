@@ -119,4 +119,30 @@ restarter:
       not-exists: "&e%s &e不在假人恢复列表中。"
       list-empty: "&7当前假人恢复列表为空。"
       list: "&a假人恢复列表 (&f%d&a)：&f%s"
+
+neonaic:
+  bind:
+    disabled: "&c身份绑定功能未启用。"
+    bridge-not-ready: "&c桥接连接未就绪，无法完成绑定操作。请让管理员执行 &f/neonaic bridge start&c。"
+    # 参数：剩余分钟数
+    code-issued: "&a已生成绑定代码，有效期 &f%d &a分钟。请在聊天软件中发送 &f/joyous:bind &7+ 下方代码完成绑定："
+    # 参数：代码
+    code-line: "&f&l  %s"
+    code-copy-hover: "&7点击复制绑定代码"
+    claimed: "&a你的聊天身份已成功绑定。"
+    unbound: "&a已解除你的聊天身份绑定。"
+    unbind-none: "&e你当前没有绑定任何聊天身份。"
+    # 参数：原因
+    unbind-failed: "&c解绑失败：%s"
+    # 参数：剩余秒数
+    rate-limited: "&e请求过于频繁，请 &f%s &e秒后再试。"
+    # 参数：原因
+    request-failed: "&c无法生成绑定代码：%s"
+  admin:
+    # 参数：profile、chatId
+    bind-success: "&a已绑定身份：&f%s&7 / &f%s"
+    # 参数：profile
+    bind-incomplete: "&e绑定未完成（可能校验码错误）：&f%s"
+    # 参数：原因
+    bind-failed: "&c绑定失败：%s"
       

@@ -213,6 +213,11 @@ public class NeonaicBridge {
     return outbound(BridgeProtocol.Methods.IDENTITY_RESOLVE, payload);
   }
 
+  /** {@code identity.unbind}：请 Neonaic 解除某个 MC 身份的全部绑定 */
+  public CompletableFuture<Map<String, Object>> identityUnbind(Map<String, Object> payload) {
+    return outbound(BridgeProtocol.Methods.IDENTITY_UNBIND, payload);
+  }
+
   public CompletableFuture<Map<String, Object>> executeCommand(Map<String, Object> payload) {
     if (prefersUds() && udsReady()) {
       return activeSession.request(BridgeProtocol.Methods.COMMAND_EXECUTE, payload, config.requestTimeoutMs());
@@ -279,7 +284,9 @@ public class NeonaicBridge {
         config.selfName(),
         "",
         config.selfVersion(),
-        List.of(BridgeProtocol.Capabilities.STATUS_QUERY, BridgeProtocol.Capabilities.CHAT_BROADCAST));
+        List.of(BridgeProtocol.Capabilities.STATUS_QUERY,
+            BridgeProtocol.Capabilities.CHAT_BROADCAST,
+            BridgeProtocol.Capabilities.IDENTITY_CLAIM));
 
     BridgeSession session = new BridgeSession(
         BridgeProtocol.Roles.JOYOUS,

@@ -33,8 +33,14 @@
    - ⚠️ 2026-10-05 审计出 4 个 P0（onDisable 调度任务必被取消致 preventInterrupt 失效、计划重启被误判为异常关闭、假人名单在踢人后才采集致丢失、时间条件 List 强转 CCE），详见 memory/2026-10-05.md
 8. **Neonaic** — 与 Neonaic（Neonai-Connector, NodeJS AI/聊天机器人）的桥接 + 玩法特性
    - `bridge/` 传输层: JSON+LF 分帧 / 握手 / 请求响应 / 心跳；UDS(AF_UNIX 监听) 与 HTTP 双通道
-   - `chat/` 玩法: 聊天格式渲染、AI 随机/@/命令触发、群服互联(from-mc/to-mc)、身份绑定
-   - 占位符 `%joyous_neonaic_name%` / `%joyous_neonaic_subname%`；命令 `/neonaic status|bind|ask`
+   - 连接不由插件生命周期管理：公开 API（`NeonaicSubsystem.startConnection/stopConnection/restartConnection`）
+     + 命令 `/neonaic bridge status|start|stop|restart`；`connect.auto-connect` 默认 false
+   - **重连**：Joyous 是监听端、不主动重连；对端断开后 accept 循环继续，等 Neonaic 指数退避重拨
+   - `chat/` 玩法: 聊天格式渲染、AI 随机/@/命令触发、群服互联(from-mc/to-mc)
+   - **身份绑定**（2026-10-11 重构）: 自助**绑定代码流程**——MC `/neonaicbindidentity` 取一次性代码(缺省5分钟)
+     → 聊天侧 `/joyous:bind <code>` 经 `identity.claim` 认领 → MC `/neonaicunbindidentity` 经 `identity.unbind` 解绑；
+     关联(qUSR#… ↔ UUID)权威持有方是 Neonaic；旧「直接设置」保留为管理员命令 `/neonaic bind ...`(默认 OP)
+   - 占位符 `%joyous_neonaic_name%` / `%joyous_neonaic_subname%`；命令族 `/neonaic ...` + 配置化自助命令
    - 协议 V2 设计见 `docs/neonaic/PROTOCOL-V2.md`（⚠️ `docs/neonaic` 在 .gitignore，属本地文档）
 
 ## 外部依赖 (全部 provided scope)
@@ -48,6 +54,10 @@
 - 配置热重载: SConfig.setAutoReload(true), 配置变更自动触发事件
 - PDC持久化: 玩家数据使用 Bukkit PersistentDataContainer 存储(保底状态/称号选择)
 - 命令注册: Paper Brigadier API (Commands.literal/argument)
+- ⚠️ **SConfig 构造器**：`SConfig(String,String)` 是 **(路径, 类型)**；按**字符串内容**解析必须用
+  **三参** `SConfig(content, type, name)`（name 可为 null）。用两参传内容会静默得到**空配置**
+- 面向玩家的文本走 `Joyous.i18n.tr(...)`（language.yml）+ `NeonaicText`(legacy→Adventure Component)，
+  避免已弃用的 `sendMessage(String)` 与硬编码
 
 ## Git 约定
 - 提交身份: username="Neonai", email="neonai+coding@kdxiaoyi.top"
