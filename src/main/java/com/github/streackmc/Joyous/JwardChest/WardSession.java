@@ -36,6 +36,13 @@ public final class WardSession {
   private final boolean preview;
 
   private final List<Loot> loot = new ArrayList<>();
+  /**
+   * 结果下标 → 容器槽位
+   * <p>
+   * 结果在容器内是<b>随机排布</b>的：抽取后为每条结果随机挑一个互不相同的槽位，
+   * 再把结果按槽位升序排列，于是「下标递增」天然等于「先左到右、再上到下」的搜索顺序。
+   */
+  private int[] slots = new int[0];
   private final Map<UUID, Set<Integer>> revealed = new ConcurrentHashMap<>();
 
   /** 结果组是否已生成 */
@@ -109,17 +116,41 @@ public final class WardSession {
     return loot.isEmpty();
   }
 
-  /** 用抽取结果填充结果组 */
-  public void fill(List<Loot> results) {
+  /**
+   * 用抽取结果填充结果组
+   *
+   * @param results 结果（须已按槽位升序排列）
+   * @param slotOf  与 {@code results} 等长的槽位映射
+   */
+  public void fill(List<Loot> results, int[] slotOf) {
     loot.clear();
     loot.addAll(results);
+    slots = (slotOf == null) ? new int[0] : slotOf.clone();
     generated = true;
     touch();
+  }
+
+  /**
+   * 第 {@code index} 条结果所在的容器槽位
+   *
+   * @return 槽位下标；越界返回 -1
+   */
+  public int slotOf(int index) {
+    if (index < 0 || index >= slots.length) {
+      return -1;
+    }
+    return slots[index];
+  }
+
+  /** 槽位映射是否与结果数一致（结果组为空时也算一致） */
+  public boolean placed() {
+    return slots.length == loot.size();
   }
 
   /** 丢弃结果组（重置命令用） */
   public void reset() {
     loot.clear();
+    slots = new int[0];
     generated = false;
     prefilted = false;
     revealed.clear();

@@ -1,5 +1,6 @@
 package com.github.streackmc.Joyous.JwardChest;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -15,6 +16,7 @@ import org.bukkit.entity.Player;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.i18n;
+import com.github.streackmc.Joyous.jlogger;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -78,6 +80,16 @@ public final class JwardChestCommand {
                 .executes(this::cmdUnbind)
                 .then(Commands.argument("pos", ArgumentTypes.blockPosition())
                     .executes(this::cmdUnbindAt)))
+            .then(Commands.literal("info")
+                .executes(this::cmdInfo)
+                .then(Commands.argument("pos", ArgumentTypes.blockPosition())
+                    .executes(this::cmdInfoAt)))
+            .then(Commands.literal("break")
+                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.EDIT))
+                .then(Commands.argument("x", IntegerArgumentType.integer())
+                    .then(Commands.argument("y", IntegerArgumentType.integer())
+                        .then(Commands.argument("z", IntegerArgumentType.integer())
+                            .executes(this::cmdBreak)))))
             .then(Commands.literal("reload")
                 .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.RESET))
                 .executes(this::cmdReload))
@@ -122,33 +134,40 @@ public final class JwardChestCommand {
   // new / unbind
   // ──────────────────────────────────────────────
 
-  /** /jc new —— 准星方块 */
+  /** /jc new —— 准星方块（只有玩家能用准星） */
   private int cmdNew(CommandContext<CommandSourceStack> ctx) {
     Player player = playerOf(ctx);
     if (player == null) {
       return 0;
     }
-    return bindAndEdit(player, player.getTargetBlockExact(JwardChestMain.CONF.reach()));
+    return bind(ctx.getSource().getSender(),
+        player.getTargetBlockExact(JwardChestMain.CONF.reach()), true);
   }
 
-  /** /jc new <坐标> */
+  /**
+   * /jc new &lt;坐标&gt;
+   * <p>
+   * 玩家执行时绑定并打开编辑界面；控制台 / 命令方块执行时只做绑定与回执
+   * （把 {@link Block} 放进命令方块后，再在游戏内对着同一方块用 {@code /jc new} 即可配置）。
+   */
   private int cmdNewAt(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-    Player player = playerOf(ctx);
-    if (player == null) {
-      return 0;
-    }
+    CommandSender sender = ctx.getSource().getSender();
     Block block = blockFromArg(ctx, "pos");
     if (block == null) {
-      player.sendMessage(i18n.tr("jwardchest.command.need_world"));
+      reply(ctx, i18n.tr("jwardchest.command.need_world"));
       return 0;
     }
-    return bindAndEdit(player, block);
+    return bind(sender, block, sender instanceof Player);
   }
 
-  /** 绑定（已绑定则复用）并打开编辑界面 */
-  private int bindAndEdit(Player player, @Nullable Block block) {
+  /**
+   * 绑定（已绑定则复用），可选是否打开编辑界面
+   *
+   * @param openEditor 仅对玩家执行者有效
+   */
+  private int bind(CommandSender sender, @Nullable Block block, boolean openEditor) {
     if (block == null || block.getType().isAir()) {
-      player.sendMessage(i18n.tr("jwardchest.command.new.no_block"));
+      sender.sendMessage(i18n.tr("jwardchest.command.new.no_block"));
       return 0;
     }
 
@@ -162,10 +181,13 @@ public final class JwardChestCommand {
       store.flush();
     }
 
-    player.sendMessage(i18n.tr(
+    sender.sendMessage(i18n.tr(
         fresh ? "jwardchest.command.new.bound" : "jwardchest.command.new.exists",
         block.getWorld().getName(), block.getX(), block.getY(), block.getZ()));
-    editor.openEditor(player, id, block.getLocation());
+
+    if (openEditor && sender instanceof Player player) {
+      editor.openEditor(player, id, block.getLocation());
+    }
     return 1;
   }
 
@@ -269,6 +291,115 @@ public final class JwardChestCommand {
     int removed = sessions.removeInRange(world, min, max);
     reply(ctx, i18n.tr("jwardchest.command.reset.box",
         world == null ? "*" : world.getName(), removed));
+    return 1;
+  }
+
+  /** /jc info —— 准星方块 */
+  private int cmdInfo(CommandContext<CommandSourceStack> ctx) {
+    CommandSender sender = ctx.getSource().getSender();
+    Block block = (sender instanceof Player player)
+        ? player.getTargetBlockExact(JwardChestMain.CONF.reach())
+        : null;
+    return info(ctx, block);
+  }
+
+  /** /jc info &lt;坐标&gt; */
+  private int cmdInfoAt(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+    return info(ctx, blockFromArg(ctx, "pos"));
+  }
+
+  /**
+   * 打印某个方块的战利品箱信息
+   * <p>
+   * 主要给管理员排查用：一眼看清绑定、生效设置（可能是预设组带来的）与运行时状态。
+   */
+  private int info(CommandContext<CommandSourceStack> ctx, @Nullable Block block) {
+    if (block == null || block.getType().isAir()) {
+      reply(ctx, i18n.tr("jwardchest.command.new.no_block"));
+      return 0;
+    }
+    String world = block.getWorld().getName();
+    UUID id = WardBinding.read(block);
+    if (id == null) {
+      reply(ctx, i18n.tr("jwardchest.command.info.none", world, block.getX(), block.getY(), block.getZ()));
+      return 0;
+    }
+
+    WardProfile profile = store.effective(id);
+    reply(ctx, i18n.tr("jwardchest.command.info.header",
+        world + " (" + block.getX() + ", " + block.getY() + ", " + block.getZ() + ")"));
+    reply(ctx, i18n.tr("jwardchest.command.info.profile", id,
+        profile.inPreset() ? profile.presetCode() : WardProfile.UNSET_CODE));
+    reply(ctx, i18n.tr("jwardchest.command.info.layout",
+        profile.container().displayName(), profile.rows(), profile.slots()));
+    reply(ctx, i18n.tr("jwardchest.command.info.title", profile.title()));
+    reply(ctx, i18n.tr("jwardchest.command.info.prefilter", profile.prefilterSeconds()));
+
+    List<Object> caps = new ArrayList<>();
+    for (WardRarity r : WardRarity.values()) {
+      caps.add(profile.maxDraw(r));
+    }
+    caps.add(profile.totalDrawCount());
+    reply(ctx, i18n.tr("jwardchest.command.info.maxdraw", caps.toArray()));
+
+    long active = profile.entries().stream().filter(WardItemEntry::active).count();
+    reply(ctx, i18n.tr("jwardchest.command.info.entries",
+        profile.entryCount(), active, profile.totalWeight()));
+
+    WardSession session = sessions.block(block.getWorld(), block.getX(), block.getY(), block.getZ());
+    if (session == null) {
+      reply(ctx, i18n.tr("jwardchest.command.info.session_none"));
+    } else {
+      reply(ctx, i18n.tr("jwardchest.command.info.session",
+          session.size(),
+          session.prefilted()
+              ? i18n.tr("jwardchest.command.info.done")
+              : i18n.tr("jwardchest.command.info.not_done"),
+          session.trackedPlayers()));
+    }
+    return 1;
+  }
+
+  /**
+   * /jc break &lt;x&gt; &lt;y&gt; &lt;z&gt;
+   * <p>
+   * 只由「破坏确认提示」里那条可点击消息调用：破坏方块并解除绑定。
+   */
+  private int cmdBreak(CommandContext<CommandSourceStack> ctx) {
+    CommandSender sender = ctx.getSource().getSender();
+    Location loc = ctx.getSource().getLocation();
+    if (loc == null || loc.getWorld() == null) {
+      reply(ctx, i18n.tr("jwardchest.command.need_world"));
+      return 0;
+    }
+    int bx = IntegerArgumentType.getInteger(ctx, "x");
+    int by = IntegerArgumentType.getInteger(ctx, "y");
+    int bz = IntegerArgumentType.getInteger(ctx, "z");
+    Block block = loc.getWorld().getBlockAt(bx, by, bz);
+
+    UUID id = WardBinding.read(block);
+    if (id == null) {
+      reply(ctx, i18n.tr("jwardchest.command.break.none"));
+      return 0;
+    }
+
+    // 玩家执行时要求就在旁边，避免拿点击提示远程拆别人的箱子
+    if (sender instanceof Player player) {
+      double limit = JwardChestMain.CONF.reach() + 3.0;
+      if (!player.getWorld().equals(block.getWorld())
+          || player.getLocation().distanceSquared(block.getLocation().add(0.5, 0.5, 0.5)) > limit * limit) {
+        player.sendMessage(i18n.tr("jwardchest.command.break.too_far"));
+        return 0;
+      }
+    }
+
+    int dropped = sessions.removeByProfile(id);
+    WardBinding.remove(block);
+    store.flush();
+    block.breakNaturally();
+    jlogger.debug("JwardChest 方块 %s(%s, %s, %s) 已被破坏并解除绑定，清除 %s 个会话",
+        block.getWorld().getName(), bx, by, bz, dropped);
+    reply(ctx, i18n.tr("jwardchest.command.break.done", block.getWorld().getName(), bx, by, bz));
     return 1;
   }
 

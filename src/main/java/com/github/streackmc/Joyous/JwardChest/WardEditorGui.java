@@ -86,26 +86,26 @@ public final class WardEditorGui {
     WardProfile profile = store.effective(profileId);
     WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.EDITOR, profileId, block);
     Inventory inv = Bukkit.createInventory(holder, 27,
-        WardGui.title(player, i18n.tr("jwardchest.editor.title")));
+        WardGui.title(player, i18n.tr("jwardchest.editor.gui_title")));
     holder.attach(inv);
 
     inv.setItem(10, button(profile.container().icon(),
-        i18n.tr("jwardchest.editor.type", profile.container().displayName()),
+        i18n.tr("jwardchest.editor.container_type", profile.container().displayName()),
         List.of(
-            i18n.tr("jwardchest.editor.type.current", profile.container().id(), profile.slots()),
+            i18n.tr("jwardchest.editor.container_type_current", profile.container().id(), profile.slots()),
             i18n.tr("jwardchest.editor.click"))));
 
     String code = profile.inPreset() ? profile.presetCode() : WardProfile.UNSET_CODE;
     inv.setItem(11, button(Material.NAME_TAG,
-        i18n.tr("jwardchest.editor.code"),
+        i18n.tr("jwardchest.editor.code_label"),
         List.of(
-            i18n.tr("jwardchest.editor.code.current", code),
-            i18n.tr("jwardchest.editor.code.hint"))));
+            i18n.tr("jwardchest.editor.code_current", code),
+            i18n.tr("jwardchest.editor.code_hint"))));
 
     inv.setItem(12, button(Material.CHEST_MINECART,
-        i18n.tr("jwardchest.editor.items"),
+        i18n.tr("jwardchest.editor.items_label"),
         List.of(
-            i18n.tr("jwardchest.editor.items.count", profile.entryCount(), profile.totalWeight()),
+            i18n.tr("jwardchest.editor.items_count", profile.entryCount(), profile.totalWeight()),
             i18n.tr("jwardchest.editor.click"))));
 
     inv.setItem(13, button(Material.HOPPER,
@@ -113,23 +113,23 @@ public final class WardEditorGui {
         maxDrawLore(profile)));
 
     inv.setItem(14, button(Material.OAK_SIGN,
-        i18n.tr("jwardchest.editor.titlebtn"),
+        i18n.tr("jwardchest.editor.title_label"),
         List.of(
-            i18n.tr("jwardchest.editor.title.current", profile.title()),
+            i18n.tr("jwardchest.editor.title_current", profile.title()),
             i18n.tr("jwardchest.editor.click"))));
 
     inv.setItem(15, button(Material.CLOCK,
         i18n.tr("jwardchest.editor.prefilter"),
         List.of(
-            i18n.tr("jwardchest.editor.prefilter.current",
+            i18n.tr("jwardchest.editor.prefilter_current",
                 profile.prefilterEnabled() ? profile.prefilterSeconds() + "s" : "0"),
             i18n.tr("jwardchest.editor.click"))));
 
     inv.setItem(16, button(Material.SPYGLASS,
         i18n.tr("jwardchest.editor.preview"),
         List.of(
-            i18n.tr("jwardchest.editor.preview.hint"),
-            i18n.tr("jwardchest.editor.preview.hint_instant"))));
+            i18n.tr("jwardchest.editor.preview_hint"),
+            i18n.tr("jwardchest.editor.preview_hint_instant"))));
 
     player.openInventory(inv);
   }
@@ -139,8 +139,23 @@ public final class WardEditorGui {
     for (WardRarity r : WardRarity.values()) {
       lore.add(r.color() + r.displayName() + " §7→ §f" + profile.maxDraw(r));
     }
+    lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalDrawCount()));
+    lore.addAll(overflowHints(profile));
     lore.add(i18n.tr("jwardchest.editor.click"));
     return lore;
+  }
+
+  /** 上限与容器容量不匹配时的提示（多余会被舍弃 / 未设上限时按容量抽） */
+  private static List<String> overflowHints(WardProfile profile) {
+    int total = profile.totalDrawCount();
+    int slots = profile.slots();
+    if (total <= 0) {
+      return List.of(i18n.tr("jwardchest.maxdraw.auto", slots));
+    }
+    if (total > slots) {
+      return List.of(i18n.tr("jwardchest.maxdraw.overflow", total, slots));
+    }
+    return List.of();
   }
 
   // ──────────────────────────────────────────────
@@ -202,12 +217,12 @@ public final class WardEditorGui {
 
     int slot = 2;
     for (WardRarity r : WardRarity.values()) {
-      inv.setItem(slot++, button(woolOf(r),
-          r.color() + r.displayName(),
-          List.of(
-              i18n.tr("jwardchest.maxdraw.current", profile.maxDraw(r)),
-              i18n.tr("jwardchest.maxdraw.total", profile.totalDrawCount()),
-              i18n.tr("jwardchest.maxdraw.hint"))));
+      List<String> lore = new ArrayList<>();
+      lore.add(i18n.tr("jwardchest.maxdraw.current", profile.maxDraw(r)));
+      lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalDrawCount()));
+      lore.addAll(overflowHints(profile));
+      lore.add(i18n.tr("jwardchest.maxdraw.hint"));
+      inv.setItem(slot++, button(woolOf(r), r.color() + r.displayName(), lore));
     }
     player.openInventory(inv);
   }
@@ -244,7 +259,9 @@ public final class WardEditorGui {
 
     int totalWeight = 0;
     for (WardItemEntry e : state.entries) {
-      totalWeight += Math.max(0, e.weight());
+      if (e != null) {
+        totalWeight += Math.max(0, e.weight());
+      }
     }
 
     int start = state.page * PAGE_SIZE;
@@ -252,9 +269,19 @@ public final class WardEditorGui {
       int index = start + i;
       int[] slots = blockSlots(i);
       if (index >= state.entries.size()) {
+        // 空块：用「结构空位」明示可放置的位置（否则操作者不知道该往哪放物品）
+        inv.setItem(slots[0], emptyItemSlot());
+        inv.setItem(slots[1], fillerSlot());
+        inv.setItem(slots[2], fillerSlot());
         continue;
       }
-      WardItemEntry entry = state.entries.get(index);
+      WardItemEntry entry = entryAt(state, index);
+      if (entry == null) {
+        inv.setItem(slots[0], emptyItemSlot());
+        inv.setItem(slots[1], fillerSlot());
+        inv.setItem(slots[2], fillerSlot());
+        continue;
+      }
       inv.setItem(slots[0], itemSlot(entry, index, totalWeight));
       inv.setItem(slots[1], weightSlot(entry, totalWeight));
       inv.setItem(slots[2], raritySlot(entry));
@@ -265,13 +292,49 @@ public final class WardEditorGui {
     inv.setItem(45, button(Material.ARROW, i18n.tr("jwardchest.items.prev"),
         List.of(i18n.tr("jwardchest.items.page", state.page + 1, pages))));
     inv.setItem(49, button(Material.BARRIER, i18n.tr("jwardchest.items.cancel"),
-        List.of(i18n.tr("jwardchest.items.cancel.hint"))));
+        List.of(i18n.tr("jwardchest.items.cancel_hint"))));
     inv.setItem(51, button(Material.EMERALD, i18n.tr("jwardchest.items.save"),
-        List.of(i18n.tr("jwardchest.items.save.hint"))));
+        List.of(i18n.tr("jwardchest.items.save_hint"))));
     inv.setItem(53, button(Material.ARROW, i18n.tr("jwardchest.items.next"),
         List.of(i18n.tr("jwardchest.items.page", state.page + 1, pages))));
 
     player.openInventory(inv);
+  }
+
+  /**
+   * 取第 {@code index} 条条目
+   * <p>
+   * 列表允许有 {@code null} 空洞——这样操作者点第 5 个空位放东西，就真的落在第 5 个块上，
+   * 而不是被追加到列表末尾。
+   *
+   * @return 条目；该位置为空返回 null
+   */
+  @Nullable
+  private static WardItemEntry entryAt(ItemEditorState state, int index) {
+    return (index >= 0 && index < state.entries.size()) ? state.entries.get(index) : null;
+  }
+
+  /** 把条目放到指定块（不足处补 null 空洞） */
+  private static void setEntryAt(ItemEditorState state, int index, @Nullable WardItemEntry entry) {
+    while (state.entries.size() <= index) {
+      state.entries.add(null);
+    }
+    state.entries.set(index, entry);
+  }
+
+  /** 空块里的「结构空位」：提醒操作者把背包里的物品放到这里 */
+  private static ItemStack emptyItemSlot() {
+    return button(Material.STRUCTURE_VOID,
+        i18n.tr("jwardchest.items.empty_slot"),
+        List.of(
+            i18n.tr("jwardchest.items.empty_slot_hint"),
+            i18n.tr("jwardchest.items.slot.help")));
+  }
+
+  /** 空块里另外两格的弱占位，让「一格三件」的结构看得清 */
+  private static ItemStack fillerSlot() {
+    return button(Material.GRAY_STAINED_GLASS_PANE,
+        i18n.tr("jwardchest.items.empty_filler"), List.of());
   }
 
   /** 第 i 个块的三个槽位（物品格 / 概率格 / 珍惜度格） */
@@ -283,7 +346,7 @@ public final class WardEditorGui {
     return new int[] { base, base + 1, base + 2 };
   }
 
-  /** 总页数：末页永远保留空块以便新增 */
+  /** 总页数：末页永远保留空块以便新增（列表允许 null 空洞，空洞也占位置） */
   private static int pageCount(ItemEditorState state) {
     return Math.max(1, (state.entries.size() / PAGE_SIZE) + 1);
   }
@@ -310,15 +373,15 @@ public final class WardEditorGui {
     return button(Material.REDSTONE,
         i18n.tr("jwardchest.items.weight", entry.weight(), totalWeight),
         List.of(
-            i18n.tr("jwardchest.items.weight.share",
+            i18n.tr("jwardchest.items.weight_share",
                 String.format("%.2f", WardRoller.share(entry, totalWeight) * 100.0)),
-            i18n.tr("jwardchest.items.weight.help")));
+            i18n.tr("jwardchest.items.weight_help")));
   }
 
   private ItemStack raritySlot(WardItemEntry entry) {
     return button(woolOf(entry.rarity()),
         entry.rarity().color() + entry.rarity().displayName(),
-        List.of(i18n.tr("jwardchest.items.rarity.help")));
+        List.of(i18n.tr("jwardchest.items.rarity_help")));
   }
 
   // ──────────────────────────────────────────────
@@ -387,7 +450,7 @@ public final class WardEditorGui {
         String old = profile.inPreset() ? profile.presetCode() : WardProfile.UNSET_CODE;
         module.chatInput().request(player, WardChatInput.TYPE_CODE, old, value -> {
           store.setPresetCode(id, value);
-          player.sendMessage(i18n.tr("jwardchest.editor.code.updated", value));
+          player.sendMessage(i18n.tr("jwardchest.editor.code_updated", value));
           reopenLater(player, () -> openEditor(player, id, block));
         });
       }
@@ -399,7 +462,7 @@ public final class WardEditorGui {
           WardProfile updated = store.effective(id);
           updated.title(value);
           store.save(updated);
-          player.sendMessage(i18n.tr("jwardchest.editor.title.updated", value));
+          player.sendMessage(i18n.tr("jwardchest.editor.title_updated", value));
           reopenLater(player, () -> openEditor(player, id, block));
         });
       }
@@ -411,7 +474,7 @@ public final class WardEditorGui {
               WardProfile updated = store.effective(id);
               updated.prefilterSeconds(seconds);
               store.save(updated);
-              player.sendMessage(i18n.tr("jwardchest.editor.prefilter.updated", seconds));
+              player.sendMessage(i18n.tr("jwardchest.editor.prefilter_updated", seconds));
               reopenLater(player, () -> openEditor(player, id, block));
             });
       }
@@ -525,14 +588,16 @@ public final class WardEditorGui {
         case 51 -> {
           WardProfile profile = store.effective(state.profileId);
           profile.entries().clear();
+          int kept = 0;
           for (WardItemEntry e : state.entries) {
             if (e != null) {
               profile.entries().add(e);
+              kept++;
             }
           }
           store.save(profile);
           itemWork.remove(player.getUniqueId());
-          player.sendMessage(i18n.tr("jwardchest.items.saved", state.entries.size()));
+          player.sendMessage(i18n.tr("jwardchest.items.saved", kept));
           reopenLater(player, () -> openEditor(player, state.profileId, block));
         }
         default -> {
@@ -593,10 +658,11 @@ public final class WardEditorGui {
       int index, Location block) {
     ItemStack cursor = event.getCursor();
     boolean drop = event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP;
+    WardItemEntry existing = entryAt(state, index);
 
     if (drop) {
-      if (index < state.entries.size()) {
-        state.entries.remove(index);
+      if (existing != null) {
+        setEntryAt(state, index, null);
         player.sendMessage(i18n.tr("jwardchest.items.removed"));
         reopenLater(player, () -> renderItemEditor(player, state, block));
       }
@@ -604,25 +670,19 @@ public final class WardEditorGui {
     }
 
     if (cursor != null && !cursor.getType().isAir()) {
-      // 用背包/光标上的物品替换
-      WardItemEntry entry = WardItemEntry.of(cursor);
-      if (index < state.entries.size()) {
-        state.entries.set(index, entry);
-      } else if (index == state.entries.size()) {
-        state.entries.add(entry);
-      } else {
-        state.entries.add(entry);
-      }
+      // 用背包/光标上的物品放到这个块上（位置就是点的那一格）
+      setEntryAt(state, index, WardItemEntry.of(cursor));
       player.setItemOnCursor(null);
       player.sendMessage(i18n.tr("jwardchest.items.placed"));
       reopenLater(player, () -> renderItemEditor(player, state, block));
       return;
     }
 
-    if (index >= state.entries.size()) {
+    // 空位左键/右键：没有条目就什么都不做
+    WardItemEntry entry = existing;
+    if (entry == null) {
       return;
     }
-    WardItemEntry entry = state.entries.get(index);
     if (event.isRightClick()) {
       module.chatInput().request(player, WardChatInput.TYPE_MAX,
           String.valueOf(entry.maxAmount()), value -> {
@@ -640,10 +700,10 @@ public final class WardEditorGui {
 
   private void handleWeightSlot(InventoryClickEvent event, Player player, ItemEditorState state,
       int index, Location block) {
-    if (index >= state.entries.size()) {
+    WardItemEntry entry = entryAt(state, index);
+    if (entry == null) {
       return;
     }
-    WardItemEntry entry = state.entries.get(index);
 
     if (event.isShiftClick()) {
       module.chatInput().request(player, WardChatInput.TYPE_WEIGHT,
@@ -661,10 +721,10 @@ public final class WardEditorGui {
 
   private void handleRaritySlot(Player player, ItemEditorState state, int index, boolean right,
       Location block) {
-    if (index >= state.entries.size()) {
+    WardItemEntry entry = entryAt(state, index);
+    if (entry == null) {
       return;
     }
-    WardItemEntry entry = state.entries.get(index);
     WardRarity[] all = WardRarity.values();
     int next = entry.rarity().ordinal() + (right ? -1 : 1);
     next = Math.floorMod(next, all.length);

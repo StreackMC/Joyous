@@ -2,6 +2,7 @@ package com.github.streackmc.Joyous.JwardChest;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -167,61 +168,106 @@ public final class WardProfile {
   // 持久化
   // ──────────────────────────────────────────────
 
-  /** 写入 SConfig 的指定路径下 */
-  @SuppressWarnings("unchecked")
+  /**
+   * 写入 SConfig 的指定路径下
+   * <p>
+   * <b>只做「两段路径 + 一张扁平 map」</b>，不要把字段直接拼成三段以上的路径。
+   * 原因：SConfig 的 {@code putNested} 用<b>第一个</b>未转义点来推算叶子键名
+   * （`lastKey = key.substring(firstDot + 1)`），而读取是按**所有**分段逐层下探的——
+   * 于是长度 ≥3 的路径会把键名写坏（写成 "{@code <头段剩部分>.<叶>}"），
+   * 之后再也读不回来，表现为配置整段静默丢失。这里自己组装好一层结构再整体 putSection，
+   * 只用到两段路径，绕开该不对称。
+   *
+   * @param conf 目标配置
+   * @param path 两段路径，如 {@code profiles.<uuid>}
+   */
   public void writeTo(SConfig conf, String path) {
-    conf.putString(path + ".preset-code", presetCode == null ? UNSET_CODE : presetCode);
-    conf.putString(path + ".container", container.id());
-    conf.putInt(path + ".rows", rows());
-    conf.putString(path + ".title", title);
-    conf.putInt(path + ".prefilter-seconds", prefilterSeconds);
+    Map<String, Object> section = new LinkedHashMap<>();
+    section.put("preset-code", presetCode == null ? UNSET_CODE : presetCode);
+    section.put("container", container.id());
+    section.put("rows", rows());
+    section.put("title", title);
+    section.put("prefilter-seconds", prefilterSeconds);
 
-    Map<String, Object> drawMap = conf.getSection(path + ".max-draw", new java.util.LinkedHashMap<>());
+    Map<String, Object> draw = new LinkedHashMap<>();
     for (WardRarity r : WardRarity.values()) {
-      drawMap.put(r.id(), maxDraw(r));
+      draw.put(r.id(), maxDraw(r));
     }
-    conf.putSection(path + ".max-draw", drawMap);
+    section.put("max-draw", draw);
 
     List<String> raw = new ArrayList<>(entries.size());
     for (WardItemEntry e : entries) {
       raw.add(e.serialize());
     }
-    conf.putListOfString(path + ".entries", raw);
+    section.put("entries", raw);
+
+    conf.putSection(path, section);
   }
 
   /**
-   * 从 SConfig 的指定路径下读取
+   * 从 SConfig 的指定路径下读取（同样只用两段路径，取到 map 后按扁平键取值）
    *
    * @param conf 数据源
-   * @param path 路径
+   * @param path 两段路径，如 {@code profiles.<uuid>}
    * @param id   容器 UUID
    * @return 设置实例（路径不存在时返回全默认的实例）
    */
   public static WardProfile readFrom(SConfig conf, String path, UUID id) {
     WardProfile p = new WardProfile(id);
-
-    String code = conf.getString(path + ".preset-code", UNSET_CODE);
-    p.presetCode(UNSET_CODE.equalsIgnoreCase(code) ? null : code);
-
-    p.container(WardContainerType.byId(conf.getString(path + ".container", WardContainerType.CHEST.id())));
-    p.rows(conf.getInt(path + ".rows", 6));
-    p.title(conf.getString(path + ".title", p.title));
-    p.prefilterSeconds(conf.getInt(path + ".prefilter-seconds", 0));
-
-    for (WardRarity r : WardRarity.values()) {
-      p.maxDraw(r, conf.getInt(path + ".max-draw." + r.id(), 0));
+    Map<String, Object> section = conf.getSection(path, null);
+    if (section == null) {
+      return p;
     }
 
-    List<String> raw = conf.getListOfString(path + ".entries");
-    if (raw != null) {
-      for (String line : raw) {
-        WardItemEntry e = WardItemEntry.deserialize(line);
+    String code = str(section, "preset-code", UNSET_CODE);
+    p.presetCode(UNSET_CODE.equalsIgnoreCase(code) ? null : code);
+
+    p.container(WardContainerType.byId(str(section, "container", WardContainerType.CHEST.id())));
+    p.rows(intOf(section.get("rows"), 6));
+    p.title(str(section, "title", p.title));
+    p.prefilterSeconds(intOf(section.get("prefilter-seconds"), 0));
+
+    Object drawObj = section.get("max-draw");
+    if (drawObj instanceof Map<?, ?> draw) {
+      for (WardRarity r : WardRarity.values()) {
+        p.maxDraw(r, intOf(draw.get(r.id()), 0));
+      }
+    }
+
+    Object entriesObj = section.get("entries");
+    if (entriesObj instanceof List<?> list) {
+      for (Object line : list) {
+        if (line == null) {
+          continue;
+        }
+        WardItemEntry e = WardItemEntry.deserialize(String.valueOf(line));
         if (e != null) {
           p.entries.add(e);
         }
       }
     }
     return p;
+  }
+
+  /** 取字符串字段 */
+  private static String str(Map<String, Object> section, String key, String def) {
+    Object v = section.get(key);
+    return v == null ? def : String.valueOf(v);
+  }
+
+  /** 取整数字段：容忍 YAML 给出的 Integer / Double / String */
+  private static int intOf(Object v, int def) {
+    if (v instanceof Number n) {
+      return n.intValue();
+    }
+    if (v instanceof String str) {
+      try {
+        return Integer.parseInt(str.trim());
+      } catch (NumberFormatException ignored) {
+        // 落到默认值
+      }
+    }
+    return def;
   }
 
   /** 便捷方法：把一组物品包成默认条目 */

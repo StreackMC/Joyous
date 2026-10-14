@@ -15,15 +15,16 @@ import net.kyori.adventure.text.Component;
  * <p>
  * 决定运行时「自定义容器界面」的外观与槽位数量。绝大多数类型尺寸固定，
  * 只有 {@link #CHEST} 支持自定义行数（1-6，见 {@link #variableRows()}）。
+ * <p>
+ * 木桶 / 末影箱 / 潜影盒本质上都是 27 格、9 宽的「箱子」，因此合并进 {@link #CHEST}
+ * （差异用行数表达）；旧的 {@code barrel} / {@code ender_chest} / {@code shulker_box}
+ * 写法由 {@link #byId(String)} 兼容映射到箱子。
  *
  * @author kdxiaoyi
  * @since 0.7.0
  */
 public enum WardContainerType {
   CHEST("chest", "箱子", Material.CHEST, InventoryType.CHEST, true),
-  BARREL("barrel", "木桶", Material.BARREL, InventoryType.BARREL, false),
-  SHULKER_BOX("shulker_box", "潜影盒", Material.SHULKER_BOX, InventoryType.SHULKER_BOX, false),
-  ENDER_CHEST("ender_chest", "末影箱", Material.ENDER_CHEST, InventoryType.ENDER_CHEST, false),
   DISPENSER("dispenser", "发射器", Material.DISPENSER, InventoryType.DISPENSER, false),
   DROPPER("dropper", "投掷器", Material.DROPPER, InventoryType.DROPPER, false),
   HOPPER("hopper", "漏斗", Material.HOPPER, InventoryType.HOPPER, false),
@@ -112,6 +113,9 @@ public enum WardContainerType {
     if (id == null || id.isBlank())
       return CHEST;
     String needle = id.trim().toLowerCase(Locale.ROOT);
+    // 兼容合并前写下的旧值：它们都是 27 格箱子
+    if (needle.equals("barrel") || needle.equals("ender_chest") || needle.equals("shulker_box"))
+      return CHEST;
     for (WardContainerType t : values()) {
       if (t.id.equals(needle))
         return t;

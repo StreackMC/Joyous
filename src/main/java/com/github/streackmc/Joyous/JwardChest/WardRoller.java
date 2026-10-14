@@ -9,9 +9,12 @@ import java.util.Random;
 /**
  * 结果组抽取
  * <p>
- * 按权重从「待选物品」里抽取，珍惜度决定每个品质最多能抽出几条
- * （{@link WardProfile#maxDraw(WardRarity)}）。权重为 0 的条目保留在列表里但不参与抽取。
- * 结果组总条数 = 各品质上限之和；抽取顺序即结果在容器内的排布顺序。
+ * 按权重从「待选物品」里抽取。权重为 0 的条目保留在列表里但不参与抽取。
+ * <p>
+ * <b>条数规则</b>：{@link WardProfile#maxDraw(WardRarity)} 既是「该品质最多抽出几条」的上限，
+ * 也决定总条数——总条数 = 各品质上限之和；<b>当所有上限都是 0 时视为不限量</b>，
+ * 按容器容量抽取（填满容器）。最终条数再被容器槽位数与配置上限夹一次，
+ * 装不下的多余结果会被舍弃。
  *
  * @author kdxiaoyi
  * @since 0.7.0
@@ -47,8 +50,10 @@ public final class WardRoller {
       remaining.put(r, profile.maxDraw(r));
     }
 
-    int capacity = Math.min(JwardChestMain.CONF.maxResults(), profile.slots());
-    int target = Math.min(profile.totalDrawCount(), capacity);
+    int capacity = Math.max(1, Math.min(JwardChestMain.CONF.maxResults(), profile.slots()));
+    // 上限之和为 0 → 没设上限，按容器容量抽；否则以上限之和为目标条数
+    int desired = profile.totalDrawCount() > 0 ? profile.totalDrawCount() : profile.slots();
+    int target = Math.min(desired, capacity);
     // 防御：配额之和可能远大于可用条目，用次数上限兜底避免死循环
     int guard = Math.max(1, target) * 8 + 32;
     int attempts = 0;

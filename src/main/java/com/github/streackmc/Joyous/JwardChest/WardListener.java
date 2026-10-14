@@ -1,7 +1,9 @@
 package com.github.streackmc.Joyous.JwardChest;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,6 +23,9 @@ import com.github.streackmc.Joyous.i18n;
 import com.github.streackmc.Joyous.jlogger;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 /**
@@ -207,16 +212,74 @@ public final class WardListener implements Listener {
         search.stop(player);
         if (holder.payload() instanceof WardSession session) {
           session.touch();
-          jlogger.debug("玩家 %s 关闭容器 %s，已保留 %s 个已搜索槽位",
-              player.getName(), session.key(), session.snapshotRevealed(player.getUniqueId()).size());
+          if (session.preview()) {
+            // 预览是临时演示：关闭即整个丢弃，重开时重新抽取（不残留"已全部搜出"的状态）
+            sessions.remove(session.key());
+          } else {
+            jlogger.debug("玩家 %s 关闭容器 %s，已保留 %s 个已搜索槽位",
+                player.getName(), session.key(), session.snapshotRevealed(player.getUniqueId()).size());
+          }
         }
       }
-      case EDITOR, CONTAINER_PICKER, ITEM_EDITOR, MAX_DRAW ->
-          // 编辑类界面关闭时统一落盘：一次编辑只写一次文件
-          store.flush();
+      case EDITOR, CONTAINER_PICKER, ITEM_EDITOR, MAX_DRAW -> {
+        // 编辑类界面关闭时统一落盘：一次编辑只写一次文件
+        store.flush();
+        if (holder.kind() == WardGui.Kind.EDITOR && !chatInput.isWaiting(player)) {
+          notifyEditorLeft(player);
+        }
+      }
       default -> {
       }
     }
+  }
+
+  /**
+   * 真离开编辑界面时给一句反馈
+   * <p>
+   * 我们自己的界面之间跳转（主界面→子菜单）也会触发关闭事件，
+   * 所以延迟一刻再判断「此时是否还有我们的界面开着」，只在真的退干净时才提示。
+   */
+  private static void notifyEditorLeft(Player player) {
+    Bukkit.getScheduler().runTask(Joyous.plugin, () -> {
+      if (!player.isOnline()) {
+        return;
+      }
+      if (WardGui.holderOf(player.getOpenInventory().getTopInventory()) == null) {
+        player.sendMessage(i18n.tr("jwardchest.editor.closed"));
+      }
+    });
+  }
+
+  // ──────────────────────────────────────────────
+  // 破坏保护
+  // ──────────────────────────────────────────────
+
+  /**
+   * 阻止直接破坏已绑定的方块
+   * <p>
+   * 无编辑权限的玩家只得到一句"无权限"；有权限的玩家会收到一条可点击的确认提示，
+   * 点击后由 {@code /jwardchest break <坐标>} 代为破坏并解除绑定，避免误拆。
+   */
+  @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+  public void onBlockBreak(BlockBreakEvent event) {
+    Block block = event.getBlock();
+    if (WardBinding.read(block) == null) {
+      return;
+    }
+    event.setCancelled(true);
+
+    Player player = event.getPlayer();
+    if (!player.hasPermission(Perm.EDIT)) {
+      player.sendMessage(i18n.tr("jwardchest.protect.no_permission"));
+      return;
+    }
+
+    String command = "/" + JwardChestMain.COMMAND + " break "
+        + block.getX() + " " + block.getY() + " " + block.getZ();
+    Component tip = WardGui.legacy(i18n.tr("jwardchest.protect.tip"))
+        .clickEvent(ClickEvent.runCommand(command))
+        .hoverEvent(HoverEvent.showText(WardGui.legacy(i18n.tr("jwardchest.protect.tip_hover"))));
+    player.sendMessage(tip);
   }
 
   @EventHandler

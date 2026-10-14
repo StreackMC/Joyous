@@ -1,9 +1,11 @@
 package com.github.streackmc.Joyous.JwardChest;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -68,7 +70,7 @@ public final class WardSearchController {
     ensureGenerated(profile, session);
 
     if (session.empty()) {
-      player.sendMessage(i18n.tr("jwardchest.container.empty"));
+      sendEmptyReason(player, profile);
       return;
     }
 
@@ -84,7 +86,7 @@ public final class WardSearchController {
     stop(player); // 清理可能残留的旧任务
 
     if (!animate) {
-      revealAll(player, session, inventory);
+      revealAll(session, inventory);
       return;
     }
 
@@ -95,33 +97,92 @@ public final class WardSearchController {
     start(player, profile, session);
   }
 
-  /** 跳过动画：直接把全部结果摆出来并计入该玩家进度 */
-  private void revealAll(Player player, WardSession session, Inventory inventory) {
+  /** 跳过动画：直接把全部结果摆出来（预览用，不写进度，关闭即丢弃） */
+  private void revealAll(WardSession session, Inventory inventory) {
     List<WardSession.Loot> loot = session.loot();
-    for (int i = 0; i < loot.size() && i < inventory.getSize(); i++) {
-      inventory.setItem(i, loot.get(i).item());
-      session.markRevealed(player.getUniqueId(), i);
+    for (int i = 0; i < loot.size(); i++) {
+      int slot = session.slotOf(i);
+      if (slot < 0 || slot >= inventory.getSize()) {
+        continue;
+      }
+      inventory.setItem(slot, loot.get(i).item());
     }
   }
 
-  /** 保证结果组已生成（按设置抽取一次） */
+  /** 空结果时给出准确原因（没配置物品 / 权重全为 0 / 容器装不下） */
+  private static void sendEmptyReason(Player player, WardProfile profile) {
+    boolean anyEntry = !profile.entries().isEmpty();
+    boolean anyActive = profile.entries().stream().anyMatch(WardItemEntry::active);
+    if (anyEntry && !anyActive) {
+      player.sendMessage(i18n.tr("jwardchest.container.empty_zero_weight"));
+      return;
+    }
+    player.sendMessage(i18n.tr("jwardchest.container.empty"));
+  }
+
+  /** 保证结果组已生成（按设置抽取一次，并随机排布到容器槽位） */
   private void ensureGenerated(WardProfile profile, WardSession session) {
     if (session.generated()) {
       return;
     }
-    List<WardSession.Loot> loot = WardRoller.roll(profile, new java.util.Random());
-    session.fill(loot);
-    jlogger.debug("JwardChest 为容器 %s 生成了 %s 条结果", session.key(), loot.size());
+    Random random = new Random();
+    List<WardSession.Loot> loot = WardRoller.roll(profile, random);
+    int[] slotOf = placeRandomly(loot, profile.slots(), random);
+    session.fill(loot, slotOf);
+    jlogger.debug("JwardChest 为容器 %s 生成了 %s 条结果（容器 %s 格）",
+        session.key(), loot.size(), profile.slots());
   }
 
-  /** 按「共享结果组 + 本玩家进度」重建界面 */
+  /**
+   * 为结果组随机挑选互不相同的槽位，并把结果按槽位升序重排
+   * <p>
+   * 于是「下标递增」天然等于「先左到右、再上到下」的搜索顺序，而结果落在容器里的位置是随机的。
+   * 容器装不下的多余结果会在这里被舍弃。
+   *
+   * @param loot  结果列表（会被按槽位升序就地重排，必要时截断）
+   * @param slots 容器槽位数
+   * @param random 随机源
+   * @return 与重排后的结果等长的槽位映射
+   */
+  private static int[] placeRandomly(List<WardSession.Loot> loot, int slots, Random random) {
+    if (loot.isEmpty() || slots <= 0) {
+      loot.clear();
+      return new int[0];
+    }
+
+    List<Integer> all = new ArrayList<>(slots);
+    for (int i = 0; i < slots; i++) {
+      all.add(i);
+    }
+    Collections.shuffle(all, random);
+    int count = Math.min(loot.size(), slots);
+    List<Integer> chosen = new ArrayList<>(all.subList(0, count));
+    Collections.sort(chosen);
+
+    List<WardSession.Loot> pool = new ArrayList<>(loot);
+    List<WardSession.Loot> sorted = new ArrayList<>(count);
+    int[] slotOf = new int[count];
+    for (int i = 0; i < count; i++) {
+      slotOf[i] = chosen.get(i);
+      sorted.add(pool.remove(random.nextInt(pool.size())));
+    }
+    loot.clear();
+    loot.addAll(sorted);
+    return slotOf;
+  }
+
+  /** 按「共享结果组 + 本玩家进度」重建界面（结果散落在各自随机槽位上） */
   private void buildInitial(Inventory inventory, WardProfile profile, WardSession session,
       Player player) {
     inventory.clear();
     List<WardSession.Loot> loot = session.loot();
     java.util.Set<Integer> revealed = session.revealed(player.getUniqueId());
-    for (int i = 0; i < loot.size() && i < inventory.getSize(); i++) {
-      inventory.setItem(i, revealed.contains(i) ? loot.get(i).item() : WardGui.unsearchedPane());
+    for (int i = 0; i < loot.size(); i++) {
+      int slot = session.slotOf(i);
+      if (slot < 0 || slot >= inventory.getSize()) {
+        continue;
+      }
+      inventory.setItem(slot, revealed.contains(i) ? loot.get(i).item() : WardGui.unsearchedPane());
     }
   }
 
@@ -236,14 +297,20 @@ public final class WardSearchController {
     List<WardSession.Loot> loot = session.loot();
 
     if (s.current < 0) {
-      s.current = nextUnrevealed(session, player, loot, open.getSize());
+      s.current = nextUnrevealed(session, player, loot);
       if (s.current < 0) {
         cancel(s);
         return;
       }
+      int slot = session.slotOf(s.current);
+      if (slot < 0 || slot >= open.getSize()) {
+        // 槽位映射缺失（例如容器被改成更小的类型）：跳过这一条，别把整条流程卡死
+        s.current = -1;
+        return;
+      }
       WardSession.Loot target = loot.get(s.current);
       s.slotEndsAt = now + (long) (target.rarity().searchSeconds(target.item().getAmount()) * 1000.0);
-      push(s, open, s.current, target.rarity(), s.slotEndsAt - now);
+      push(s, open, slot, target.rarity(), s.slotEndsAt - now);
       return;
     }
 
@@ -252,15 +319,21 @@ public final class WardSearchController {
       return;
     }
 
+    int slot = session.slotOf(s.current);
+    if (slot < 0 || slot >= open.getSize()) {
+      s.current = -1;
+      return;
+    }
+
     WardSession.Loot target = loot.get(s.current);
     long remain = s.slotEndsAt - now;
     if (remain > 0) {
-      push(s, open, s.current, target.rarity(), remain);
+      push(s, open, slot, target.rarity(), remain);
       return;
     }
 
     // 完成：替换为结果、记录进度、按珍惜度播放音效
-    open.setItem(s.current, target.item());
+    open.setItem(slot, target.item());
     session.markRevealed(player.getUniqueId(), s.current);
     target.rarity().playCompletion(player);
     s.current = -1;
@@ -271,12 +344,10 @@ public final class WardSearchController {
     }
   }
 
-  /** 下一个尚未搜出的结果下标（搜索顺序 = 下标递增） */
-  private int nextUnrevealed(WardSession session, Player player, List<WardSession.Loot> loot,
-      int inventorySize) {
+  /** 下一个尚未搜出的结果下标（结果已按槽位升序排列，故下标递增 = 先左到右、再上到下） */
+  private int nextUnrevealed(WardSession session, Player player, List<WardSession.Loot> loot) {
     java.util.Set<Integer> revealed = session.revealed(player.getUniqueId());
-    int limit = Math.min(loot.size(), inventorySize);
-    for (int i = 0; i < limit; i++) {
+    for (int i = 0; i < loot.size(); i++) {
       if (!revealed.contains(i)) {
         return i;
       }

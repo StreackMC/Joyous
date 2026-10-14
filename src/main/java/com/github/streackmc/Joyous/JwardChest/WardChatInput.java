@@ -62,9 +62,29 @@ public final class WardChatInput {
    */
   public void request(Player player, String type, @Nullable String oldValue, Consumer<String> onAccept) {
     long ttl = JwardChestMain.CONF.chatInputTimeoutSeconds() * 1000L;
+    // 先登记，再关界面：关闭事件里会检查「是否正在等待输入」，避免白发一条"已退出编辑"
     pending.put(player.getUniqueId(), new Pending(type, oldValue == null ? "" : oldValue,
         System.currentTimeMillis() + ttl, onAccept));
+    // 玩家要打字就必须离开容器界面，这里替他关掉，省得他手动按 Esc
+    player.closeInventory();
     player.sendMessage(buildPrompt(type, oldValue));
+  }
+
+  /**
+   * 是否有待处理的输入（无任何副作用、不会提示超时）
+   * <p>
+   * 供「界面关闭」路径查询：等待输入期间界面被关掉是正常流程，不该触发退出提示。
+   */
+  public boolean isWaiting(Player player) {
+    Pending p = pending.get(player.getUniqueId());
+    if (p == null) {
+      return false;
+    }
+    if (System.currentTimeMillis() > p.expiresAt()) {
+      pending.remove(player.getUniqueId());
+      return false;
+    }
+    return true;
   }
 
   /** 是否有待处理的输入 */
