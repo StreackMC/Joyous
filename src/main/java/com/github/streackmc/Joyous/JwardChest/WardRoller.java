@@ -11,10 +11,18 @@ import java.util.Random;
  * <p>
  * 按权重从「待选物品」里抽取。权重为 0 的条目保留在列表里但不参与抽取。
  * <p>
- * <b>条数规则</b>：{@link WardProfile#maxDraw(WardRarity)} 既是「该品质最多抽出几条」的上限，
- * 也决定总条数——总条数 = 各品质上限之和；<b>当所有上限都是 0 时视为不限量</b>，
- * 按容器容量抽取（填满容器）。最终条数再被容器槽位数与配置上限夹一次，
- * 装不下的多余结果会被舍弃。
+ * <b>数量规则（上/下限语义）</b>：
+ * <ul>
+ *   <li>{@link WardProfile#maxDraw(WardRarity)} 是该珍惜度<b>最多</b>能抽出几条，
+ *       不再等于「一定抽这么多」；为 0 表示不设上限。</li>
+ *   <li>{@link WardProfile#minDraw(WardRarity)} 是该珍惜度<b>至少</b>抽出几条（保底）；
+ *       为 0 表示不设保底。</li>
+ *   <li>结果组总条数 = 各珍惜度上限之和（{@link WardProfile#totalMaxDraw()}，
+ *       若上限之和小于保底之和则以保底之和为准），再被容器槽位数与配置上限夹一次；
+ *       全部上/下限都是 0 时视为「不限量」，按容器容量抽满。</li>
+ * </ul>
+ * 抽取分两步：先给每个珍惜度发满它的保底（保底优先，不受权重影响），
+ * 再把剩余条数按权重分摊到各珍惜度、并受各自上限约束。
  *
  * @author kdxiaoyi
  * @since 0.7.0
@@ -34,53 +42,128 @@ public final class WardRoller {
   public static List<WardSession.Loot> roll(WardProfile profile, Random random) {
     List<WardSession.Loot> out = new ArrayList<>();
 
-    List<WardItemEntry> pool = new ArrayList<>();
+    // 按珍惜度分组（只保留参与抽取的条目），顺便算出各珍惜度的可用权重
+    Map<WardRarity, List<WardItemEntry>> byRarity = new EnumMap<>(WardRarity.class);
+    Map<WardRarity, Integer> weightOf = new EnumMap<>(WardRarity.class);
+    for (WardRarity r : WardRarity.values()) {
+      byRarity.put(r, new ArrayList<>());
+      weightOf.put(r, 0);
+    }
     for (WardItemEntry e : profile.entries()) {
       if (e.active()) {
-        pool.add(e);
+        byRarity.get(e.rarity()).add(e);
+        weightOf.merge(e.rarity(), Math.max(0, e.weight()), Integer::sum);
       }
     }
-    if (pool.isEmpty()) {
+    boolean any = false;
+    for (List<WardItemEntry> list : byRarity.values()) {
+      if (!list.isEmpty()) {
+        any = true;
+        break;
+      }
+    }
+    if (!any) {
       return out;
     }
 
-    // 各品质的剩余配额
-    Map<WardRarity, Integer> remaining = new EnumMap<>(WardRarity.class);
+    // 没有可抽条目的珍惜度，它的上/下限是无意义的，按 0 处理
+    Map<WardRarity, Integer> floor = new EnumMap<>(WardRarity.class);
+    Map<WardRarity, Integer> cap = new EnumMap<>(WardRarity.class);
+    int sumFloor = 0;
+    int sumCap = 0;
     for (WardRarity r : WardRarity.values()) {
-      remaining.put(r, profile.maxDraw(r));
+      boolean usable = !byRarity.get(r).isEmpty();
+      int mn = usable ? profile.minDraw(r) : 0;
+      int mx = usable ? profile.maxDraw(r) : 0;
+      floor.put(r, mn);
+      cap.put(r, mx);
+      sumFloor += mn;
+      sumCap += mx;
     }
 
     int capacity = Math.max(1, Math.min(JwardChestMain.CONF.maxResults(), profile.slots()));
-    // 上限之和为 0 → 没设上限，按容器容量抽；否则以上限之和为目标条数
-    int desired = profile.totalDrawCount() > 0 ? profile.totalDrawCount() : profile.slots();
-    int target = Math.min(desired, capacity);
-    // 防御：配额之和可能远大于可用条目，用次数上限兜底避免死循环
-    int guard = Math.max(1, target) * 8 + 32;
-    int attempts = 0;
+    int target;
+    if (sumCap <= 0 && sumFloor <= 0) {
+      // 完全没设上/下限 → 不限量，抽满容器
+      target = capacity;
+    } else {
+      // 上限之和小于保底之和时以保底为准（minDraw/maxDraw 的联动一般不会让这种情况出现）
+      target = Math.min(Math.max(sumCap, sumFloor), capacity);
+    }
 
-    while (out.size() < target && attempts < guard) {
-      attempts++;
+    Map<WardRarity, Integer> used = new EnumMap<>(WardRarity.class);
+    for (WardRarity r : WardRarity.values()) {
+      used.put(r, 0);
+    }
 
-      List<WardItemEntry> candidates = new ArrayList<>();
-      for (WardItemEntry e : pool) {
-        if (remaining.getOrDefault(e.rarity(), 0) > 0) {
-          candidates.add(e);
+    // ① 保底：先把每个珍惜度的下限发满（与权重无关）
+    for (WardRarity r : WardRarity.values()) {
+      int need = floor.get(r);
+      for (int i = 0; i < need && out.size() < target; i++) {
+        WardItemEntry e = weightedPick(byRarity.get(r), random);
+        if (e == null) {
+          break;
         }
+        out.add(loot(e, random));
+        used.merge(r, 1, Integer::sum);
       }
-      if (candidates.isEmpty()) {
+    }
+
+    // ② 分摊：剩余条数按各珍惜度的可用权重随机分配，受各自上限约束（0 = 不限）
+    int guard = Math.max(1, target) * 8 + 32;
+    while (out.size() < target && guard-- > 0) {
+      int totalWeight = 0;
+      for (WardRarity r : WardRarity.values()) {
+        if (!open(byRarity, weightOf, cap, used, r)) {
+          continue;
+        }
+        totalWeight += weightOf.get(r);
+      }
+      if (totalWeight <= 0) {
         break;
       }
 
-      WardItemEntry picked = weightedPick(candidates, random);
+      int slot = random.nextInt(totalWeight);
+      WardRarity picked = null;
+      for (WardRarity r : WardRarity.values()) {
+        if (!open(byRarity, weightOf, cap, used, r)) {
+          continue;
+        }
+        slot -= weightOf.get(r);
+        if (slot < 0) {
+          picked = r;
+          break;
+        }
+      }
       if (picked == null) {
         break;
       }
 
-      remaining.merge(picked.rarity(), -1, Integer::sum);
-      out.add(new WardSession.Loot(picked.display(picked.rollAmount(random)), picked.rarity()));
+      WardItemEntry e = weightedPick(byRarity.get(picked), random);
+      if (e == null) {
+        break;
+      }
+      out.add(loot(e, random));
+      used.merge(picked, 1, Integer::sum);
     }
 
     return out;
+  }
+
+  /** 该珍惜度当前是否还能再分到条数（有可抽条目、有正权重、且未达上限） */
+  private static boolean open(Map<WardRarity, List<WardItemEntry>> byRarity,
+      Map<WardRarity, Integer> weightOf, Map<WardRarity, Integer> cap,
+      Map<WardRarity, Integer> used, WardRarity r) {
+    if (byRarity.get(r).isEmpty() || weightOf.getOrDefault(r, 0) <= 0) {
+      return false;
+    }
+    int limit = cap.getOrDefault(r, 0);
+    return limit <= 0 || used.getOrDefault(r, 0) < limit;
+  }
+
+  /** 抽一条结果：物品实例（数量按条目范围随机）+ 它的珍惜度 */
+  private static WardSession.Loot loot(WardItemEntry entry, Random random) {
+    return new WardSession.Loot(entry.display(entry.rollAmount(random)), entry.rarity());
   }
 
   /** 按权重挑一个；全部权重为 0 时返回 null */

@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -127,6 +128,13 @@ public final class WardListener implements Listener {
         if (inTop) {
           event.setCancelled(true);
           safeHandle(event, holder);
+          return;
+        }
+        // 下半部分的「快捷移动 / 双击收拢」仍可能碰上半区（双击会把光标上的物品
+        // 与容器里同类物品合并），一律挡掉，免得编辑者的物品被塞进我们的界面后丢失
+        ClickType click = event.getClick();
+        if (click.isShiftClick() || click == ClickType.DOUBLE_CLICK) {
+          event.setCancelled(true);
         }
       }
       case RUNTIME, PREVIEW -> {

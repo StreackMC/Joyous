@@ -337,9 +337,11 @@ public final class JwardChestCommand {
 
     List<Object> caps = new ArrayList<>();
     for (WardRarity r : WardRarity.values()) {
+      caps.add(profile.minDraw(r));
       caps.add(profile.maxDraw(r));
     }
-    caps.add(profile.totalDrawCount());
+    caps.add(profile.totalMinDraw());
+    caps.add(profile.totalMaxDraw());
     reply(ctx, i18n.tr("jwardchest.command.info.maxdraw", caps.toArray()));
 
     long active = profile.entries().stream().filter(WardItemEntry::active).count();

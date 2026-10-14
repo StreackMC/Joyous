@@ -137,23 +137,27 @@ public final class WardEditorGui {
   private static List<String> maxDrawLore(WardProfile profile) {
     List<String> lore = new ArrayList<>();
     for (WardRarity r : WardRarity.values()) {
-      lore.add(r.color() + r.displayName() + " §7→ §f" + profile.maxDraw(r));
+      lore.add(r.color() + r.displayName() + " §7→ §f" + profile.minDraw(r) + " §8~ §f"
+          + profile.maxDraw(r));
     }
-    lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalDrawCount()));
+    lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalMinDraw(), profile.totalMaxDraw()));
     lore.addAll(overflowHints(profile));
     lore.add(i18n.tr("jwardchest.editor.click"));
     return lore;
   }
 
-  /** 上限与容器容量不匹配时的提示（多余会被舍弃 / 未设上限时按容量抽） */
+  /** 上/下限与容器容量不匹配时的提示（多余会被舍弃 / 未设上限时按容量抽） */
   private static List<String> overflowHints(WardProfile profile) {
-    int total = profile.totalDrawCount();
+    int lower = profile.totalMinDraw();
+    int upper = profile.totalMaxDraw();
     int slots = profile.slots();
-    if (total <= 0) {
-      return List.of(i18n.tr("jwardchest.maxdraw.auto", slots));
+    if (upper <= 0) {
+      return List.of(lower > 0
+          ? i18n.tr("jwardchest.maxdraw.auto_floor", lower, slots)
+          : i18n.tr("jwardchest.maxdraw.auto", slots));
     }
-    if (total > slots) {
-      return List.of(i18n.tr("jwardchest.maxdraw.overflow", total, slots));
+    if (upper > slots) {
+      return List.of(i18n.tr("jwardchest.maxdraw.overflow", upper, slots));
     }
     return List.of();
   }
@@ -208,23 +212,46 @@ public final class WardEditorGui {
   // 各品质最大抽出数量
   // ──────────────────────────────────────────────
 
+  /**
+   * 各品质的抽出数量上/下限
+   * <p>
+   * 两行：上排「最小」（地毯）＝保底，下排「最大」（羊毛）＝上限。
+   * 上限只是上限——设 3 不等于一定抽 3 条，实际条数由权重分摊与总条数决定。
+   */
   private void openMaxDraw(Player player, UUID profileId, Location block) {
     WardProfile profile = store.effective(profileId);
     WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.MAX_DRAW, profileId, block);
-    Inventory inv = Bukkit.createInventory(holder, 9,
+    Inventory inv = Bukkit.createInventory(holder, 18,
         WardGui.title(player, i18n.tr("jwardchest.maxdraw.title")));
     holder.attach(inv);
 
-    int slot = 2;
+    int i = 0;
     for (WardRarity r : WardRarity.values()) {
-      List<String> lore = new ArrayList<>();
-      lore.add(i18n.tr("jwardchest.maxdraw.current", profile.maxDraw(r)));
-      lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalDrawCount()));
-      lore.addAll(overflowHints(profile));
-      lore.add(i18n.tr("jwardchest.maxdraw.hint"));
-      inv.setItem(slot++, button(woolOf(r), r.color() + r.displayName(), lore));
+      inv.setItem(i, drawButton(profile, r, true));
+      inv.setItem(9 + i, drawButton(profile, r, false));
+      i++;
     }
     player.openInventory(inv);
+  }
+
+  /**
+   * 上/下限的编辑按钮
+   *
+   * @param floorRow true = 上排（最小 / 保底，用地毯区分），false = 下排（最大 / 上限，用羊毛）
+   */
+  private ItemStack drawButton(WardProfile profile, WardRarity r, boolean floorRow) {
+    List<String> lore = new ArrayList<>();
+    lore.add(i18n.tr("jwardchest.maxdraw.range", profile.minDraw(r), profile.maxDraw(r)));
+    lore.add(i18n.tr(floorRow
+        ? "jwardchest.maxdraw.row_floor"
+        : "jwardchest.maxdraw.row_ceiling"));
+    lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalMinDraw(), profile.totalMaxDraw()));
+    lore.addAll(overflowHints(profile));
+    lore.add(i18n.tr("jwardchest.maxdraw.hint"));
+    return button(floorRow ? carpetOf(r) : woolOf(r),
+        i18n.tr(floorRow ? "jwardchest.maxdraw.label_floor" : "jwardchest.maxdraw.label_ceiling",
+            r.color() + r.displayName()),
+        lore);
   }
 
   private static Material woolOf(WardRarity r) {
@@ -234,6 +261,17 @@ public final class WardEditorGui {
       case COLLECT -> Material.PURPLE_WOOL;
       case PRECIOUS -> Material.YELLOW_WOOL;
       case MYTHIC -> Material.RED_WOOL;
+    };
+  }
+
+  /** 地毯版材质，用于和「上限」的羊毛区分开 */
+  private static Material carpetOf(WardRarity r) {
+    return switch (r) {
+      case COMMON -> Material.WHITE_CARPET;
+      case RARE -> Material.GREEN_CARPET;
+      case COLLECT -> Material.PURPLE_CARPET;
+      case PRECIOUS -> Material.YELLOW_CARPET;
+      case MYTHIC -> Material.RED_CARPET;
     };
   }
 
@@ -256,6 +294,34 @@ public final class WardEditorGui {
     Inventory inv = Bukkit.createInventory(holder, ITEM_EDITOR_ROWS * 9,
         WardGui.title(player, i18n.tr("jwardchest.items.title")));
     holder.attach(inv);
+    paintItemEditor(inv, state);
+    player.openInventory(inv);
+  }
+
+  /**
+   * 原地重绘
+   * <p>
+   * <b>不重开界面</b>：直接往玩家当前开着的那个 Inventory 里刷内容。
+   * 这样有两个好处——不会闪屏，也不会因为"带着光标物品重开容器"而丢失玩家手上正拿着的那摞东西
+   * （重开窗口时客户端的光标物品是有丢失风险的，而这里从头到尾没碰过光标）。
+   * 界面不是我们的时候（例如玩家已经关掉）才退回重开。
+   */
+  private void repaint(Player player, ItemEditorState state) {
+    Inventory open = player.getOpenInventory().getTopInventory();
+    WardGui.Holder holder = WardGui.holderOf(open);
+    if (holder != null && holder.kind() == WardGui.Kind.ITEM_EDITOR
+        && holder.payload() == state) {
+      paintItemEditor(open, state);
+      player.updateInventory();
+      return;
+    }
+    renderItemEditor(player, state, null);
+  }
+
+  /** 把当前页画进给定界面（每次画之前先紧凑化：条目从左上角依次排开 = 自动排序） */
+  private void paintItemEditor(Inventory inv, ItemEditorState state) {
+    compact(state);
+    inv.clear();
 
     int totalWeight = 0;
     for (WardItemEntry e : state.entries) {
@@ -287,7 +353,7 @@ public final class WardEditorGui {
       inv.setItem(slots[2], raritySlot(entry));
     }
 
-    // 底行：分页 / 取消 / 保存
+    // 底行：分页 / 取消 / 保存（其余格子也铺满，避免快捷移动把物品塞进无主的空槽）
     int pages = pageCount(state);
     inv.setItem(45, button(Material.ARROW, i18n.tr("jwardchest.items.prev"),
         List.of(i18n.tr("jwardchest.items.page", state.page + 1, pages))));
@@ -297,15 +363,36 @@ public final class WardEditorGui {
         List.of(i18n.tr("jwardchest.items.save_hint"))));
     inv.setItem(53, button(Material.ARROW, i18n.tr("jwardchest.items.next"),
         List.of(i18n.tr("jwardchest.items.page", state.page + 1, pages))));
+    for (int slot : new int[] { 46, 47, 48, 50, 52 }) {
+      inv.setItem(slot, fillerSlot());
+    }
+  }
 
-    player.openInventory(inv);
+  /**
+   * 去掉列表里的 {@code null} 空洞，让条目紧凑排列
+   * <p>
+   * 放入/移除后调用，因此「自动排序」的含义是：条目始终从第 1 格开始依次占位，
+   * 不会因为中间被删掉一条而留下空格。页码也在这里夹回合法范围。
+   */
+  private static void compact(ItemEditorState state) {
+    List<WardItemEntry> packed = new ArrayList<>(state.entries.size());
+    for (WardItemEntry e : state.entries) {
+      if (e != null) {
+        packed.add(e);
+      }
+    }
+    if (packed.size() != state.entries.size()) {
+      state.entries.clear();
+      state.entries.addAll(packed);
+    }
+    state.page = Math.max(0, Math.min(state.page, Math.max(0, pageCount(state) - 1)));
   }
 
   /**
    * 取第 {@code index} 条条目
    * <p>
-   * 列表允许有 {@code null} 空洞——这样操作者点第 5 个空位放东西，就真的落在第 5 个块上，
-   * 而不是被追加到列表末尾。
+   * 列表理论上可能存在 {@code null} 空洞（历史遗留写法），因此取值一律走这里而不是直接 get。
+   * 正常流程下每次绘制前都会 {@link #compact(ItemEditorState)}，不会有空洞。
    *
    * @return 条目；该位置为空返回 null
    */
@@ -314,7 +401,11 @@ public final class WardEditorGui {
     return (index >= 0 && index < state.entries.size()) ? state.entries.get(index) : null;
   }
 
-  /** 把条目放到指定块（不足处补 null 空洞） */
+  /**
+   * 把条目放到指定块（不足处补 null 空洞）
+   * <p>
+   * 随后立刻会 {@code compact()}，所以「放在第几块」不影响最终顺序——条目总是排到队尾。
+   */
   private static void setEntryAt(ItemEditorState state, int index, @Nullable WardItemEntry entry) {
     while (state.entries.size() <= index) {
       state.entries.add(null);
@@ -532,30 +623,49 @@ public final class WardEditorGui {
       return true;
     }
     int slot = event.getRawSlot();
-    if (slot < 2 || slot > 6) {
+    boolean floorRow;
+    int index;
+    if (slot >= 0 && slot < WardRarity.values().length) {
+      floorRow = true;
+      index = slot;
+    } else if (slot >= 9 && slot < 9 + WardRarity.values().length) {
+      floorRow = false;
+      index = slot - 9;
+    } else {
       return true;
     }
-    WardRarity rarity = WardRarity.values()[slot - 2];
+
+    WardRarity rarity = WardRarity.values()[index];
     UUID id = holder.profileId();
     Location block = holder.payload() instanceof Location l ? l : null;
     WardProfile profile = store.effective(id);
+    int current = floorRow ? profile.minDraw(rarity) : profile.maxDraw(rarity);
 
     if (event.isShiftClick()) {
-      module.chatInput().request(player, WardChatInput.TYPE_WEIGHT,
-          String.valueOf(profile.maxDraw(rarity)), value -> {
-            WardProfile updated = store.effective(id);
-            updated.maxDraw(rarity, parseIntOrDefault(value, updated.maxDraw(rarity)));
-            store.save(updated);
-            reopenLater(player, () -> openMaxDraw(player, id, block));
-          });
+      module.chatInput().request(player, WardChatInput.TYPE_WEIGHT, String.valueOf(current), value -> {
+        WardProfile updated = store.effective(id);
+        int fallback = floorRow ? updated.minDraw(rarity) : updated.maxDraw(rarity);
+        applyDraw(updated, rarity, floorRow, parseIntOrDefault(value, fallback));
+        store.save(updated);
+        reopenLater(player, () -> openMaxDraw(player, id, block));
+      });
       return true;
     }
 
     int delta = event.isRightClick() ? -1 : 1;
-    profile.maxDraw(rarity, profile.maxDraw(rarity) + delta);
+    applyDraw(profile, rarity, floorRow, current + delta);
     store.save(profile);
     reopenLater(player, () -> openMaxDraw(player, id, block));
     return true;
+  }
+
+  /** 写入上排（保底）或下排（上限）的值；两者的联动由 {@link WardProfile} 内部保证 */
+  private static void applyDraw(WardProfile profile, WardRarity rarity, boolean floorRow, int value) {
+    if (floorRow) {
+      profile.minDraw(rarity, value);
+    } else {
+      profile.maxDraw(rarity, value);
+    }
   }
 
   private boolean handleItemEditorClick(InventoryClickEvent event, Player player,
@@ -574,11 +684,11 @@ public final class WardEditorGui {
       switch (event.getRawSlot()) {
         case 45 -> {
           state.page = Math.max(0, state.page - 1);
-          reopenLater(player, () -> renderItemEditor(player, state, block));
+          repaint(player, state);
         }
         case 53 -> {
           state.page = Math.min(pageCount(state) - 1, state.page + 1);
-          reopenLater(player, () -> renderItemEditor(player, state, block));
+          repaint(player, state);
         }
         case 49 -> {
           itemWork.remove(player.getUniqueId());
@@ -664,17 +774,18 @@ public final class WardEditorGui {
       if (existing != null) {
         setEntryAt(state, index, null);
         player.sendMessage(i18n.tr("jwardchest.items.removed"));
-        reopenLater(player, () -> renderItemEditor(player, state, block));
+        repaint(player, state);
       }
       return;
     }
 
     if (cursor != null && !cursor.getType().isAir()) {
-      // 用背包/光标上的物品放到这个块上（位置就是点的那一格）
+      // 登记模板：数量随物品堆叠继承（由 WardItemEntry.of 负责）。
+      // **不消耗**玩家手上的物品——这里是「登记」而不是「投入」，光标原样不动，
+      // 玩家把手上那摞放回哪里由他自己决定。
       setEntryAt(state, index, WardItemEntry.of(cursor));
-      player.setItemOnCursor(null);
       player.sendMessage(i18n.tr("jwardchest.items.placed"));
-      reopenLater(player, () -> renderItemEditor(player, state, block));
+      repaint(player, state);
       return;
     }
 
@@ -686,17 +797,18 @@ public final class WardEditorGui {
     if (event.isRightClick()) {
       module.chatInput().request(player, WardChatInput.TYPE_MAX,
           String.valueOf(entry.maxAmount()), value -> {
-            entry.setAmounts(entry.minAmount(), parseIntOrDefault(value, entry.maxAmount()));
-            reopenLater(player, () -> renderItemEditor(player, state, block));
+            entry.setMax(parseIntOrDefault(value, entry.maxAmount()));
+            repaint(player, state);
           });
     } else {
       module.chatInput().request(player, WardChatInput.TYPE_MIN,
           String.valueOf(entry.minAmount()), value -> {
-            entry.setAmounts(parseIntOrDefault(value, entry.minAmount()), entry.maxAmount());
-            reopenLater(player, () -> renderItemEditor(player, state, block));
+            entry.setMin(parseIntOrDefault(value, entry.minAmount()));
+            repaint(player, state);
           });
     }
   }
+
 
   private void handleWeightSlot(InventoryClickEvent event, Player player, ItemEditorState state,
       int index, Location block) {
@@ -709,14 +821,14 @@ public final class WardEditorGui {
       module.chatInput().request(player, WardChatInput.TYPE_WEIGHT,
           String.valueOf(entry.weight()), value -> {
             entry.weight(parseIntOrDefault(value, entry.weight()));
-            reopenLater(player, () -> renderItemEditor(player, state, block));
+            repaint(player, state);
           });
       return;
     }
 
     int step = event.isRightClick() ? -1 : 1;
     entry.weight(entry.weight() + step);
-    reopenLater(player, () -> renderItemEditor(player, state, block));
+    repaint(player, state);
   }
 
   private void handleRaritySlot(Player player, ItemEditorState state, int index, boolean right,
@@ -729,7 +841,7 @@ public final class WardEditorGui {
     int next = entry.rarity().ordinal() + (right ? -1 : 1);
     next = Math.floorMod(next, all.length);
     entry.rarity(all[next]);
-    reopenLater(player, () -> renderItemEditor(player, state, block));
+    repaint(player, state);
   }
 
   // ──────────────────────────────────────────────

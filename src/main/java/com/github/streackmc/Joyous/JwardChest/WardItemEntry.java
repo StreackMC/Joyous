@@ -37,9 +37,15 @@ public final class WardItemEntry {
     setAmounts(minAmount, maxAmount);
   }
 
-  /** 以默认参数包装一个物品 */
+  /**
+   * 以默认参数包装一个物品
+   * <p>
+   * <b>数量会从物品堆叠继承</b>：放进去 32 个，最小/最大数量就都是 32（上限受该物品的
+   * {@code max_stack_size} 组件约束）。原来的实现恒为 1，等于把玩家的数量悄悄丢了。
+   */
   public static WardItemEntry of(ItemStack template) {
-    return new WardItemEntry(template, 1, WardRarity.COMMON, 1, 1);
+    int amount = Math.max(1, template.getAmount());
+    return new WardItemEntry(template, 1, WardRarity.COMMON, amount, amount);
   }
 
   /** 物品模板（数量恒为 1），调用方需要自行 clone */
@@ -90,7 +96,11 @@ public final class WardItemEntry {
   }
 
   /**
-   * 设置数量范围，自动夹取到 {@code 1..maxStackSize} 且保证 min &lt;= max
+   * 设置数量范围，自动夹取到 {@code 1..maxStackSize}
+   * <p>
+   * 用于「一次给两个值」的场合（构造、反序列化）：两个值都夹取后若 min &gt; max，
+   * 则让 <b>max 抬到 min</b>（以最小值为准）。交互式修改请用
+   * {@link #setMin(int)} / {@link #setMax(int)}，那两个会让「对方」跟着动。
    *
    * @param min 最小数量
    * @param max 最大数量
@@ -99,21 +109,50 @@ public final class WardItemEntry {
     int cap = maxStackSize();
     int low = Math.max(1, Math.min(cap, min));
     int high = Math.max(1, Math.min(cap, max));
-    if (low > high) {
-      low = high;
+    if (high < low) {
+      high = low;
     }
     this.minAmount = low;
     this.maxAmount = high;
   }
 
-  /** 调整最小数量（相对增减后重新夹取） */
-  public void adjustMin(int delta) {
-    setAmounts(minAmount + delta, maxAmount);
+  /**
+   * 设置最小数量
+   * <p>
+   * 若因此超过当前最大值，<b>最大值同步抬到最小值</b>（而不是把最小值压回去）——
+   * 操作者刚输入的那个数字应当被尊重。
+   */
+  public void setMin(int min) {
+    int cap = maxStackSize();
+    int low = Math.max(1, Math.min(cap, min));
+    if (low > maxAmount) {
+      maxAmount = low;
+    }
+    minAmount = low;
   }
 
-  /** 调整最大数量（相对增减后重新夹取） */
+  /**
+   * 设置最大数量
+   * <p>
+   * 若因此低于当前最小值，<b>最小值同步降到最大值</b>（与 {@link #setMin(int)} 对称）。
+   */
+  public void setMax(int max) {
+    int cap = maxStackSize();
+    int high = Math.max(1, Math.min(cap, max));
+    if (high < minAmount) {
+      minAmount = high;
+    }
+    maxAmount = high;
+  }
+
+  /** 调整最小数量（相对增减，最大值会跟着联动） */
+  public void adjustMin(int delta) {
+    setMin(minAmount + delta);
+  }
+
+  /** 调整最大数量（相对增减，最小值会跟着联动） */
   public void adjustMax(int delta) {
-    setAmounts(minAmount, maxAmount + delta);
+    setMax(maxAmount + delta);
   }
 
   /** 抽取时随机取一个数量（闭区间均匀分布） */

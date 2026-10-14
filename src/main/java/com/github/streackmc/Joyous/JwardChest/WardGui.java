@@ -20,6 +20,7 @@ import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
@@ -328,9 +329,37 @@ public final class WardGui {
         .get(new NamespacedKey(Joyous.plugin, PLACEHOLDER_KEY), PersistentDataType.STRING);
   }
 
-  /** 把带颜色码的文本转成 Component */
+  /**
+   * 把带颜色码的文本转成 Component（文字装饰按原版物品语义处理）
+   * <p>
+   * <b>必须走这里而不是直接用 {@link LegacyComponentSerializer}</b>：物品的名称与 Lore
+   * 在原版的默认样式是<b>斜体</b>，而 {@code deserialize} 出来的组件其
+   * {@link TextDecoration} 一律是 {@link TextDecoration.State#NOT_SET}——
+   * 未显式设置的斜体就会被原版按「开启」渲染。{@link #ensureReset(Component)}
+   * 把「未显式设置」的装饰显式写成 {@code false}，于是文本与 JMenu 的按钮一样是正体。
+   * 显式写了 {@code §l} 之类的仍然保留（那些是显式状态，不会被改写）。
+   */
   public static Component legacy(String colorized) {
-    return LegacyComponentSerializer.legacySection().deserialize(colorized);
+    return ensureReset(
+        LegacyComponentSerializer.legacySection().deserialize(colorized == null ? "" : colorized));
+  }
+
+  /**
+   * 确保未显式设置的文字装饰被重置为 {@code false}
+   * <p>
+   * 与 {@code JMenuEntry.ensureReset} 同源：{@code §r} 只把装饰设成 {@code NOT_SET}，
+   * 而原版渲染物品名/悬浮文本时会把它当作「启用」，因此必须显式关掉。
+   * 由于 Adventure 的样式对未设置的子节点是继承父级的，设置根组件的风格即可覆盖整棵树。
+   */
+  private static Component ensureReset(Component component) {
+    var style = component.style();
+    return component.style(s -> {
+      for (TextDecoration dec : TextDecoration.values()) {
+        if (style.decoration(dec) == TextDecoration.State.NOT_SET) {
+          s.decoration(dec, false);
+        }
+      }
+    });
   }
 
   /** 界面标题：支持 & 颜色码与 PAPI */

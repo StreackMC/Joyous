@@ -32,12 +32,14 @@ public final class WardProfile {
   private int rows = 6;
   private String title = "&b战利品箱";
   private int prefilterSeconds = 0;
+  private final Map<WardRarity, Integer> minDraw = new EnumMap<>(WardRarity.class);
   private final Map<WardRarity, Integer> maxDraw = new EnumMap<>(WardRarity.class);
   private final List<WardItemEntry> entries = new ArrayList<>();
 
   public WardProfile(UUID id) {
     this.id = id;
     for (WardRarity r : WardRarity.values()) {
+      minDraw.put(r, 0);
       maxDraw.put(r, 0);
     }
   }
@@ -106,12 +108,65 @@ public final class WardProfile {
     return prefilterSeconds > 0;
   }
 
+  /**
+   * 该珍惜度的<b>最小</b>抽出数量（保底），0 表示不设保底
+   */
+  public int minDraw(WardRarity rarity) {
+    return minDraw.getOrDefault(rarity, 0);
+  }
+
+  /**
+   * 设置最小抽出数量
+   * <p>
+   * 保底不能超过上限——若设得比上限还大，<b>上限同步抬上来</b>（保留操作者刚输入的值），
+   * 与 {@link WardItemEntry#setMin(int)} 的联动规则一致。
+   */
+  public void minDraw(WardRarity rarity, int value) {
+    int v = Math.max(0, value);
+    if (v > maxDraw(rarity)) {
+      maxDraw.put(rarity, v);
+    }
+    minDraw.put(rarity, v);
+  }
+
+  /**
+   * 该珍惜度的<b>最大</b>抽出数量（上限），0 表示不设上限
+   */
   public int maxDraw(WardRarity rarity) {
     return maxDraw.getOrDefault(rarity, 0);
   }
 
+  /**
+   * 设置最大抽出数量
+   * <p>
+   * 上限不能低于保底——若设得比保底还小，<b>保底同步降下来</b>（与
+   * {@link #minDraw(WardRarity, int)} 对称）。注意这只是一个<b>上限</b>：
+   * 「设 3」不等于「一定抽 3 条」，实际条数还受权重分摊与总条数影响。
+   */
   public void maxDraw(WardRarity rarity, int value) {
-    maxDraw.put(rarity, Math.max(0, value));
+    int v = Math.max(0, value);
+    if (v < minDraw(rarity)) {
+      minDraw.put(rarity, v);
+    }
+    maxDraw.put(rarity, v);
+  }
+
+  /** 各珍惜度最小抽出数量之和（保底总条数） */
+  public int totalMinDraw() {
+    int sum = 0;
+    for (WardRarity r : WardRarity.values()) {
+      sum += minDraw(r);
+    }
+    return sum;
+  }
+
+  /** 各珍惜度最大抽出数量之和（结果组总条数的上限） */
+  public int totalMaxDraw() {
+    int sum = 0;
+    for (WardRarity r : WardRarity.values()) {
+      sum += maxDraw(r);
+    }
+    return sum;
   }
 
   public List<WardItemEntry> entries() {
@@ -127,13 +182,15 @@ public final class WardProfile {
     return sum;
   }
 
-  /** 结果组总数量 = 各珍惜度最大抽出数量之和；为 0 时不产出任何结果 */
+  /**
+   * 结果组总条数 = 各珍惜度最大抽出数量之和
+   * <p>
+   * 为 0 且 {@link #totalMinDraw()} 也为 0 时表示「不限量」，按容器容量抽满。
+   *
+   * @see #totalMaxDraw()
+   */
   public int totalDrawCount() {
-    int sum = 0;
-    for (WardRarity r : WardRarity.values()) {
-      sum += maxDraw(r);
-    }
-    return sum;
+    return totalMaxDraw();
   }
 
   /** 条目数（编辑界面分页用） */
@@ -158,6 +215,8 @@ public final class WardProfile {
     this.rows = other.rows;
     this.title = other.title;
     this.prefilterSeconds = other.prefilterSeconds;
+    this.minDraw.clear();
+    this.minDraw.putAll(other.minDraw);
     this.maxDraw.clear();
     this.maxDraw.putAll(other.maxDraw);
     this.entries.clear();
@@ -188,6 +247,12 @@ public final class WardProfile {
     section.put("rows", rows());
     section.put("title", title);
     section.put("prefilter-seconds", prefilterSeconds);
+
+    Map<String, Object> floor = new LinkedHashMap<>();
+    for (WardRarity r : WardRarity.values()) {
+      floor.put(r.id(), minDraw(r));
+    }
+    section.put("min-draw", floor);
 
     Map<String, Object> draw = new LinkedHashMap<>();
     for (WardRarity r : WardRarity.values()) {
@@ -226,6 +291,14 @@ public final class WardProfile {
     p.rows(intOf(section.get("rows"), 6));
     p.title(str(section, "title", p.title));
     p.prefilterSeconds(intOf(section.get("prefilter-seconds"), 0));
+
+    // 先读保底再读上限：保底值的设置会把上限一并抬起，随后的上限赋值会把它修正回文件里的值
+    Object floorObj = section.get("min-draw");
+    if (floorObj instanceof Map<?, ?> floor) {
+      for (WardRarity r : WardRarity.values()) {
+        p.minDraw(r, intOf(floor.get(r.id()), 0));
+      }
+    }
 
     Object drawObj = section.get("max-draw");
     if (drawObj instanceof Map<?, ?> draw) {
