@@ -13,6 +13,7 @@ import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
 import com.github.streackmc.Joyous.EnvExport.EnvExport;
 import com.github.streackmc.Joyous.JMenu.JMenuMain;
 import com.github.streackmc.Joyous.JStatusAPI.JStatusAPIMain;
+import com.github.streackmc.Joyous.JwardChest.JwardChestMain;
 import com.github.streackmc.Joyous.Mails.MailsMain;
 import com.github.streackmc.Joyous.Neonaic.NeonaicSubsystem;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
@@ -44,6 +45,7 @@ public class entry extends JavaPlugin {
       addModel(new JMenuMain());
       addModel(new MailsMain());
       addModel(new RestarterMain());
+      addModel(new JwardChestMain());
       addModel(new NeonaicSubsystem());
     }
   }

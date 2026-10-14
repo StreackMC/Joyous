@@ -255,6 +255,100 @@ Restarter:
       # login 在玩家加入后执行的延迟毫秒
       delayOfJoin: 2000
 
+## JwardChest 模块
+# 「战利品箱」：把任意方块绑定成一个带搜索动画的自定义容器
+# /jwardchest new            绑定准星方块并打开编辑界面（别名 /jc）
+# /jwardchest unbind         解除准星方块的绑定
+# /jwardchest reset ...      清除临时数据（结果组/搜索进度）
+# /jwardchest reload         重新读取 models/JwardChest/profiles.yml
+# 绑定关系写在区块 PDC（随区块存盘）；容器设置写在 models/JwardChest/profiles.yml；
+# 结果组与搜索进度只在内存里，属于临时数据。
+JwardChest:
+  ## 是否启用
+  # * 不支持热重载
+  enabled: true
+  ## 搜索
+  search:
+    ## 各珍惜度的搜索基准时长（秒）
+    seconds:
+      common: 1.3
+      rare: 1.9
+      collect: 2.8
+      precious: 4.6
+      mythic: 6.0
+    ## 物品数量对搜索时长的系数（秒/个）
+    # 影响很小，仅用于让数量多的结果稍微多花一点时间
+    amount-factor: 0.05
+    ## 剩余多少秒时把占位物品换成结果珍惜度的颜色
+    urgency-seconds: 1.0
+    ## 动画刷新间隔（刻）
+    # 2 刻 = 10fps（默认），4 刻 = 5fps，1 刻 = 20fps
+    # 占位物品名做了量化（非紧急阶段只显示整秒），所以本项主要影响
+    # 「最后 urgency-seconds 秒」的平滑度，以及整体的发包/CPU 上限
+    update-interval-ticks: 2
+  ## 搜索完成音效
+  # 默认珍惜度越高音高越高、传播越广（volume 大于 1 会扩大可听范围）
+  sound:
+    type:
+      common: 'entity.experience_orb.pickup'
+      rare: 'entity.experience_orb.pickup'
+      collect: 'entity.player.levelup'
+      precious: 'entity.player.levelup'
+      mythic: 'ui.toast.challenge_complete'
+    volume:
+      common: 0.5
+      rare: 0.8
+      collect: 1.1
+      precious: 1.4
+      mythic: 1.7
+    pitch:
+      common: 1.0
+      rare: 1.2
+      collect: 1.4
+      precious: 1.6
+      mythic: 1.8
+  ## 占位物品（黑色/白色玻璃板）的显示
+  placeholder:
+    ## 物品名
+    name: "待搜索"
+    ## Lore，第一行留空表示空行
+    lore:
+      - ""
+    ## 资源包模型键（custom_model）——资源包靠它把占位物品画成自己的贴图
+    # * 键只能用小写 ASCII（a-z0-9._-/）；带 ":" 按「命名空间:路径」解析；
+    #   不带 ":" 会被当作 minecraft 命名空间下的路径（例如 joyous:jc_unsearched 才是 joyous 命名空间）
+    # * 需要「未搜索 / 搜索中」两套贴图时改用 placeholder.model.unsearched 与 .searching，
+    #   两者都未配置时才回落到本项；全部留空则不设置模型
+    # * PDC 里的 custom_data（joyous:jc_placeholder）只负责标识「由 Joyous 产生」，
+    #   它与模型键构成双重校验，任一命中都算我们的占位物品（用于挡住玩家取走占位）
+    item-model: "joyous_jc_unsearched"
+    ## 原版 custom_model_data，0 表示不设置
+    custom-model-data: 729101
+  ## 粗筛阶段的占位区域
+  prefilter:
+    rows: 2
+    cols: 5
+  ## 运行时状态
+  session:
+    # 这些都只在内存里，属于临时数据
+    ## 空闲多久后回收会话（秒）
+    # 只回收「无人打开」的会话，玩家正在看的不会被丢掉
+    idle-timeout-seconds: 300
+    ## 清理任务间隔（秒）
+    sweep-seconds: 60
+    ## 同时存在的会话上限，超出时丢最久未访问的
+    max-sessions: 512
+    ## 单个容器最多展示的结果条数（还会再被容器槽位数夹一次）
+    max-results: 54
+    ## 聊天栏输入的等待超时（秒）
+    chat-input-timeout: 60
+  ## 命令
+  command:
+    ## /jwardchest new 能选中多远的方块
+    reach: 6
+    ## reset radius 的最大半径
+    reset-radius-limit: 256
+
 ## 数据库档案名
 # 需要在 StreackLib 中配置这个数据库档案
 dbprofile: 'profile_mysql'

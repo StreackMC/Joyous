@@ -12,7 +12,7 @@
 - 核心层: `Joyous`(全局上下文) / `PHAPI`(PlaceholderAPI桥接) / `logger`(多后端日志) / `i18n`(多语言)
 - 入口: `entry extends JavaPlugin` — onEnable 中初始化配置→检查依赖→遍历注册模块
 
-## 模块清单 (8个)
+## 模块清单 (9个)
 1. **JMenu** — 双端通用菜单(Java箱子GUI + 基岩版Floodgate表单), JSON格式菜单文件(.jmenu), 带缓存TTL
 2. **Entroprix** — 熵流抽卡系统(米池规则), 权重制概率/大小保底/概率提升, PDC持久化保底状态
 3. **JStatusAPI** — 声明式 HTTP 查询API(基于StreackLib的HTTPServer, 由 APIHolders 重构而来)
@@ -44,6 +44,15 @@
      关联(qUSR#… ↔ UUID)权威持有方是 Neonaic；旧「直接设置」保留为管理员命令 `/neonaic bind ...`(默认 OP)
    - 占位符 `%joyous_neonaic_name%` / `%joyous_neonaic_subname%`；命令族 `/neonaic ...` + 配置化自助命令
    - 协议 V2 设计见 `docs/neonaic/PROTOCOL-V2.md`（⚠️ `docs/neonaic` 在 .gitignore，属本地文档）
+9. **JwardChest** — 战利品箱(2026-10-14 新增): 绑定任意方块为带搜索动画的自定义容器
+   - 命令 `/jwardchest`(别名 `/jc`): `new` / `unbind` / `reload` / `reset all|preset <代号>|radius <r>|box <坐标…>`
+   - **绑定**写在**区块 PDC**(键含方块坐标，随区块存盘)；**设置**落 `models/JwardChest/profiles.yml`；
+     **结果组与搜索进度**只在内存(带维度+坐标，空闲回收 + 总数上限)
+   - 五档珍惜度(普通/稀有/典藏/珍贵/绝世)决定搜索时长与完成音效；权重为 0 的条目保留但不参与抽取
+   - ②「预设代号」即**预设组名**：不为空 ⇒ 生效设置取组、编辑写回组(整组联动)；为空 ⇒ 用自身设置(覆盖关系)
+   - 组在 YAML 里的键用 **URL 安全 Base64**(代号允许 `.`，而 SConfig 路径以 `.` 分隔)
+   - GUI 用自定义 `InventoryHolder`(`WardGui.Holder`)区分各类界面；占位玻璃板带 PDC 标记 `joyous:jc_placeholder`
+   - ⚠️ 未验证部分：GUI 交互与搜索动画需要真人在线，headless 只验到「装配+命令+持久化」
 
 ## 外部依赖 (全部 provided scope)
 - StreackLib 0.6.1 (核心库,硬依赖)
