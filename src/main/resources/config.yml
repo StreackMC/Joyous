@@ -267,31 +267,98 @@ JwardChest:
   ## 是否启用
   # * 不支持热重载
   enabled: true
-  ## 数量分布
-  # 「在 下限~上限 之间取一个整数」的取值方式（uniform 均匀 / low 偏小 / high 偏大 / normal 正态）
-  # 已挪进「容器设置」：用 /jc new 打开编辑界面 →「数量分布」子界面，
-  # 落盘到 models/JwardChest/profiles.yml 的 draw 段（每个箱子可以有自己的手感）。
-  # 这里不再提供全局开关，以免和容器自身的设置互相打架。
+  ## 珍惜度（声明式）
+  # 整套珍惜度由这里声明：一条就是一档，把它的显示名、配色、材质、搜索时长、音效
+  # 全部写在同一条声明里 —— 代码里因此没有「按珍惜度分支」的 switch，
+  # 也不存在「名字在一处、材质在另一处、音效又在第三个平行表里」。
+  # * 顺序即强度：越靠下的越珍贵（「结果组里最高珍惜度」取最后一条）
+  # * 键（左侧的 id）是稳定标识：容器的各档抽出数量、每条待选物品的珍惜度都按 id 落盘，
+  #   所以【改 id 等于换了一档】，已有设置里那一档的值会读不回来（回落为默认）
+  # * 可声明的字段（都有默认值，可以只写想改的那几个）：
+  #     name     显示名（编辑器与命令里显示）
+  #     color    文字颜色（原版遗留颜色码，如 "§a"）
+  #     glass    进入紧急窗口后「搜索中」占位用的玻璃板
+  #     wool     编辑界面「最大抽出数量」按钮的材质
+  #     carpet   编辑界面「最小抽出数量」按钮的材质
+  #     seconds  本档搜索基准时长（秒）；实际 = seconds + 物品数量 × search.amount-factor
+  #     sound    搜索完成音效（原版音效键）
+  #     volume   音量 / 传播范围（大于 1 会扩大可听范围）
+  #     pitch    音高
+  # 下面声明 6 档；可以增删条目、改名、调顺序（例如再插一档就照抄一条改 id 与 name）。
+  rarities:
+    common:
+      name: "普通"
+      color: "§f"
+      glass: WHITE_STAINED_GLASS_PANE
+      wool: WHITE_WOOL
+      carpet: WHITE_CARPET
+      seconds: 1.3
+      sound: "entity.experience_orb.pickup"
+      volume: 0.5
+      pitch: 1.0
+    rare:
+      name: "稀有"
+      color: "§a"
+      glass: LIME_STAINED_GLASS_PANE
+      wool: GREEN_WOOL
+      carpet: GREEN_CARPET
+      seconds: 1.9
+      sound: "entity.experience_orb.pickup"
+      volume: 0.8
+      pitch: 1.2
+    blue:
+      name: "精良"
+      color: "§b"
+      glass: BLUE_STAINED_GLASS_PANE
+      wool: BLUE_WOOL
+      carpet: BLUE_CARPET
+      seconds: 2.3
+      sound: "entity.experience_orb.pickup"
+      volume: 0.95
+      pitch: 1.3
+    collect:
+      name: "典藏"
+      color: "§d"
+      glass: PURPLE_STAINED_GLASS_PANE
+      wool: PURPLE_WOOL
+      carpet: PURPLE_CARPET
+      seconds: 2.8
+      sound: "entity.player.levelup"
+      volume: 1.1
+      pitch: 1.4
+    precious:
+      name: "珍贵"
+      color: "§6"
+      glass: ORANGE_STAINED_GLASS_PANE
+      wool: YELLOW_WOOL
+      carpet: YELLOW_CARPET
+      seconds: 4.6
+      sound: "entity.player.levelup"
+      volume: 1.4
+      pitch: 1.6
+    mythic:
+      name: "绝世"
+      color: "§c"
+      glass: RED_STAINED_GLASS_PANE
+      wool: RED_WOOL
+      carpet: RED_CARPET
+      seconds: 6.0
+      sound: "ui.toast.challenge_complete"
+      volume: 1.7
+      pitch: 1.8
   ## 搜索
   search:
-    ## 各珍惜度的搜索基准时长（秒）
-    seconds:
-      common: 1.3
-      rare: 1.9
-      collect: 2.8
-      precious: 4.6
-      mythic: 6.0
     ## 物品数量对搜索时长的系数（秒/个）
     # 影响很小，仅用于让数量多的结果稍微多花一点时间
     amount-factor: 0.03
     ## 紧急着色窗口（按本次搜索时长的比例算，再夹到下面两个边界里）
     # 窗口 = clamp(本次时长 × urgency-ratio, urgency-min-seconds, urgency-seconds)
     # 进入窗口后「玻璃板材质」与「文字颜色」会一起换成该档珍惜度的配色
-    # （普通白 / 稀有绿 / 典藏紫 / 珍贵金 / 绝世红）：
+    # （具体配色由上面每档声明里的 color / glass 决定）：
     #   * 粗筛阶段：换成「最高珍惜度」的配色，该阶段仍显示剩余秒数
     #   * 逐结果阶段：占位名不显示秒数，换成「该结果珍惜度」的配色
-    # 注意：普通档的紧急配色就是白色，与平时的白玻璃板相同（配色本身的必然结果），
-    #   此时靠名字颜色仍能看出变化；若配了资源包模型（item_model），
+    # 注意：某档的紧急配色若与平时的白玻璃板相同（例如默认的普通档就是白），
+    #   则该档只有名字颜色会变；若配了资源包模型（item_model），
     #   客户端画的是资源包贴图、材质颜色看不见，名字颜色则始终有效
     urgency-ratio: 0.25
     ## 窗口上限（秒）：长搜索不会整段都在闪颜色
@@ -303,27 +370,6 @@ JwardChest:
     # 注意：显示文本已量化（粗筛按整秒、逐结果阶段恒定不变），本项只决定「多久检查一次状态」，
     # 实际发包量远低于这个刷新频率
     update-interval-ticks: 2
-  ## 搜索完成音效
-  # 默认珍惜度越高音高越高、传播越广（volume 大于 1 会扩大可听范围）
-  sound:
-    type:
-      common: 'entity.experience_orb.pickup'
-      rare: 'entity.experience_orb.pickup'
-      collect: 'entity.player.levelup'
-      precious: 'entity.player.levelup'
-      mythic: 'ui.toast.challenge_complete'
-    volume:
-      common: 0.5
-      rare: 0.8
-      collect: 1.1
-      precious: 1.4
-      mythic: 1.7
-    pitch:
-      common: 1.0
-      rare: 1.2
-      collect: 1.4
-      precious: 1.6
-      mythic: 1.8
   ## 占位物品（黑色/白色玻璃板）的显示
   placeholder:
     ## 物品名

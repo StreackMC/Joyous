@@ -1,7 +1,6 @@
 package com.github.streackmc.Joyous.JwardChest;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +38,8 @@ public final class WardProfile {
   private int rows = 6;
   private String title = "&b战利品箱";
   private int prefilterSeconds = 0;
-  private final Map<WardRarity, Integer> minDraw = new EnumMap<>(WardRarity.class);
-  private final Map<WardRarity, Integer> maxDraw = new EnumMap<>(WardRarity.class);
+  private final Map<WardRarity, Integer> minDraw = new LinkedHashMap<>();
+  private final Map<WardRarity, Integer> maxDraw = new LinkedHashMap<>();
   /** 结果组总条数的取值分布（属于容器设置，不再走全局 config） */
   private WardDistribution countDistribution = WardDistribution.UNIFORM;
   private double countCurve = DEFAULT_CURVE;
@@ -51,7 +50,7 @@ public final class WardProfile {
 
   public WardProfile(UUID id) {
     this.id = id;
-    for (WardRarity r : WardRarity.values()) {
+    for (WardRarity r : WardRarity.list()) {
       minDraw.put(r, 0);
       maxDraw.put(r, 0);
     }
@@ -167,7 +166,7 @@ public final class WardProfile {
   /** 各珍惜度最小抽出数量之和（保底总条数） */
   public int totalMinDraw() {
     int sum = 0;
-    for (WardRarity r : WardRarity.values()) {
+    for (WardRarity r : WardRarity.list()) {
       sum += minDraw(r);
     }
     return sum;
@@ -176,7 +175,7 @@ public final class WardProfile {
   /** 各珍惜度最大抽出数量之和（结果组总条数的上限） */
   public int totalMaxDraw() {
     int sum = 0;
-    for (WardRarity r : WardRarity.values()) {
+    for (WardRarity r : WardRarity.list()) {
       sum += maxDraw(r);
     }
     return sum;
@@ -314,13 +313,13 @@ public final class WardProfile {
     section.put("prefilter-seconds", prefilterSeconds);
 
     Map<String, Object> floor = new LinkedHashMap<>();
-    for (WardRarity r : WardRarity.values()) {
+    for (WardRarity r : WardRarity.list()) {
       floor.put(r.id(), minDraw(r));
     }
     section.put("min-draw", floor);
 
     Map<String, Object> draw = new LinkedHashMap<>();
-    for (WardRarity r : WardRarity.values()) {
+    for (WardRarity r : WardRarity.list()) {
       draw.put(r.id(), maxDraw(r));
     }
     section.put("max-draw", draw);
@@ -367,14 +366,14 @@ public final class WardProfile {
     // 先读保底再读上限：保底值的设置会把上限一并抬起，随后的上限赋值会把它修正回文件里的值
     Object floorObj = section.get("min-draw");
     if (floorObj instanceof Map<?, ?> floor) {
-      for (WardRarity r : WardRarity.values()) {
+      for (WardRarity r : WardRarity.list()) {
         p.minDraw(r, intOf(floor.get(r.id()), 0));
       }
     }
 
     Object capObj = section.get("max-draw");
     if (capObj instanceof Map<?, ?> cap) {
-      for (WardRarity r : WardRarity.values()) {
+      for (WardRarity r : WardRarity.list()) {
         p.maxDraw(r, intOf(cap.get(r.id()), 0));
       }
     }

@@ -205,7 +205,7 @@ public final class WardGui {
     String text = withSeconds
         ? color + seconds(remainMillis, urgent) + " s"
         : color + i18n.tr("jwardchest.container.searching");
-    Material material = urgent ? urgentPane(rarity) : Material.WHITE_STAINED_GLASS_PANE;
+    Material material = urgent ? rarity.glass() : Material.WHITE_STAINED_GLASS_PANE;
     return new Frame(material, text);
   }
 
@@ -223,23 +223,6 @@ public final class WardGui {
   private static boolean isUrgent(long remainMillis, double durationSeconds) {
     double window = JwardChestMain.CONF.urgentWindowSeconds(durationSeconds);
     return window > 0.0 && Math.max(0L, remainMillis) / 1000.0 <= window;
-  }
-
-  /**
-   * 紧急着色时该珍惜度对应的玻璃板材质
-   * <p>
-   * 配色沿用「五档珍惜度」的定义：普通白 / 稀有绿 / 典藏紫 / 珍贵金 / 绝世红。
-   * 普通档的「紧急色」就是白色，与平时的白玻璃板一致 —— 这是配色本身的必然结果，
-   * 此时仍然可靠名字颜色看到变化（若确实想让它也有区别，改这里的映射即可）。
-   */
-  private static Material urgentPane(WardRarity rarity) {
-    return switch (rarity) {
-      case COMMON -> Material.WHITE_STAINED_GLASS_PANE;
-      case RARE -> Material.LIME_STAINED_GLASS_PANE;
-      case COLLECT -> Material.PURPLE_STAINED_GLASS_PANE;
-      case PRECIOUS -> Material.ORANGE_STAINED_GLASS_PANE;
-      case MYTHIC -> Material.RED_STAINED_GLASS_PANE;
-    };
   }
 
   /**

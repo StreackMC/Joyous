@@ -1,6 +1,5 @@
 package com.github.streackmc.Joyous.JwardChest;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -335,14 +334,18 @@ public final class JwardChestCommand {
     reply(ctx, i18n.tr("jwardchest.command.info.title", profile.title()));
     reply(ctx, i18n.tr("jwardchest.command.info.prefilter", profile.prefilterSeconds()));
 
-    List<Object> caps = new ArrayList<>();
-    for (WardRarity r : WardRarity.values()) {
-      caps.add(profile.minDraw(r));
-      caps.add(profile.maxDraw(r));
+    // 档位数量是声明式的（可能不止 5 档），所以这里按声明拼装而不是用固定占位符的模板
+    StringBuilder caps = new StringBuilder();
+    for (WardRarity r : WardRarity.list()) {
+      if (caps.length() > 0) {
+        caps.append(" §8/ ");
+      }
+      caps.append(i18n.tr("jwardchest.command.info.maxdraw_entry",
+          r.color() + r.displayName(), profile.minDraw(r), profile.maxDraw(r)));
     }
-    caps.add(profile.totalMinDraw());
-    caps.add(profile.totalMaxDraw());
-    reply(ctx, i18n.tr("jwardchest.command.info.maxdraw", caps.toArray()));
+    caps.append(i18n.tr("jwardchest.command.info.maxdraw_total",
+        profile.totalMinDraw(), profile.totalMaxDraw()));
+    reply(ctx, i18n.tr("jwardchest.command.info.maxdraw", caps));
     reply(ctx, i18n.tr("jwardchest.command.info.dist",
         profile.countDistribution().id(), profile.countCurve(),
         profile.amountDistribution().id(), profile.amountCurve()));
@@ -410,6 +413,8 @@ public final class JwardChestCommand {
 
   /** /jc reload */
   private int cmdReload(CommandContext<CommandSourceStack> ctx) {
+    // 珍惜度声明也要重建（配置热重载改了 rarities 之后靠这一步生效）
+    WardRarity.reload();
     store.reload();
     reply(ctx, i18n.tr("jwardchest.command.reload.done", store.profiles().size(), store.groupCodes().size()));
     return 1;

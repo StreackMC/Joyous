@@ -48,7 +48,15 @@
    - 命令 `/jwardchest`(别名 `/jc`): `new` / `unbind` / `reload` / `reset all|preset <代号>|radius <r>|box <坐标…>`
    - **绑定**写在**区块 PDC**(键含方块坐标，随区块存盘)；**设置**落 `models/JwardChest/profiles.yml`；
      **结果组与搜索进度**只在内存(带维度+坐标，空闲回收 + 总数上限)
-   - 五档珍惜度(普通/稀有/典藏/珍贵/绝世)决定搜索时长与完成音效；权重为 0 的条目保留但不参与抽取
+   - **珍惜度是声明式的**(2026-10-15 重做)：默认 6 档(普通白/稀有绿/**精良蓝**/典藏紫/珍贵金/绝世红)，
+     整套由 `config.yml` 的 `JwardChest.rarities` **声明**——一档一条，把 name/color/glass/wool/carpet/
+     seconds/sound/volume/pitch 全写在同一条里；**声明顺序即强度顺序**(末条 = `highest()`)。
+     `WardRarity` 不再是 enum 而是不可变数据类 + 静态注册表(`list/size/byIndex/find/byId/first/
+     highest/indexOf/ids/reload`)；**equals 按 id**(热重载后的新实例仍能命中设置里存下的旧键)、
+     **compareTo 按 index**、`Map<WardRarity,?>` 由 `EnumMap` 换成 `LinkedHashMap`。
+     增删/改名/调顺序都只改配置；配置缺失或写坏时回落到代码内置的同一份默认(记 WARN)。
+     ⚠️ 改 id = 换档(设置里那档的值读不回来)；`/jc reload` 会重建声明。
+     权重为 0 的条目保留但不参与抽取
    - ②「预设代号」即**预设组名**：不为空 ⇒ 生效设置取组、编辑写回组(整组联动)；为空 ⇒ 用自身设置(覆盖关系)
    - 组在 YAML 里的键用 **URL 安全 Base64**(代号允许 `.`，而 SConfig 路径以 `.` 分隔)
    - GUI 用自定义 `InventoryHolder`(`WardGui.Holder`)区分各类界面；占位玻璃板带 PDC 标记 `joyous:jc_placeholder`

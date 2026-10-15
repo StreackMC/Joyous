@@ -432,7 +432,7 @@ public final class WardSearchController {
     return session.loot().stream()
         .map(WardSession.Loot::rarity)
         .max(Comparator.naturalOrder())
-        .orElse(WardRarity.COMMON);
+        .orElse(WardRarity.first());
   }
 
   // ──────────────────────────────────────────────

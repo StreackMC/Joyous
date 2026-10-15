@@ -144,7 +144,7 @@ public final class WardEditorGui {
 
   private static List<String> maxDrawLore(WardProfile profile) {
     List<String> lore = new ArrayList<>();
-    for (WardRarity r : WardRarity.values()) {
+    for (WardRarity r : WardRarity.list()) {
       lore.add(r.color() + r.displayName() + " §7→ §f" + profile.minDraw(r) + " §8~ §f"
           + profile.maxDraw(r));
     }
@@ -231,15 +231,14 @@ public final class WardEditorGui {
   private void openMaxDraw(Player player, UUID profileId, Location block) {
     WardProfile profile = store.effective(profileId);
     WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.MAX_DRAW, profileId, block);
-    Inventory inv = Bukkit.createInventory(holder, 18,
+    Inventory inv = Bukkit.createInventory(holder, MAX_DRAW_SIZE,
         WardGui.title(player, i18n.tr("jwardchest.maxdraw.title")));
     holder.attach(inv);
 
-    int i = 0;
-    for (WardRarity r : WardRarity.values()) {
-      inv.setItem(i, drawButton(profile, r, true));
-      inv.setItem(9 + i, drawButton(profile, r, false));
-      i++;
+    for (WardRarity r : WardRarity.list()) {
+      int slot = maxDrawSlot(r.index(), false);
+      inv.setItem(slot, drawButton(profile, r, true));
+      inv.setItem(maxDrawSlot(r.index(), true), drawButton(profile, r, false));
     }
     player.openInventory(inv);
   }
@@ -260,31 +259,34 @@ public final class WardEditorGui {
         profile.countDistribution().id()));
     lore.addAll(overflowHints(profile));
     lore.add(i18n.tr("jwardchest.maxdraw.hint"));
-    return button(floorRow ? carpetOf(r) : woolOf(r),
+    return button(floorRow ? r.carpet() : r.wool(),
         i18n.tr(floorRow ? "jwardchest.maxdraw.label_floor" : "jwardchest.maxdraw.label_ceiling",
             r.color() + r.displayName()),
         lore);
   }
 
-  private static Material woolOf(WardRarity r) {
-    return switch (r) {
-      case COMMON -> Material.WHITE_WOOL;
-      case RARE -> Material.GREEN_WOOL;
-      case COLLECT -> Material.PURPLE_WOOL;
-      case PRECIOUS -> Material.YELLOW_WOOL;
-      case MYTHIC -> Material.RED_WOOL;
-    };
+  /** 每 9 档占一行，上下两排（最小 / 最大）共 {@code 2 × 行数} 行 */
+  private static int maxDrawRows() {
+    return Math.max(1, (WardRarity.size() + 8) / 9);
   }
 
-  /** 地毯版材质，用于和「上限」的羊毛区分开 */
-  private static Material carpetOf(WardRarity r) {
-    return switch (r) {
-      case COMMON -> Material.WHITE_CARPET;
-      case RARE -> Material.GREEN_CARPET;
-      case COLLECT -> Material.PURPLE_CARPET;
-      case PRECIOUS -> Material.YELLOW_CARPET;
-      case MYTHIC -> Material.RED_CARPET;
-    };
+  /** 上/下限界面的容量 */
+  private static final int MAX_DRAW_SIZE = maxDrawRows() * 18;
+
+  /**
+   * 上/下限界面里某档的槽位
+   * <p>
+   * 上排（最小 / 保底）在前，下排（最大 / 上限）紧随其后，各占 {@code maxDrawRows()} 行 × 9 格，
+   * 所以档位数量变化时布局自己会跟着长。
+   *
+   * @param index    档位下标（声明顺序）
+   * @param ceiling  true = 下排（上限）
+   */
+  private static int maxDrawSlot(int index, boolean ceiling) {
+    int rows = maxDrawRows();
+    int row = index / 9;
+    int col = index % 9;
+    return ((ceiling ? rows : 0) + row) * 9 + col;
   }
 
   // ──────────────────────────────────────────────
@@ -689,7 +691,7 @@ public final class WardEditorGui {
   }
 
   private ItemStack raritySlot(WardItemEntry entry) {
-    return button(woolOf(entry.rarity()),
+    return button(entry.rarity().wool(),
         entry.rarity().color() + entry.rarity().displayName(),
         List.of(i18n.tr("jwardchest.items.rarity_help")));
   }
@@ -845,17 +847,21 @@ public final class WardEditorGui {
     int slot = event.getRawSlot();
     boolean floorRow;
     int index;
-    if (slot >= 0 && slot < WardRarity.values().length) {
+    int blockSize = maxDrawRows() * 9;
+    if (slot >= 0 && slot < blockSize) {
       floorRow = true;
       index = slot;
-    } else if (slot >= 9 && slot < 9 + WardRarity.values().length) {
+    } else if (slot >= blockSize && slot < blockSize * 2) {
       floorRow = false;
-      index = slot - 9;
+      index = slot - blockSize;
     } else {
       return true;
     }
 
-    WardRarity rarity = WardRarity.values()[index];
+    WardRarity rarity = WardRarity.byIndex(index);
+    if (rarity == null) {
+      return true;
+    }
     UUID id = holder.profileId();
     Location block = holder.payload() instanceof Location l ? l : null;
     WardProfile profile = store.effective(id);
@@ -1051,10 +1057,9 @@ public final class WardEditorGui {
     if (entry == null) {
       return;
     }
-    WardRarity[] all = WardRarity.values();
-    int next = entry.rarity().ordinal() + (right ? -1 : 1);
-    next = Math.floorMod(next, all.length);
-    entry.rarity(all[next]);
+    List<WardRarity> all = WardRarity.list();
+    int current = WardRarity.indexOf(entry.rarity());
+    entry.rarity(all.get(Math.floorMod(current + (right ? -1 : 1), all.size())));
     repaint(player, state);
   }
 

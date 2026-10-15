@@ -1,7 +1,7 @@
 package com.github.streackmc.Joyous.JwardChest;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -44,9 +44,9 @@ public final class WardRoller {
     List<WardSession.Loot> out = new ArrayList<>();
 
     // 按珍惜度分组（只保留参与抽取的条目），顺便算出各珍惜度的可用权重
-    Map<WardRarity, List<WardItemEntry>> byRarity = new EnumMap<>(WardRarity.class);
-    Map<WardRarity, Integer> weightOf = new EnumMap<>(WardRarity.class);
-    for (WardRarity r : WardRarity.values()) {
+    Map<WardRarity, List<WardItemEntry>> byRarity = new LinkedHashMap<>();
+    Map<WardRarity, Integer> weightOf = new LinkedHashMap<>();
+    for (WardRarity r : WardRarity.list()) {
       byRarity.put(r, new ArrayList<>());
       weightOf.put(r, 0);
     }
@@ -68,11 +68,11 @@ public final class WardRoller {
     }
 
     // 没有可抽条目的珍惜度，它的上/下限是无意义的，按 0 处理
-    Map<WardRarity, Integer> floor = new EnumMap<>(WardRarity.class);
-    Map<WardRarity, Integer> cap = new EnumMap<>(WardRarity.class);
+    Map<WardRarity, Integer> floor = new LinkedHashMap<>();
+    Map<WardRarity, Integer> cap = new LinkedHashMap<>();
     int sumFloor = 0;
     int sumCap = 0;
-    for (WardRarity r : WardRarity.values()) {
+    for (WardRarity r : WardRarity.list()) {
       boolean usable = !byRarity.get(r).isEmpty();
       int mn = usable ? profile.minDraw(r) : 0;
       int mx = usable ? profile.maxDraw(r) : 0;
@@ -95,13 +95,13 @@ public final class WardRoller {
       target = profile.countDistribution().pick(random, low, high, profile.countCurve());
     }
 
-    Map<WardRarity, Integer> used = new EnumMap<>(WardRarity.class);
-    for (WardRarity r : WardRarity.values()) {
+    Map<WardRarity, Integer> used = new LinkedHashMap<>();
+    for (WardRarity r : WardRarity.list()) {
       used.put(r, 0);
     }
 
     // ① 保底：先把每个珍惜度的下限发满（与权重无关）
-    for (WardRarity r : WardRarity.values()) {
+    for (WardRarity r : WardRarity.list()) {
       int need = floor.get(r);
       for (int i = 0; i < need && out.size() < target; i++) {
         WardItemEntry e = weightedPick(byRarity.get(r), random);
@@ -117,7 +117,7 @@ public final class WardRoller {
     int guard = Math.max(1, target) * 8 + 32;
     while (out.size() < target && guard-- > 0) {
       int totalWeight = 0;
-      for (WardRarity r : WardRarity.values()) {
+      for (WardRarity r : WardRarity.list()) {
         if (!open(byRarity, weightOf, cap, used, r)) {
           continue;
         }
@@ -129,7 +129,7 @@ public final class WardRoller {
 
       int slot = random.nextInt(totalWeight);
       WardRarity picked = null;
-      for (WardRarity r : WardRarity.values()) {
+      for (WardRarity r : WardRarity.list()) {
         if (!open(byRarity, weightOf, cap, used, r)) {
           continue;
         }

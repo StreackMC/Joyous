@@ -33,7 +33,7 @@ public final class WardItemEntry {
     copy.setAmount(1);
     this.template = copy;
     this.weight = Math.max(0, weight);
-    this.rarity = rarity == null ? WardRarity.COMMON : rarity;
+    this.rarity = rarity == null ? WardRarity.first() : rarity;
     setAmounts(minAmount, maxAmount);
   }
 
@@ -45,7 +45,7 @@ public final class WardItemEntry {
    */
   public static WardItemEntry of(ItemStack template) {
     int amount = Math.max(1, template.getAmount());
-    return new WardItemEntry(template, 1, WardRarity.COMMON, amount, amount);
+    return new WardItemEntry(template, 1, WardRarity.first(), amount, amount);
   }
 
   /** 物品模板（数量恒为 1），调用方需要自行 clone */
@@ -84,7 +84,7 @@ public final class WardItemEntry {
   }
 
   public void rarity(WardRarity rarity) {
-    this.rarity = rarity == null ? WardRarity.COMMON : rarity;
+    this.rarity = rarity == null ? WardRarity.first() : rarity;
   }
 
   public int minAmount() {

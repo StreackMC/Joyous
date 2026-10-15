@@ -53,6 +53,9 @@ public class JwardChestMain extends JoyousModel {
   public void onEnable() throws Exception {
     instance = this;
 
+    // 珍惜度是声明式的：先从配置读出来，后续构造容器设置时要用到档位列表
+    WardRarity.reload();
+
     store = new WardProfileStore(Joyous.dataPath);
     sessions = new WardSessionManager();
     search = new WardSearchController(this, sessions);
@@ -146,19 +149,10 @@ public class JwardChestMain extends JoyousModel {
       return ROOT + sub;
     }
 
-    // ── 搜索时长 ──
-
-    /** 某珍惜度的搜索基准时长（秒） */
-    public static double searchSeconds(WardRarity rarity) {
-      double def = switch (rarity) {
-        case COMMON -> 2.0;
-        case RARE -> 4.0;
-        case COLLECT -> 6.0;
-        case PRECIOUS -> 8.0;
-        case MYTHIC -> 12.0;
-      };
-      return Math.max(0.0, Joyous.conf.getDouble(key("search.seconds." + rarity.id()), def));
-    }
+    // ── 搜索 ──
+    // 注意：搜索基准时长、完成音效、音量、音高都是「每珍惜度」的，
+    // 已经随珍惜度一起声明在 JwardChest.rarities 里了（见 WardRarity），
+    // 这里只剩与档位无关的全局系数。
 
     /** 物品数量对搜索时长的系数（秒 / 个），影响很小 */
     public static double searchAmountFactor() {
@@ -187,24 +181,6 @@ public class JwardChestMain extends JoyousModel {
     /** 搜索动画刷新间隔（刻），2 刻 = 10fps */
     public static long updateIntervalTicks() {
       return Math.max(1L, Joyous.conf.getLong(key("search.update-interval-ticks"), 2L));
-    }
-
-    // ── 完成音效 ──
-
-    public static String completionSound(WardRarity rarity) {
-      return Joyous.conf.getString(key("sound.type." + rarity.id()), "entity.experience_orb.pickup");
-    }
-
-    /** 传播范围（音量），默认随珍惜度递增 */
-    public static float completionVolume(WardRarity rarity) {
-      double def = 0.5 + 0.3 * rarity.ordinal();
-      return (float) Math.max(0.0, Joyous.conf.getDouble(key("sound.volume." + rarity.id()), def));
-    }
-
-    /** 音高，默认随珍惜度递增 */
-    public static float completionPitch(WardRarity rarity) {
-      double def = 1.0 + 0.2 * rarity.ordinal();
-      return (float) Math.max(0.0, Joyous.conf.getDouble(key("sound.pitch." + rarity.id()), def));
     }
 
     // ── 占位物品 ──
