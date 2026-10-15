@@ -35,8 +35,8 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  */
 public final class WardGui {
 
-  /** 占位物品的 PDC 标记键：{@code joyous:jc_placeholder} */
-  public static final String PLACEHOLDER_KEY = "jc_placeholder";
+  /** 占位物品的 PDC 标记键：{@code joyous} */
+  public static final String PLACEHOLDER_KEY = "joyous";
   /** 未搜索（黑色玻璃板） */
   public static final String TAG_UNSEARCHED = "jc_placeholder_unsearched";
   /** 搜索中（白色玻璃板） */

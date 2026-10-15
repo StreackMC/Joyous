@@ -285,7 +285,7 @@ JwardChest:
     # 影响很小，仅用于让数量多的结果稍微多花一点时间
     amount-factor: 0.03
     ## 剩余多少秒时把占位物品换成结果珍惜度的颜色
-    urgency-seconds: 1.0
+    urgency-seconds: 2.0
     ## 动画刷新间隔（刻）
     # 2 刻 = 10fps（默认），4 刻 = 5fps，1 刻 = 20fps
     # 占位物品名做了量化（非紧急阶段只显示整秒），所以本项主要影响
@@ -320,8 +320,7 @@ JwardChest:
     lore:
       - ""
     ## 资源包模型键（custom_model）——资源包靠它把占位物品画成自己的贴图
-    # * 键只能用小写 ASCII（a-z0-9._-/）；带 ":" 按「命名空间:路径」解析；
-    #   不带 ":" 会被当作 minecraft 命名空间下的路径（例如 joyous:jc_unsearched 才是 joyous 命名空间）
+    # * 键只能用小写 ASCII（a-z0-9._-/）；带 ":" 按「命名空间:路径」解析，否则默认 minecraft:。
     # * 需要「未搜索 / 搜索中」两套贴图时改用 placeholder.model.unsearched 与 .searching，
     #   两者都未配置时才回落到本项；全部留空则不设置模型
     item-model: "joyous:jc_unsearched"
