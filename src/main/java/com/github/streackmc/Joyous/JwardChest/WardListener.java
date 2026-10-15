@@ -1,5 +1,11 @@
 package com.github.streackmc.Joyous.JwardChest;
 
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.annotation.Nullable;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -115,7 +121,7 @@ public final class WardListener implements Listener {
     }
 
     switch (holder.kind()) {
-      case EDITOR, CONTAINER_PICKER, MAX_DRAW -> {
+      case EDITOR, CONTAINER_PICKER, MAX_DRAW, DISTRIBUTION -> {
         // 纯按钮界面：全部取消原版行为
         event.setCancelled(true);
         safeHandle(event, holder);
@@ -229,11 +235,18 @@ public final class WardListener implements Listener {
           }
         }
       }
-      case EDITOR, CONTAINER_PICKER, ITEM_EDITOR, MAX_DRAW -> {
+      case EDITOR, CONTAINER_PICKER, ITEM_EDITOR, MAX_DRAW, DISTRIBUTION -> {
         // 编辑类界面关闭时统一落盘：一次编辑只写一次文件
         store.flush();
-        if (holder.kind() == WardGui.Kind.EDITOR && !chatInput.isWaiting(player)) {
+        // 正在等待聊天栏输入时（是我们自己关掉界面让他打字的），什么提示都别发
+        if (chatInput.isWaiting(player)) {
+          break;
+        }
+        if (holder.kind() == WardGui.Kind.EDITOR) {
           notifyEditorLeft(player);
+        } else {
+          backToEditor(player, holder.profileId(),
+              holder.payload() instanceof Location l ? l : null, holder.kind());
         }
       }
       default -> {
@@ -255,6 +268,41 @@ public final class WardListener implements Listener {
       if (WardGui.holderOf(player.getOpenInventory().getTopInventory()) == null) {
         player.sendMessage(i18n.tr("jwardchest.editor.closed"));
       }
+    });
+  }
+
+  /** 需要「关掉后自动回到主界面」的子界面 */
+  private static final Set<WardGui.Kind> SUBMENUS = EnumSet.of(
+      WardGui.Kind.CONTAINER_PICKER, WardGui.Kind.ITEM_EDITOR,
+      WardGui.Kind.MAX_DRAW, WardGui.Kind.DISTRIBUTION);
+
+  /**
+   * 子界面被 Esc / E 关掉后回到主编辑界面
+   * <p>
+   * 延迟一刻再判断「此刻玩家是否还开着我们自己的界面」——因为子界面之间的跳转、以及
+   * 「选完就直接开主界面」这类动作本身也会触发关闭事件，那时不该再叠一次开界面。
+   * 只有确实是玩家自己关掉的（此刻什么都没开）才回主界面。
+   * <p>
+   * 待选物品界面例外：它的改动要点「保存」才生效，这里只是回到主界面，
+   * 工作副本仍然留着，再次进入可以接着改（所以提示语也与其它子界面不同）。
+   */
+  private void backToEditor(Player player, UUID profileId, @Nullable Location block,
+      WardGui.Kind from) {
+    if (!SUBMENUS.contains(from)) {
+      return;
+    }
+    Bukkit.getScheduler().runTask(Joyous.plugin, () -> {
+      if (!player.isOnline()) {
+        return;
+      }
+      if (WardGui.holderOf(player.getOpenInventory().getTopInventory()) != null) {
+        // 已经在我们自己的界面里了（多半是动作本身跳过去的），不必再回主界面
+        return;
+      }
+      player.sendMessage(i18n.tr(from == WardGui.Kind.ITEM_EDITOR
+          ? "jwardchest.editor.items_unsaved"
+          : "jwardchest.editor.back"));
+      editor.openEditor(player, profileId, block);
     });
   }
 

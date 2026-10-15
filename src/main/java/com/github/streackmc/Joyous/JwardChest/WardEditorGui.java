@@ -131,6 +131,14 @@ public final class WardEditorGui {
             i18n.tr("jwardchest.editor.preview_hint"),
             i18n.tr("jwardchest.editor.preview_hint_instant"))));
 
+    inv.setItem(17, button(Material.COMPARATOR,
+        i18n.tr("jwardchest.editor.distribution", profile.countDistribution().id()),
+        List.of(
+            i18n.tr("jwardchest.editor.distribution_hint"),
+            i18n.tr("jwardchest.dist.count_label", profile.countDistribution().id()),
+            i18n.tr("jwardchest.dist.amount_label", profile.amountDistribution().id()),
+            i18n.tr("jwardchest.editor.click"))));
+
     player.openInventory(inv);
   }
 
@@ -142,7 +150,7 @@ public final class WardEditorGui {
     }
     lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalMinDraw(), profile.totalMaxDraw()));
     lore.add(i18n.tr("jwardchest.maxdraw.dist", profile.totalMinDraw(), profile.totalMaxDraw(),
-        JwardChestMain.CONF.countDistribution().id()));
+        profile.countDistribution().id()));
     lore.addAll(overflowHints(profile));
     lore.add(i18n.tr("jwardchest.editor.click"));
     return lore;
@@ -249,7 +257,7 @@ public final class WardEditorGui {
         : "jwardchest.maxdraw.row_ceiling"));
     lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalMinDraw(), profile.totalMaxDraw()));
     lore.add(i18n.tr("jwardchest.maxdraw.dist", profile.totalMinDraw(), profile.totalMaxDraw(),
-        JwardChestMain.CONF.countDistribution().id()));
+        profile.countDistribution().id()));
     lore.addAll(overflowHints(profile));
     lore.add(i18n.tr("jwardchest.maxdraw.hint"));
     return button(floorRow ? carpetOf(r) : woolOf(r),
@@ -277,6 +285,196 @@ public final class WardEditorGui {
       case PRECIOUS -> Material.YELLOW_CARPET;
       case MYTHIC -> Material.RED_CARPET;
     };
+  }
+
+  // ──────────────────────────────────────────────
+  // 数量分布子菜单
+  // ──────────────────────────────────────────────
+
+  /**
+   * 数量分布子界面
+   * <p>
+   * 左端两格管「结果组总条数」，右端两格管「单条结果的物品数量」；
+   * 每对分别是「分布」与「曲线指数」。分布与曲线都属于<b>容器设置</b>，随容器/预设组落盘。
+   */
+  private void openDistribution(Player player, UUID profileId, Location block) {
+    WardProfile profile = store.effective(profileId);
+    WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.DISTRIBUTION, profileId, block);
+    Inventory inv = Bukkit.createInventory(holder, 9,
+        WardGui.title(player, i18n.tr("jwardchest.dist.title")));
+    holder.attach(inv);
+
+    inv.setItem(0, distributionButton(profile, true));
+    inv.setItem(1, curveButton(profile, true));
+    inv.setItem(7, distributionButton(profile, false));
+    inv.setItem(8, curveButton(profile, false));
+    player.openInventory(inv);
+  }
+
+  private ItemStack distributionButton(WardProfile profile, boolean forCount) {
+    WardDistribution distribution =
+        forCount ? profile.countDistribution() : profile.amountDistribution();
+    double curve = forCount ? profile.countCurve() : profile.amountCurve();
+    List<String> lore = new ArrayList<>();
+    lore.add(i18n.tr("jwardchest.dist.shape", shapePreview(distribution, curve)));
+    lore.add(i18n.tr("jwardchest.dist.modes"));
+    lore.add(i18n.tr("jwardchest.dist.help_dist"));
+    return button(Material.COMPARATOR,
+        i18n.tr(forCount ? "jwardchest.dist.count_label" : "jwardchest.dist.amount_label",
+            distribution.id()),
+        lore);
+  }
+
+  private ItemStack curveButton(WardProfile profile, boolean forCount) {
+    WardDistribution distribution =
+        forCount ? profile.countDistribution() : profile.amountDistribution();
+    double curve = forCount ? profile.countCurve() : profile.amountCurve();
+    List<String> lore = new ArrayList<>();
+    lore.add(i18n.tr("jwardchest.dist.shape", shapePreview(distribution, curve)));
+    lore.add(distribution == WardDistribution.UNIFORM
+        ? i18n.tr("jwardchest.dist.curve_unused", distribution.id())
+        : i18n.tr("jwardchest.dist.help_curve"));
+    return button(Material.LEVER,
+        i18n.tr(forCount ? "jwardchest.dist.count_curve" : "jwardchest.dist.amount_curve",
+            formatCurve(curve)),
+        lore);
+  }
+
+  /** 形状预览用的字符（由低到高 8 档） */
+  private static final String BARS = "\u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588";
+
+  /**
+   * 画一个 9 段的形状预览
+   * <p>
+   * 直接<b>用同一个 {@code pick()} 采样</b>再统计，所以预览与真实抽取行为必然一致
+   * （固定种子，同一配置每次看到的形状相同）。
+   */
+  private static String shapePreview(WardDistribution distribution, double curve) {
+    int buckets = 9;
+    int[] hits = new int[buckets];
+    java.util.Random random = new java.util.Random(20261015L);
+    int samples = 3000;
+    for (int i = 0; i < samples; i++) {
+      hits[distribution.pick(random, 0, buckets - 1, curve)]++;
+    }
+    int max = 1;
+    for (int hit : hits) {
+      max = Math.max(max, hit);
+    }
+    StringBuilder sb = new StringBuilder(buckets);
+    for (int hit : hits) {
+      int level = (int) Math.round((double) hit / max * (BARS.length() - 1));
+      sb.append(BARS.charAt(Math.max(0, Math.min(BARS.length() - 1, level))));
+    }
+    return sb.toString();
+  }
+
+  private static String formatCurve(double curve) {
+    return String.format(java.util.Locale.ROOT, "%.1f", curve);
+  }
+
+  private boolean handleDistributionClick(InventoryClickEvent event, Player player,
+      WardGui.Holder holder) {
+    if (event.getClickedInventory() == null
+        || !event.getClickedInventory().equals(player.getOpenInventory().getTopInventory())) {
+      return true;
+    }
+    boolean forCount;
+    boolean isCurve;
+    switch (event.getRawSlot()) {
+      case 0 -> {
+        forCount = true;
+        isCurve = false;
+      }
+      case 1 -> {
+        forCount = true;
+        isCurve = true;
+      }
+      case 7 -> {
+        forCount = false;
+        isCurve = false;
+      }
+      case 8 -> {
+        forCount = false;
+        isCurve = true;
+      }
+      default -> {
+        return true;
+      }
+    }
+
+    UUID id = holder.profileId();
+    Location block = holder.payload() instanceof Location l ? l : null;
+    WardProfile profile = store.effective(id);
+    String name = i18n.tr(forCount ? "jwardchest.dist.count_name" : "jwardchest.dist.amount_name");
+
+    if (event.isShiftClick()) {
+      if (isCurve) {
+        double current = forCount ? profile.countCurve() : profile.amountCurve();
+        module.chatInput().request(player, WardChatInput.TYPE_CURVE, formatCurve(current), value -> {
+          WardProfile updated = store.effective(id);
+          double fallback = forCount ? updated.countCurve() : updated.amountCurve();
+          double parsed = parseDoubleOrDefault(value, fallback);
+          double clamped = WardProfile.clampCurve(parsed);
+          if (Math.abs(parsed - clamped) > 1e-9) {
+            player.sendMessage(i18n.tr("jwardchest.dist.curve_range",
+                formatCurve(WardProfile.MIN_CURVE), formatCurve(WardProfile.MAX_CURVE)));
+          }
+          applyCurve(updated, forCount, clamped);
+          store.save(updated);
+          player.sendMessage(i18n.tr("jwardchest.dist.curve_updated", name, formatCurve(clamped)));
+          reopenLater(player, () -> openDistribution(player, id, block));
+        });
+      } else {
+        WardDistribution current =
+            forCount ? profile.countDistribution() : profile.amountDistribution();
+        module.chatInput().request(player, WardChatInput.TYPE_DIST, current.id(), value -> {
+          WardDistribution parsed = WardDistribution.parse(value);
+          if (parsed == null) {
+            player.sendMessage(i18n.tr("jwardchest.dist.invalid", value, WardDistribution.ids()));
+            reopenLater(player, () -> openDistribution(player, id, block));
+            return;
+          }
+          WardProfile updated = store.effective(id);
+          if (forCount) {
+            updated.countDistribution(parsed);
+          } else {
+            updated.amountDistribution(parsed);
+          }
+          store.save(updated);
+          player.sendMessage(i18n.tr("jwardchest.dist.updated", name, parsed.id()));
+          reopenLater(player, () -> openDistribution(player, id, block));
+        });
+      }
+      return true;
+    }
+
+    if (isCurve) {
+      double step = event.isRightClick() ? -0.5 : 0.5;
+      double current = forCount ? profile.countCurve() : profile.amountCurve();
+      applyCurve(profile, forCount, current + step);
+    } else {
+      WardDistribution current =
+          forCount ? profile.countDistribution() : profile.amountDistribution();
+      WardDistribution next = event.isRightClick() ? current.previous() : current.next();
+      if (forCount) {
+        profile.countDistribution(next);
+      } else {
+        profile.amountDistribution(next);
+      }
+    }
+    store.save(profile);
+    reopenLater(player, () -> openDistribution(player, id, block));
+    return true;
+  }
+
+  /** 写入总条数 / 物品数量那一条的曲线指数 */
+  private static void applyCurve(WardProfile profile, boolean forCount, double curve) {
+    if (forCount) {
+      profile.countCurve(curve);
+    } else {
+      profile.amountCurve(curve);
+    }
   }
 
   // ──────────────────────────────────────────────
@@ -521,6 +719,9 @@ public final class WardEditorGui {
       case MAX_DRAW -> {
         return handleMaxDrawClick(event, player, holder);
       }
+      case DISTRIBUTION -> {
+        return handleDistributionClick(event, player, holder);
+      }
       case ITEM_EDITOR -> {
         return handleItemEditorClick(event, player, holder);
       }
@@ -574,6 +775,7 @@ public final class WardEditorGui {
             });
       }
       case 16 -> openPreview(player, id, block, event.isShiftClick());
+      case 17 -> openDistribution(player, id, block);
       default -> {
         return true;
       }
@@ -872,6 +1074,14 @@ public final class WardEditorGui {
       item.setItemMeta(meta);
     }
     return item;
+  }
+
+  private static double parseDoubleOrDefault(String value, double def) {
+    try {
+      return Double.parseDouble(value.trim());
+    } catch (Exception e) {
+      return def;
+    }
   }
 
   private static int parseIntOrDefault(String value, int def) {

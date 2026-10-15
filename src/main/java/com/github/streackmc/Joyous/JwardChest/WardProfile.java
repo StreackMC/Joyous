@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 import org.bukkit.inventory.ItemStack;
 
 import com.github.streackmc.StreackLib.types.SConfig;
@@ -25,6 +27,11 @@ public final class WardProfile {
 
   /** 预设代号「未设置」的默认值 */
   public static final String UNSET_CODE = "<unset>";
+  /** 曲线指数的默认值（1.0 = 最平缓） */
+  public static final double DEFAULT_CURVE = 2.0;
+  /** 曲线指数允许范围 */
+  public static final double MIN_CURVE = 1.0;
+  public static final double MAX_CURVE = 10.0;
 
   private final UUID id;
   private String presetCode;
@@ -34,6 +41,12 @@ public final class WardProfile {
   private int prefilterSeconds = 0;
   private final Map<WardRarity, Integer> minDraw = new EnumMap<>(WardRarity.class);
   private final Map<WardRarity, Integer> maxDraw = new EnumMap<>(WardRarity.class);
+  /** 结果组总条数的取值分布（属于容器设置，不再走全局 config） */
+  private WardDistribution countDistribution = WardDistribution.UNIFORM;
+  private double countCurve = DEFAULT_CURVE;
+  /** 单条结果里物品数量的取值分布 */
+  private WardDistribution amountDistribution = WardDistribution.UNIFORM;
+  private double amountCurve = DEFAULT_CURVE;
   private final List<WardItemEntry> entries = new ArrayList<>();
 
   public WardProfile(UUID id) {
@@ -198,6 +211,54 @@ public final class WardProfile {
     return entries.size();
   }
 
+  // ──────────────────────────────────────────────
+  // 数量分布（容器设置的一部分）
+  // ──────────────────────────────────────────────
+
+  /** 结果组总条数的取值分布 */
+  public WardDistribution countDistribution() {
+    return countDistribution;
+  }
+
+  public void countDistribution(WardDistribution distribution) {
+    this.countDistribution = distribution == null ? WardDistribution.UNIFORM : distribution;
+  }
+
+  /** 总条数分布的曲线指数 */
+  public double countCurve() {
+    return countCurve;
+  }
+
+  public void countCurve(double curve) {
+    this.countCurve = clampCurve(curve);
+  }
+
+  /** 单条结果里物品数量的取值分布 */
+  public WardDistribution amountDistribution() {
+    return amountDistribution;
+  }
+
+  public void amountDistribution(WardDistribution distribution) {
+    this.amountDistribution = distribution == null ? WardDistribution.UNIFORM : distribution;
+  }
+
+  /** 物品数量分布的曲线指数 */
+  public double amountCurve() {
+    return amountCurve;
+  }
+
+  public void amountCurve(double curve) {
+    this.amountCurve = clampCurve(curve);
+  }
+
+  /** 曲线指数夹取到 [{@value #MIN_CURVE}, {@value #MAX_CURVE}] */
+  public static double clampCurve(double curve) {
+    if (Double.isNaN(curve)) {
+      return DEFAULT_CURVE;
+    }
+    return Math.max(MIN_CURVE, Math.min(MAX_CURVE, curve));
+  }
+
   @Override
   public String toString() {
     return "WardProfile[" + id + " preset=" + presetCode + " " + container.id() + " rows=" + rows
@@ -219,6 +280,10 @@ public final class WardProfile {
     this.minDraw.putAll(other.minDraw);
     this.maxDraw.clear();
     this.maxDraw.putAll(other.maxDraw);
+    this.countDistribution = other.countDistribution;
+    this.countCurve = other.countCurve;
+    this.amountDistribution = other.amountDistribution;
+    this.amountCurve = other.amountCurve;
     this.entries.clear();
     this.entries.addAll(other.entries);
   }
@@ -266,6 +331,13 @@ public final class WardProfile {
     }
     section.put("entries", raw);
 
+    Map<String, Object> dist = new LinkedHashMap<>();
+    dist.put("count-distribution", countDistribution.id());
+    dist.put("count-curve", countCurve());
+    dist.put("amount-distribution", amountDistribution.id());
+    dist.put("amount-curve", amountCurve());
+    section.put("draw", dist);
+
     conf.putSection(path, section);
   }
 
@@ -300,11 +372,19 @@ public final class WardProfile {
       }
     }
 
-    Object drawObj = section.get("max-draw");
-    if (drawObj instanceof Map<?, ?> draw) {
+    Object capObj = section.get("max-draw");
+    if (capObj instanceof Map<?, ?> cap) {
       for (WardRarity r : WardRarity.values()) {
-        p.maxDraw(r, intOf(draw.get(r.id()), 0));
+        p.maxDraw(r, intOf(cap.get(r.id()), 0));
       }
+    }
+
+    Object distObj = section.get("draw");
+    if (distObj instanceof Map<?, ?> dist) {
+      p.countDistribution(WardDistribution.byId(raw(dist.get("count-distribution"))));
+      p.countCurve(doubleOf(dist.get("count-curve"), DEFAULT_CURVE));
+      p.amountDistribution(WardDistribution.byId(raw(dist.get("amount-distribution"))));
+      p.amountCurve(doubleOf(dist.get("amount-curve"), DEFAULT_CURVE));
     }
 
     Object entriesObj = section.get("entries");
@@ -326,6 +406,26 @@ public final class WardProfile {
   private static String str(Map<String, Object> section, String key, String def) {
     Object v = section.get(key);
     return v == null ? def : String.valueOf(v);
+  }
+
+  /** 取任意对象的字符串形式（容忍 YAML 的任意标量类型） */
+  private static String raw(@Nullable Object v) {
+    return v == null ? null : String.valueOf(v);
+  }
+
+  /** 取浮点字段：容忍 YAML 给出的 Double / Integer / String */
+  private static double doubleOf(@Nullable Object v, double def) {
+    if (v instanceof Number n) {
+      return n.doubleValue();
+    }
+    if (v instanceof String str) {
+      try {
+        return Double.parseDouble(str.trim());
+      } catch (NumberFormatException ignored) {
+        // 落到默认值
+      }
+    }
+    return def;
   }
 
   /** 取整数字段：容忍 YAML 给出的 Integer / Double / String */

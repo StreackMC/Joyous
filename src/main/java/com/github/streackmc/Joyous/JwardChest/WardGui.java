@@ -67,6 +67,8 @@ public final class WardGui {
     ITEM_EDITOR,
     /** 各品质最大抽出数量编辑 */
     MAX_DRAW,
+    /** 数量分布编辑 */
+    DISTRIBUTION,
     /** 运行时自定义容器 */
     RUNTIME,
     /** 预览 */

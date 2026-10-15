@@ -18,7 +18,7 @@ import java.util.Random;
  *   <li>{@link WardProfile#minDraw(WardRarity)} 是该珍惜度<b>至少</b>抽出几条（保底）；
  *       为 0 表示不设保底。</li>
  *   <li>结果组总条数在「各珍惜度下限之和 ~ 上限之和」之间按
- *       {@link WardDistribution}（默认{@link WardDistribution#UNIFORM} 离散均匀）取值，
+ *       {@link WardProfile#countDistribution()}（默认{@link WardDistribution#UNIFORM}）取值，
  *       再被容器槽位数与配置上限夹一次；全部上/下限都是 0 时视为「不限量」，按容器容量抽满。
  *       因此「上限设 10」<b>不等于</b>每次都抽 10 条，而是最多 10 条。</li>
  * </ul>
@@ -92,8 +92,7 @@ public final class WardRoller {
       int high = Math.min(Math.max(sumCap, sumFloor), capacity);
       // 下限没设时也不给出 0 条——那会是个空箱子（想要「可以为空」就把最小抽出数量设成 0 并接受它）
       int low = Math.min(Math.max(sumFloor, 1), high);
-      target = JwardChestMain.CONF.countDistribution().pick(random, low, high,
-          JwardChestMain.CONF.countCurve());
+      target = profile.countDistribution().pick(random, low, high, profile.countCurve());
     }
 
     Map<WardRarity, Integer> used = new EnumMap<>(WardRarity.class);
@@ -109,7 +108,7 @@ public final class WardRoller {
         if (e == null) {
           break;
         }
-        out.add(loot(e, random));
+        out.add(loot(e, random, profile));
         used.merge(r, 1, Integer::sum);
       }
     }
@@ -148,7 +147,7 @@ public final class WardRoller {
       if (e == null) {
         break;
       }
-      out.add(loot(e, random));
+      out.add(loot(e, random, profile));
       used.merge(picked, 1, Integer::sum);
     }
 
@@ -166,9 +165,10 @@ public final class WardRoller {
     return limit <= 0 || used.getOrDefault(r, 0) < limit;
   }
 
-  /** 抽一条结果：物品实例（数量按条目范围随机）+ 它的珍惜度 */
-  private static WardSession.Loot loot(WardItemEntry entry, Random random) {
-    return new WardSession.Loot(entry.display(entry.rollAmount(random)), entry.rarity());
+  /** 抽一条结果：物品实例（数量按条目范围 + 容器的数量分布取值）+ 它的珍惜度 */
+  private static WardSession.Loot loot(WardItemEntry entry, Random random, WardProfile profile) {
+    int amount = entry.rollAmount(random, profile.amountDistribution(), profile.amountCurve());
+    return new WardSession.Loot(entry.display(amount), entry.rarity());
   }
 
   /** 按权重挑一个；全部权重为 0 时返回 null */

@@ -40,6 +40,10 @@ public final class WardChatInput {
   public static final String TYPE_MAX = "max";
   /** 整数权重 */
   public static final String TYPE_WEIGHT = "weight";
+  /** 数量分布名（uniform / low / high / normal） */
+  public static final String TYPE_DIST = "dist";
+  /** 曲线指数（浮点） */
+  public static final String TYPE_CURVE = "curve";
 
   /** 一条待处理的输入 */
   private record Pending(String type, String oldValue, long expiresAt, Consumer<String> onAccept) {
@@ -156,6 +160,8 @@ public final class WardChatInput {
       case TYPE_MIN -> i18n.tr("jwardchest.input.field.min");
       case TYPE_MAX -> i18n.tr("jwardchest.input.field.max");
       case TYPE_WEIGHT -> i18n.tr("jwardchest.input.field.weight");
+      case TYPE_DIST -> i18n.tr("jwardchest.input.field.dist");
+      case TYPE_CURVE -> i18n.tr("jwardchest.input.field.curve");
       default -> type;
     };
 

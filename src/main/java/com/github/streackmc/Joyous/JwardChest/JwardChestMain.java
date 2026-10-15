@@ -146,34 +146,6 @@ public class JwardChestMain extends JoyousModel {
       return ROOT + sub;
     }
 
-    // ── 数量分布 ──
-
-    /**
-     * 结果组总条数的取值分布（在「各品质下限之和 ~ 上限之和」之间）
-     *
-     * @see WardDistribution
-     */
-    public static WardDistribution countDistribution() {
-      return WardDistribution.byId(
-          Joyous.conf.getString(key("draw.count-distribution"), WardDistribution.UNIFORM.id()));
-    }
-
-    /** 总条数分布的曲线指数，仅 low / high 使用 */
-    public static double countCurve() {
-      return Math.max(1.0, Joyous.conf.getDouble(key("draw.count-curve"), 2.0));
-    }
-
-    /** 单条结果里物品数量的取值分布（在条目的「最小 ~ 最大数量」之间） */
-    public static WardDistribution amountDistribution() {
-      return WardDistribution.byId(
-          Joyous.conf.getString(key("draw.amount-distribution"), WardDistribution.UNIFORM.id()));
-    }
-
-    /** 物品数量分布的曲线指数，仅 low / high 使用 */
-    public static double amountCurve() {
-      return Math.max(1.0, Joyous.conf.getDouble(key("draw.amount-curve"), 2.0));
-    }
-
     // ── 搜索时长 ──
 
     /** 某珍惜度的搜索基准时长（秒） */

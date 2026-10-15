@@ -344,8 +344,8 @@ public final class JwardChestCommand {
     caps.add(profile.totalMaxDraw());
     reply(ctx, i18n.tr("jwardchest.command.info.maxdraw", caps.toArray()));
     reply(ctx, i18n.tr("jwardchest.command.info.dist",
-        JwardChestMain.CONF.countDistribution().id(),
-        JwardChestMain.CONF.amountDistribution().id()));
+        profile.countDistribution().id(), profile.countCurve(),
+        profile.amountDistribution().id(), profile.amountCurve()));
 
     long active = profile.entries().stream().filter(WardItemEntry::active).count();
     reply(ctx, i18n.tr("jwardchest.command.info.entries",

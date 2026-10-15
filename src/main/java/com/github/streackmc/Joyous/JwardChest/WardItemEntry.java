@@ -158,12 +158,15 @@ public final class WardItemEntry {
   /**
    * 抽取时随机取一个数量
    * <p>
-   * 在 {@code [最小数量, 最大数量]} 闭区间内按 {@link WardDistribution}
-   * （默认 {@link WardDistribution#UNIFORM} 离散均匀）取值，两端也不例外。
+   * 在 {@code [最小数量, 最大数量]} 闭区间内按给定分布取值，两端也不例外。
+   * 分布属于容器设置，由调用方（{@link WardRoller}）从 {@link WardProfile} 里取。
+   *
+   * @param random       随机源
+   * @param distribution 取值分布
+   * @param curve        曲线指数，见 {@link WardDistribution#pick}
    */
-  public int rollAmount(Random random) {
-    return JwardChestMain.CONF.amountDistribution()
-        .pick(random, minAmount, maxAmount, JwardChestMain.CONF.amountCurve());
+  public int rollAmount(Random random, WardDistribution distribution, double curve) {
+    return distribution.pick(random, minAmount, maxAmount, curve);
   }
 
   /** 是否参与抽取 */
