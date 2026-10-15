@@ -155,11 +155,15 @@ public final class WardItemEntry {
     setMax(maxAmount + delta);
   }
 
-  /** 抽取时随机取一个数量（闭区间均匀分布） */
+  /**
+   * 抽取时随机取一个数量
+   * <p>
+   * 在 {@code [最小数量, 最大数量]} 闭区间内按 {@link WardDistribution}
+   * （默认 {@link WardDistribution#UNIFORM} 离散均匀）取值，两端也不例外。
+   */
   public int rollAmount(Random random) {
-    if (maxAmount <= minAmount)
-      return minAmount;
-    return minAmount + random.nextInt(maxAmount - minAmount + 1);
+    return JwardChestMain.CONF.amountDistribution()
+        .pick(random, minAmount, maxAmount, JwardChestMain.CONF.amountCurve());
   }
 
   /** 是否参与抽取 */

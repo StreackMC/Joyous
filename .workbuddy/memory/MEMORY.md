@@ -52,6 +52,14 @@
    - ②「预设代号」即**预设组名**：不为空 ⇒ 生效设置取组、编辑写回组(整组联动)；为空 ⇒ 用自身设置(覆盖关系)
    - 组在 YAML 里的键用 **URL 安全 Base64**(代号允许 `.`，而 SConfig 路径以 `.` 分隔)
    - GUI 用自定义 `InventoryHolder`(`WardGui.Holder`)区分各类界面；占位玻璃板带 PDC 标记 `joyous:jc_placeholder`
+   - **数量分布**(2026-10-15 对齐)：凡「在下限~上限间取整数」都走 `WardDistribution`
+     (uniform/low/high + curve)，共两处——结果组总条数(下限和~上限和)、单条结果的物品数量；默认 uniform；
+     **总条数下限强制 ≥1** 以免抽出空箱。⚠️ `pick()` 必须用 `floor(shaped*(span+1))`，
+     用 `round(shaped*span)` 会让两端概率减半
+   - 每珍惜度有 `minDraw`(保底) 与 `maxDraw`(上限)：先发满保底，其余按权重分摊并受上限约束；
+     上限 0 = 不限；总条数全 0 时按容器容量抽满
+   - 编辑器放入物品 = 登记模板(**不消耗**物品、继承堆叠数量)，列表每次操作后紧凑排列(自动排序)
+   - 物品文本一律过 `WardGui.legacy()`(内部 `ensureReset`)，否则原版把物品名渲染成斜体
    - ⚠️ 未验证部分：GUI 交互与搜索动画需要真人在线，headless 只验到「装配+命令+持久化」
 
 ## 外部依赖 (全部 provided scope)

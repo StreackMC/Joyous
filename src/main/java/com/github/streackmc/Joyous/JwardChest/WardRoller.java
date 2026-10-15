@@ -17,9 +17,10 @@ import java.util.Random;
  *       不再等于「一定抽这么多」；为 0 表示不设上限。</li>
  *   <li>{@link WardProfile#minDraw(WardRarity)} 是该珍惜度<b>至少</b>抽出几条（保底）；
  *       为 0 表示不设保底。</li>
- *   <li>结果组总条数 = 各珍惜度上限之和（{@link WardProfile#totalMaxDraw()}，
- *       若上限之和小于保底之和则以保底之和为准），再被容器槽位数与配置上限夹一次；
- *       全部上/下限都是 0 时视为「不限量」，按容器容量抽满。</li>
+ *   <li>结果组总条数在「各珍惜度下限之和 ~ 上限之和」之间按
+ *       {@link WardDistribution}（默认{@link WardDistribution#UNIFORM} 离散均匀）取值，
+ *       再被容器槽位数与配置上限夹一次；全部上/下限都是 0 时视为「不限量」，按容器容量抽满。
+ *       因此「上限设 10」<b>不等于</b>每次都抽 10 条，而是最多 10 条。</li>
  * </ul>
  * 抽取分两步：先给每个珍惜度发满它的保底（保底优先，不受权重影响），
  * 再把剩余条数按权重分摊到各珍惜度、并受各自上限约束。
@@ -88,7 +89,11 @@ public final class WardRoller {
       target = capacity;
     } else {
       // 上限之和小于保底之和时以保底为准（minDraw/maxDraw 的联动一般不会让这种情况出现）
-      target = Math.min(Math.max(sumCap, sumFloor), capacity);
+      int high = Math.min(Math.max(sumCap, sumFloor), capacity);
+      // 下限没设时也不给出 0 条——那会是个空箱子（想要「可以为空」就把最小抽出数量设成 0 并接受它）
+      int low = Math.min(Math.max(sumFloor, 1), high);
+      target = JwardChestMain.CONF.countDistribution().pick(random, low, high,
+          JwardChestMain.CONF.countCurve());
     }
 
     Map<WardRarity, Integer> used = new EnumMap<>(WardRarity.class);

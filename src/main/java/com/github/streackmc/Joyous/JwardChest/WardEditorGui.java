@@ -141,6 +141,8 @@ public final class WardEditorGui {
           + profile.maxDraw(r));
     }
     lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalMinDraw(), profile.totalMaxDraw()));
+    lore.add(i18n.tr("jwardchest.maxdraw.dist", profile.totalMinDraw(), profile.totalMaxDraw(),
+        JwardChestMain.CONF.countDistribution().id()));
     lore.addAll(overflowHints(profile));
     lore.add(i18n.tr("jwardchest.editor.click"));
     return lore;
@@ -246,6 +248,8 @@ public final class WardEditorGui {
         ? "jwardchest.maxdraw.row_floor"
         : "jwardchest.maxdraw.row_ceiling"));
     lore.add(i18n.tr("jwardchest.maxdraw.total", profile.totalMinDraw(), profile.totalMaxDraw()));
+    lore.add(i18n.tr("jwardchest.maxdraw.dist", profile.totalMinDraw(), profile.totalMaxDraw(),
+        JwardChestMain.CONF.countDistribution().id()));
     lore.addAll(overflowHints(profile));
     lore.add(i18n.tr("jwardchest.maxdraw.hint"));
     return button(floorRow ? carpetOf(r) : woolOf(r),
