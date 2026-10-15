@@ -979,7 +979,6 @@ public final class WardEditorGui {
     if (drop) {
       if (existing != null) {
         setEntryAt(state, index, null);
-        player.sendMessage(i18n.tr("jwardchest.items.removed"));
         repaint(player, state);
       }
       return;
@@ -990,7 +989,6 @@ public final class WardEditorGui {
       // **不消耗**玩家手上的物品——这里是「登记」而不是「投入」，光标原样不动，
       // 玩家把手上那摞放回哪里由他自己决定。
       setEntryAt(state, index, WardItemEntry.of(cursor));
-      player.sendMessage(i18n.tr("jwardchest.items.placed"));
       repaint(player, state);
       return;
     }

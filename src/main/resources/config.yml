@@ -323,9 +323,9 @@ JwardChest:
     # * 键只能用小写 ASCII（a-z0-9._-/）；带 ":" 按「命名空间:路径」解析，否则默认 minecraft:。
     # * 需要「未搜索 / 搜索中」两套贴图时改用 placeholder.model.unsearched 与 .searching，
     #   两者都未配置时才回落到本项；全部留空则不设置模型
-    item-model: "joyous:jc_unsearched"
+    item-model: ""
     ## 原版 custom_model_data，0 表示不设置
-    custom-model-data: 729101
+    custom-model-data: 0
   ## 粗筛阶段的占位区域
   prefilter:
     rows: 2

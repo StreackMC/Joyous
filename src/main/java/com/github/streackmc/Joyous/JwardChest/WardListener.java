@@ -301,9 +301,9 @@ public final class WardListener implements Listener {
         // 已经在我们自己的界面里了（多半是动作本身跳过去的），不必再回主界面
         return;
       }
-      player.sendMessage(i18n.tr(from == WardGui.Kind.ITEM_EDITOR
-          ? "jwardchest.editor.items_unsaved"
-          : "jwardchest.editor.back"));
+      if (from == WardGui.Kind.ITEM_EDITOR) {
+        player.sendMessage(i18n.tr("jwardchest.editor.items_unsaved"));
+      }
       editor.openEditor(player, profileId, block);
     });
   }
