@@ -60,6 +60,12 @@
      上限 0 = 不限；总条数全 0 时按容器容量抽满
    - 编辑器放入物品 = 登记模板(**不消耗**物品、继承堆叠数量)，列表每次操作后紧凑排列(自动排序)
    - 物品文本一律过 `WardGui.legacy()`(内部 `ensureReset`)，否则原版把物品名渲染成斜体
+   - **搜索中占位走「帧」API**(2026-10-15)：`WardGui.Frame(material, text)` 是「一次计算的全部产物」，
+     `prefilterFrame()`(粗筛,带秒数) / `slotFrame()`(逐结果,不带秒数) 出帧、`searchingPane(frame)` 出物品；
+     控制器 `push(..., Frame)` 用 `Frame[] frameCache` 去重(比较一帧 = 比较整格画出来的样子)。
+     进入紧急窗口时**材质与文字一起变**，配色 普通白/稀有绿/典藏紫/珍贵金(ORANGE)/绝世红，
+     窗口 = `clamp(时长 × urgency-ratio, urgency-min-seconds, urgency-seconds)`；
+     ⚠️ 普通档紧急色即白色，与平时相同(配色必然结果)
    - ⚠️ 未验证部分：GUI 交互与搜索动画需要真人在线，headless 只验到「装配+命令+持久化」
 
 ## 外部依赖 (全部 provided scope)

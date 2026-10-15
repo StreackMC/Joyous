@@ -286,6 +286,8 @@ jwardchest:
     reload:
       done: "&a已重新读取设置：&f%s &a个容器、&f%s &a个预设组。"
   container:
+    # 逐结果搜索阶段的占位名（不显示秒数，只在最后一段窗口换成结果珍惜度的颜色）
+    searching: "搜索中"
     empty: "&e这个战利品箱还没有配置任何可抽出的物品。"
     empty_zero_weight: "&e这个战利品箱里所有物品的权重都是 0，抽不出任何东西。"
     searched_all: "&a你已搜索出全部结果。"

@@ -270,13 +270,14 @@ public final class WardSearchController {
       for (int i = 0; i < open.getSize(); i++) {
         open.setItem(i, WardGui.unsearchedPane());
       }
-      s.forgetTextCache();
+      s.forgetFrameCache();
     }
 
     long remain = s.prefilterEndsAt - now;
     WardRarity highest = highestRarity(session);
-    // 文本量化后基本每秒才变一次，没变就不发包
-    push(s, open, prefilterSlots(open.getSize()), highest, Math.max(0, remain));
+    // 帧内文本按整秒量化，所以每秒只变一次；帧没变就不发包
+    push(s, open, prefilterSlots(open.getSize()),
+        WardGui.prefilterFrame(highest, Math.max(0, remain), s.profile.prefilterSeconds()));
 
     if (remain > 0) {
       return;
@@ -285,7 +286,7 @@ public final class WardSearchController {
     // 粗筛结束：进入正常搜索流程，界面重置为「结果槽黑玻璃板」
     session.prefilted(true);
     s.prefilterDone = true;
-    s.forgetTextCache();
+    s.forgetFrameCache();
     Player player = Bukkit.getPlayer(s.playerId);
     if (player != null) {
       buildInitial(open, s.profile, session, player);
@@ -309,8 +310,9 @@ public final class WardSearchController {
         return;
       }
       WardSession.Loot target = loot.get(s.current);
-      s.slotEndsAt = now + (long) (target.rarity().searchSeconds(target.item().getAmount()) * 1000.0);
-      push(s, open, slot, target.rarity(), s.slotEndsAt - now);
+      s.slotSeconds = target.rarity().searchSeconds(target.item().getAmount());
+      s.slotEndsAt = now + (long) (s.slotSeconds * 1000.0);
+      push(s, open, slot, WardGui.slotFrame(target.rarity(), s.slotEndsAt - now, s.slotSeconds));
       return;
     }
 
@@ -328,7 +330,9 @@ public final class WardSearchController {
     WardSession.Loot target = loot.get(s.current);
     long remain = s.slotEndsAt - now;
     if (remain > 0) {
-      push(s, open, slot, target.rarity(), remain);
+      // 逐结果阶段帧内文本恒定，只有「进入紧急窗口」那一刻会变（材质与名字一起变），
+      // 所以整格搜索过程中通常只有两次更新
+      push(s, open, slot, WardGui.slotFrame(target.rarity(), remain, s.slotSeconds));
       return;
     }
 
@@ -356,30 +360,30 @@ public final class WardSearchController {
   }
 
   /**
-   * 按需刷新「搜索中」占位：只有量化后的显示文本真正变化时才 setItem
+   * 按需刷新「搜索中」占位：只有这一帧与上次真正发出去的不同时才 setItem
    * <p>
-   * 这是压低发包量的关键。文本在非紧急阶段按整秒量化，所以 10fps 的任务实际每秒只发一次包，
-   * 最后 {@code urgency-seconds} 秒才回到 10 次/秒。
+   * 这是压低发包量的关键。帧把「材质 + 文本」打包在一起，所以比较一帧就等于比较整格
+   * 画出来的样子：粗筛阶段每秒变一次（文本按整秒量化），逐结果阶段通常每格只变两次
+   * （开局、进入紧急窗口）。
    */
-  private static void push(Search s, Inventory open, int slot, WardRarity rarity, long remain) {
+  private static void push(Search s, Inventory open, int slot, WardGui.Frame frame) {
     if (slot < 0 || slot >= open.getSize()) {
       return;
     }
-    String text = WardGui.searchingText(rarity, remain);
-    if (s.textCache == null || s.textCache.length != open.getSize()) {
-      s.textCache = new String[open.getSize()];
+    if (s.frameCache == null || s.frameCache.length != open.getSize()) {
+      s.frameCache = new WardGui.Frame[open.getSize()];
     }
-    if (text.equals(s.textCache[slot])) {
+    if (frame.equals(s.frameCache[slot])) {
       return;
     }
-    s.textCache[slot] = text;
-    open.setItem(slot, WardGui.searchingPaneText(text));
+    s.frameCache[slot] = frame;
+    open.setItem(slot, WardGui.searchingPane(frame));
   }
 
-  /** 一次刷新多个槽位（粗筛的 行×列 区域） */
-  private static void push(Search s, Inventory open, List<Integer> slots, WardRarity rarity, long remain) {
+  /** 一次刷新多个槽位（粗筛的 行×列 区域，共用同一帧） */
+  private static void push(Search s, Inventory open, List<Integer> slots, WardGui.Frame frame) {
     for (int slot : slots) {
-      push(s, open, slot, rarity, remain);
+      push(s, open, slot, frame);
     }
   }
 
@@ -443,20 +447,22 @@ public final class WardSearchController {
     /** 当前正在搜索的结果下标；-1 表示尚未开始下一格 */
     int current = -1;
     long slotEndsAt;
+    /** 当前这一格的搜索总时长（秒），用于按比例算紧急着色窗口 */
+    double slotSeconds;
     boolean prefilterDone;
     boolean prefilterStarted;
     long prefilterEndsAt;
-    /** 每个槽上一次真正发送出去的显示文本，用于抑制无变化的刷新 */
-    String[] textCache;
+    /** 每个槽上一次真正发送出去的帧（材质 + 文本），用于抑制无变化的刷新 */
+    WardGui.Frame[] frameCache;
 
     Search(String sessionKey, UUID playerId) {
       this.sessionKey = sessionKey;
       this.playerId = playerId;
     }
 
-    /** 界面被重建（clear/setItem 全量重写）后必须丢弃文本缓存 */
-    void forgetTextCache() {
-      textCache = null;
+    /** 界面被重建（clear/setItem 全量重写）后必须丢弃帧缓存 */
+    void forgetFrameCache() {
+      frameCache = null;
     }
 
     String taskKey() {

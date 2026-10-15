@@ -165,9 +165,23 @@ public class JwardChestMain extends JoyousModel {
       return Math.max(0.0, Joyous.conf.getDouble(key("search.amount-factor"), 0.05));
     }
 
-    /** 剩余多少秒时切换为珍惜度颜色 */
-    public static double urgencySeconds() {
-      return Math.max(0.0, Joyous.conf.getDouble(key("search.urgency-seconds"), 2.0));
+    /**
+     * 「紧急着色窗口」的时长（秒）
+     * <p>
+     * 不再是一个写死的绝对秒数，而是<b>按这次搜索自己有多长</b>算出来再夹取：
+     * <pre>窗口 = clamp(本次时长 × urgency-ratio, urgency-min-seconds, urgency-seconds)</pre>
+     * 这样长搜索（十几秒）与短搜索（一点几秒）都能拿到「最后一段」的比例感，
+     * 而上下两个夹取避免短搜索的窗口短到看不见、长搜索的窗口长到整段都在闪颜色。
+     *
+     * @param durationSeconds 本次搜索的总时长（秒）
+     * @return 窗口秒数；配置全为 0 时返回 0（即不切换颜色）
+     */
+    public static double urgentWindowSeconds(double durationSeconds) {
+      double ratio = Math.max(0.0, Joyous.conf.getDouble(key("search.urgency-ratio"), 0.25));
+      double max = Math.max(0.0, Joyous.conf.getDouble(key("search.urgency-seconds"), 2.0));
+      double min = Math.min(max,
+          Math.max(0.0, Joyous.conf.getDouble(key("search.urgency-min-seconds"), 0.5)));
+      return Math.max(min, Math.min(max, Math.max(0.0, durationSeconds) * ratio));
     }
 
     /** 搜索动画刷新间隔（刻），2 刻 = 10fps */

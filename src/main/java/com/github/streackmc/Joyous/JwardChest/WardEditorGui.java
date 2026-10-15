@@ -423,8 +423,7 @@ public final class WardEditorGui {
           applyCurve(updated, forCount, clamped);
           store.save(updated);
           player.sendMessage(i18n.tr("jwardchest.dist.curve_updated", name, formatCurve(clamped)));
-          reopenLater(player, () -> openDistribution(player, id, block));
-        });
+        }, () -> reopenLater(player, () -> openDistribution(player, id, block)));
       } else {
         WardDistribution current =
             forCount ? profile.countDistribution() : profile.amountDistribution();
@@ -432,7 +431,6 @@ public final class WardEditorGui {
           WardDistribution parsed = WardDistribution.parse(value);
           if (parsed == null) {
             player.sendMessage(i18n.tr("jwardchest.dist.invalid", value, WardDistribution.ids()));
-            reopenLater(player, () -> openDistribution(player, id, block));
             return;
           }
           WardProfile updated = store.effective(id);
@@ -443,8 +441,7 @@ public final class WardEditorGui {
           }
           store.save(updated);
           player.sendMessage(i18n.tr("jwardchest.dist.updated", name, parsed.id()));
-          reopenLater(player, () -> openDistribution(player, id, block));
-        });
+        }, () -> reopenLater(player, () -> openDistribution(player, id, block)));
       }
       return true;
     }
@@ -518,6 +515,26 @@ public final class WardEditorGui {
       return;
     }
     renderItemEditor(player, state, null);
+  }
+
+  /**
+   * Shift+左键背包里的物品：直接登记成一条新的待选条目
+   * <p>
+   * 与「把物品拿到光标上再点物品格」等价，只是省一步；同样<b>不消耗</b>原物品
+   * （{@link WardItemEntry#of} 只取模板副本），数量照常继承。
+   *
+   * @param fromInventory 玩家背包里被 Shift+左键点到的物品
+   */
+  public void appendEntry(Player player, WardGui.Holder holder, @Nullable ItemStack fromInventory) {
+    if (!(holder.payload() instanceof ItemEditorState state)) {
+      return;
+    }
+    if (fromInventory == null || fromInventory.getType().isAir()) {
+      return;
+    }
+    state.entries.add(WardItemEntry.of(fromInventory));
+    compact(state);
+    repaint(player, state);
   }
 
   /** 把当前页画进给定界面（每次画之前先紧凑化：条目从左上角依次排开 = 自动排序） */
@@ -747,8 +764,7 @@ public final class WardEditorGui {
         module.chatInput().request(player, WardChatInput.TYPE_CODE, old, value -> {
           store.setPresetCode(id, value);
           player.sendMessage(i18n.tr("jwardchest.editor.code_updated", value));
-          reopenLater(player, () -> openEditor(player, id, block));
-        });
+        }, () -> reopenLater(player, () -> openEditor(player, id, block)));
       }
       case 12 -> openItemEditor(player, id, block);
       case 13 -> openMaxDraw(player, id, block);
@@ -759,8 +775,7 @@ public final class WardEditorGui {
           updated.title(value);
           store.save(updated);
           player.sendMessage(i18n.tr("jwardchest.editor.title_updated", value));
-          reopenLater(player, () -> openEditor(player, id, block));
-        });
+        }, () -> reopenLater(player, () -> openEditor(player, id, block)));
       }
       case 15 -> {
         WardProfile profile = store.effective(id);
@@ -771,8 +786,7 @@ public final class WardEditorGui {
               updated.prefilterSeconds(seconds);
               store.save(updated);
               player.sendMessage(i18n.tr("jwardchest.editor.prefilter_updated", seconds));
-              reopenLater(player, () -> openEditor(player, id, block));
-            });
+            }, () -> reopenLater(player, () -> openEditor(player, id, block)));
       }
       case 16 -> openPreview(player, id, block, event.isShiftClick());
       case 17 -> openDistribution(player, id, block);
@@ -853,8 +867,7 @@ public final class WardEditorGui {
         int fallback = floorRow ? updated.minDraw(rarity) : updated.maxDraw(rarity);
         applyDraw(updated, rarity, floorRow, parseIntOrDefault(value, fallback));
         store.save(updated);
-        reopenLater(player, () -> openMaxDraw(player, id, block));
-      });
+      }, () -> reopenLater(player, () -> openMaxDraw(player, id, block)));
       return true;
     }
 
@@ -1002,14 +1015,12 @@ public final class WardEditorGui {
       module.chatInput().request(player, WardChatInput.TYPE_MAX,
           String.valueOf(entry.maxAmount()), value -> {
             entry.setMax(parseIntOrDefault(value, entry.maxAmount()));
-            repaint(player, state);
-          });
+          }, () -> repaint(player, state));
     } else {
       module.chatInput().request(player, WardChatInput.TYPE_MIN,
           String.valueOf(entry.minAmount()), value -> {
             entry.setMin(parseIntOrDefault(value, entry.minAmount()));
-            repaint(player, state);
-          });
+          }, () -> repaint(player, state));
     }
   }
 
@@ -1025,8 +1036,7 @@ public final class WardEditorGui {
       module.chatInput().request(player, WardChatInput.TYPE_WEIGHT,
           String.valueOf(entry.weight()), value -> {
             entry.weight(parseIntOrDefault(value, entry.weight()));
-            repaint(player, state);
-          });
+          }, () -> repaint(player, state));
       return;
     }
 

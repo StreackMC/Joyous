@@ -7,7 +7,10 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+
+import com.github.streackmc.Joyous.Joyous;
 
 import com.github.streackmc.Joyous.i18n;
 
@@ -45,8 +48,15 @@ public final class WardChatInput {
   /** 曲线指数（浮点） */
   public static final String TYPE_CURVE = "curve";
 
-  /** 一条待处理的输入 */
-  private record Pending(String type, String oldValue, long expiresAt, Consumer<String> onAccept) {
+  /**
+   * 一条待处理的输入
+   *
+   * @param onAccept 收到有效输入时执行
+   * @param onFinish 无论提交、取消还是超时都会执行一次的收尾动作（通常是「把界面开回来」）；
+   *                 可为 null
+   */
+  private record Pending(String type, String oldValue, long expiresAt,
+      Consumer<String> onAccept, @Nullable Runnable onFinish) {
   }
 
   private final Map<UUID, Pending> pending = new ConcurrentHashMap<>();
@@ -65,10 +75,24 @@ public final class WardChatInput {
    * @param onAccept 接受回调
    */
   public void request(Player player, String type, @Nullable String oldValue, Consumer<String> onAccept) {
+    request(player, type, oldValue, onAccept, null);
+  }
+
+  /**
+   * 发起一次聊天栏输入，并指定「收尾动作」
+   * <p>
+   * 我们会替玩家关掉界面让他打字，所以<b>必须有人把界面开回来</b>。收尾动作在
+   * 提交、取消、超时三种结局下都会执行一次，且一定在<b>主线程</b>上——聊天事件是异步的，
+   * 在里面直接 {@code openInventory} 会被服务端拒绝（这正是「输入完打不开编辑器」的原因）。
+   *
+   * @param onFinish 收尾动作（通常是「重新打开某个界面」），可为 null
+   */
+  public void request(Player player, String type, @Nullable String oldValue,
+      Consumer<String> onAccept, @Nullable Runnable onFinish) {
     long ttl = JwardChestMain.CONF.chatInputTimeoutSeconds() * 1000L;
     // 先登记，再关界面：关闭事件里会检查「是否正在等待输入」，避免白发一条"已退出编辑"
     pending.put(player.getUniqueId(), new Pending(type, oldValue == null ? "" : oldValue,
-        System.currentTimeMillis() + ttl, onAccept));
+        System.currentTimeMillis() + ttl, onAccept, onFinish));
     // 玩家要打字就必须离开容器界面，这里替他关掉，省得他手动按 Esc
     player.closeInventory();
     player.sendMessage(buildPrompt(type, oldValue));
@@ -81,14 +105,7 @@ public final class WardChatInput {
    */
   public boolean isWaiting(Player player) {
     Pending p = pending.get(player.getUniqueId());
-    if (p == null) {
-      return false;
-    }
-    if (System.currentTimeMillis() > p.expiresAt()) {
-      pending.remove(player.getUniqueId());
-      return false;
-    }
-    return true;
+    return p != null && System.currentTimeMillis() <= p.expiresAt();
   }
 
   /** 是否有待处理的输入 */
@@ -99,7 +116,7 @@ public final class WardChatInput {
     }
     if (System.currentTimeMillis() > p.expiresAt()) {
       pending.remove(player.getUniqueId());
-      player.sendMessage(i18n.tr("jwardchest.input.expired"));
+      runOnMain(player, p, () -> player.sendMessage(i18n.tr("jwardchest.input.expired")));
       return false;
     }
     return true;
@@ -130,26 +147,53 @@ public final class WardChatInput {
     }
     Pending p = pending.get(player.getUniqueId());
     pending.remove(player.getUniqueId());
+    if (p == null) {
+      return false;
+    }
 
     String value = message == null ? "" : message.trim();
 
     if (value.equalsIgnoreCase("cancel")) {
-      player.sendMessage(i18n.tr("jwardchest.input.cancelled"));
+      runOnMain(player, p, () -> player.sendMessage(i18n.tr("jwardchest.input.cancelled")));
       return true;
     }
 
     if (TYPE_CODE.equals(p.type()) && (value.equalsIgnoreCase("unset")
         || value.equalsIgnoreCase(WardProfile.UNSET_CODE))) {
-      p.onAccept().accept(WardProfile.UNSET_CODE);
-      store.flush();
-      player.sendMessage(i18n.tr("jwardchest.input.code_unset"));
+      runOnMain(player, p, () -> {
+        p.onAccept().accept(WardProfile.UNSET_CODE);
+        store.flush();
+        player.sendMessage(i18n.tr("jwardchest.input.code_unset"));
+      });
       return true;
     }
 
-    p.onAccept().accept(value);
-    // 聊天栏输入是「一次一个动作」，直接落盘；界面里的连点编辑才靠关闭时统一落盘
-    store.flush();
+    runOnMain(player, p, () -> {
+      p.onAccept().accept(value);
+      // 聊天栏输入是「一次一个动作」，直接落盘；界面里的连点编辑才靠关闭时统一落盘
+      store.flush();
+    });
     return true;
+  }
+
+  /**
+   * 统一在主线程上「执行动作 → 收尾」
+   * <p>
+   * 聊天事件跑在异步线程上，凡是要碰背包/界面的都不能在那里做，所以这里统一调度。
+   * 已经在主线程时就直接执行，免得白白延后一刻。
+   */
+  private static void runOnMain(Player player, Pending p, Runnable action) {
+    Runnable job = () -> {
+      action.run();
+      if (p.onFinish() != null && player.isOnline()) {
+        p.onFinish().run();
+      }
+    };
+    if (Bukkit.isPrimaryThread()) {
+      job.run();
+    } else {
+      Bukkit.getScheduler().runTask(Joyous.plugin, job);
+    }
   }
 
   /** 组装提示消息 */

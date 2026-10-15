@@ -136,9 +136,15 @@ public final class WardListener implements Listener {
           safeHandle(event, holder);
           return;
         }
-        // 下半部分的「快捷移动 / 双击收拢」仍可能碰上半区（双击会把光标上的物品
-        // 与容器里同类物品合并），一律挡掉，免得编辑者的物品被塞进我们的界面后丢失
+        // 背包侧的 Shift+左键 = 把这个物品登记成一条待选条目（不消耗原物品）
         ClickType click = event.getClick();
+        if (click == ClickType.SHIFT_LEFT) {
+          event.setCancelled(true);
+          editor.appendEntry(player, holder, event.getCurrentItem());
+          return;
+        }
+        // 其余「快捷移动 / 双击收拢」仍可能碰上半区（双击会把光标上的物品
+        // 与容器里同类物品合并），一律挡掉，免得编辑者的物品被塞进我们的界面后丢失
         if (click.isShiftClick() || click == ClickType.DOUBLE_CLICK) {
           event.setCancelled(true);
         }

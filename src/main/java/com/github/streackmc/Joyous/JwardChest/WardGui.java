@@ -136,38 +136,110 @@ public final class WardGui {
   }
 
   /**
-   * 搜索中占位（白色玻璃板），名称为剩余搜索时间
+   * 「搜索中」占位的一帧
+   * <p>
+   * {@code material} 与 {@code text} 是<b>同一次计算的两个产物</b>，所以「进入紧急窗口」时
+   * 玻璃板颜色与文字颜色必然同步变化——不需要调用方再单独问一次「现在紧急了吗」。
+   * <p>
+   * 文本里已经编码了颜色，因此两帧相等就代表这一格画出来不会有任何变化，
+   * 调用方可以据此跳过更新（这是把发包量压下来的关键）。
    *
-   * @param rarity       该槽结果的珍惜度，剩余 {@code urgency-seconds} 内用它着色
-   * @param remainMillis 剩余毫秒
+   * @param material 玻璃板材质
+   * @param text     带颜色码的显示文本
    */
-  public static ItemStack searchingPane(WardRarity rarity, long remainMillis) {
-    return searchingPaneText(searchingText(rarity, remainMillis));
-  }
-
-  /** 用给定的（已着色）文本构造搜索中占位 */
-  public static ItemStack searchingPaneText(String colorizedText) {
-    return pane(Material.WHITE_STAINED_GLASS_PANE, TAG_SEARCHING, STATE_SEARCHING, colorizedText, null);
+  public record Frame(Material material, String text) {
   }
 
   /**
-   * 计算搜索中占位要显示的文本
+   * 粗筛阶段的一帧：<b>带剩余秒数</b>
    * <p>
-   * 刻意做成<b>量化</b>的：非紧急阶段只显示整秒（每秒才变一次），紧急阶段才用 0.1s 精度。
-   * 调用方据此跳过「文本没变」时的 {@code setItem}，把发包量从 10 次/秒压到约 1 次/秒。
+   * 文本刻意做成<b>量化</b>的：非紧急阶段只显示整秒（每秒才变一次），紧急阶段才用 0.1s 精度，
+   * 于是同色同秒的重复帧会被调用方丢掉。
    *
-   * @param rarity       结果珍惜度
-   * @param remainMillis 剩余毫秒
-   * @return 带颜色码的文本
+   * @param rarity          结果珍惜度（该阶段用「最高珍惜度」）
+   * @param remainMillis    剩余毫秒
+   * @param durationSeconds 本次粗筛总时长（用于按比例算紧急窗口）
+   * @return 该时刻的帧；剩余为负时按 0 处理
    */
-  public static String searchingText(WardRarity rarity, long remainMillis) {
+  public static Frame prefilterFrame(WardRarity rarity, long remainMillis,
+      double durationSeconds) {
+    return frameOf(rarity, remainMillis, durationSeconds, true);
+  }
+
+  /**
+   * 逐结果阶段的一帧：<b>不显示秒数</b>，只在最后一段窗口内换成该结果珍惜度的颜色
+   * <p>
+   * 一格一个倒计时读数字很吵，而这个阶段本来就「一格一格往下走」，颜色变化足以表达进度。
+   * 于是文本在整个搜索过程中恒定 —— 每格只有「开局」与「变色」两次更新。
+   *
+   * @param rarity          该槽结果的珍惜度
+   * @param remainMillis    剩余毫秒
+   * @param durationSeconds 这一格的搜索总时长
+   * @return 该时刻的帧
+   */
+  public static Frame slotFrame(WardRarity rarity, long remainMillis, double durationSeconds) {
+    return frameOf(rarity, remainMillis, durationSeconds, false);
+  }
+
+  /**
+   * 按帧构造「搜索中」占位物品
+   * <p>
+   * 状态固定为 {@link #STATE_SEARCHING}（资源包模型与「未搜索」共用一套键的约定不变），
+   * 颜色差异只体现在材质与名字上。
+   *
+   * @param frame 由 {@link #prefilterFrame} / {@link #slotFrame} 算出的一帧
+   */
+  public static ItemStack searchingPane(Frame frame) {
+    return pane(frame.material(), TAG_SEARCHING, STATE_SEARCHING, frame.text(), null);
+  }
+
+  /**
+   * 算出某一时刻的帧（材质 + 文本一次算完）
+   *
+   * @param withSeconds 是否显示剩余秒数（粗筛 true / 逐结果 false）
+   */
+  private static Frame frameOf(WardRarity rarity, long remainMillis, double durationSeconds,
+      boolean withSeconds) {
+    boolean urgent = isUrgent(remainMillis, durationSeconds);
+    String color = urgent ? rarity.color() : "\u00a7f";
+    String text = withSeconds
+        ? color + seconds(remainMillis, urgent) + " s"
+        : color + i18n.tr("jwardchest.container.searching");
+    Material material = urgent ? urgentPane(rarity) : Material.WHITE_STAINED_GLASS_PANE;
+    return new Frame(material, text);
+  }
+
+  /** 剩余秒数的显示文本：紧急阶段用 0.1s 精度，其余整秒（量化以减少刷新） */
+  private static String seconds(long remainMillis, boolean urgent) {
     double remain = Math.max(0L, remainMillis) / 1000.0;
-    boolean urgent = remain <= JwardChestMain.CONF.urgencySeconds();
-    String color = urgent ? rarity.color() : "§f";
-    String value = urgent
-        ? String.format(java.util.Locale.ROOT, "%.1f", remain)
-        : String.format(java.util.Locale.ROOT, "%.0f", remain);
-    return color + value + " s";
+    return String.format(java.util.Locale.ROOT, urgent ? "%.1f" : "%.0f", remain);
+  }
+
+  /**
+   * 剩余时间是否已进入「紧急着色窗口」
+   * <p>
+   * 窗口按本次时长成比例算并夹取，见 {@link JwardChestMain.CONF#urgentWindowSeconds(double)}。
+   */
+  private static boolean isUrgent(long remainMillis, double durationSeconds) {
+    double window = JwardChestMain.CONF.urgentWindowSeconds(durationSeconds);
+    return window > 0.0 && Math.max(0L, remainMillis) / 1000.0 <= window;
+  }
+
+  /**
+   * 紧急着色时该珍惜度对应的玻璃板材质
+   * <p>
+   * 配色沿用「五档珍惜度」的定义：普通白 / 稀有绿 / 典藏紫 / 珍贵金 / 绝世红。
+   * 普通档的「紧急色」就是白色，与平时的白玻璃板一致 —— 这是配色本身的必然结果，
+   * 此时仍然可靠名字颜色看到变化（若确实想让它也有区别，改这里的映射即可）。
+   */
+  private static Material urgentPane(WardRarity rarity) {
+    return switch (rarity) {
+      case COMMON -> Material.WHITE_STAINED_GLASS_PANE;
+      case RARE -> Material.LIME_STAINED_GLASS_PANE;
+      case COLLECT -> Material.PURPLE_STAINED_GLASS_PANE;
+      case PRECIOUS -> Material.ORANGE_STAINED_GLASS_PANE;
+      case MYTHIC -> Material.RED_STAINED_GLASS_PANE;
+    };
   }
 
   /**
