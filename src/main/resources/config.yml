@@ -282,7 +282,7 @@ JwardChest:
   draw:
     count-distribution: uniform
     count-curve: 2.0
-    amount-distribution: uniform
+    amount-distribution: low
     amount-curve: 2.0
   ## 搜索
   search:
@@ -295,7 +295,7 @@ JwardChest:
       mythic: 6.0
     ## 物品数量对搜索时长的系数（秒/个）
     # 影响很小，仅用于让数量多的结果稍微多花一点时间
-    amount-factor: 0.05
+    amount-factor: 0.03
     ## 剩余多少秒时把占位物品换成结果珍惜度的颜色
     urgency-seconds: 1.0
     ## 动画刷新间隔（刻）
@@ -336,9 +336,7 @@ JwardChest:
     #   不带 ":" 会被当作 minecraft 命名空间下的路径（例如 joyous:jc_unsearched 才是 joyous 命名空间）
     # * 需要「未搜索 / 搜索中」两套贴图时改用 placeholder.model.unsearched 与 .searching，
     #   两者都未配置时才回落到本项；全部留空则不设置模型
-    # * PDC 里的 custom_data（joyous:jc_placeholder）只负责标识「由 Joyous 产生」，
-    #   它与模型键构成双重校验，任一命中都算我们的占位物品（用于挡住玩家取走占位）
-    item-model: "joyous_jc_unsearched"
+    item-model: "joyous:jc_unsearched"
     ## 原版 custom_model_data，0 表示不设置
     custom-model-data: 729101
   ## 粗筛阶段的占位区域
@@ -350,7 +348,7 @@ JwardChest:
     # 这些都只在内存里，属于临时数据
     ## 空闲多久后回收会话（秒）
     # 只回收「无人打开」的会话，玩家正在看的不会被丢掉
-    idle-timeout-seconds: 300
+    idle-timeout-seconds: 3600
     ## 清理任务间隔（秒）
     sweep-seconds: 60
     ## 同时存在的会话上限，超出时丢最久未访问的
