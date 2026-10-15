@@ -9,12 +9,12 @@ import javax.annotation.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -228,6 +228,8 @@ public final class WardListener implements Listener {
           session.touch();
           if (session.preview()) {
             // 预览是临时演示：关闭即整个丢弃，重开时重新抽取（不残留"已全部搜出"的状态）
+            jlogger.debug("玩家 %s 关闭临时容器 %s，已保留 %s 个已搜索槽位",
+                player.getName(), session.key(), session.snapshotRevealed(player.getUniqueId()).size());
             sessions.remove(session.key());
           } else {
             jlogger.debug("玩家 %s 关闭容器 %s，已保留 %s 个已搜索槽位",
