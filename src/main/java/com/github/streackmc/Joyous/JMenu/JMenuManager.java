@@ -190,11 +190,15 @@ public class JMenuManager {
     Inventory inventory = Bukkit.createInventory(null, lines * 9,
         LegacyComponentSerializer.legacySection().deserialize(MCColor.parse(papiTitle)));
 
-    // 放置按钮（按权限过滤，逐玩家构建以解析 PAPI）
+    // 放置按钮（权限不满足时优先画 else 回退按钮；逐玩家构建以解析 PAPI）
     for (var btn : menuData.getJavaButtons()) {
-      int slot = (btn.x() - 1) * 9 + (btn.y() - 1);
-      if (checkPermission(player, btn.perm(), btn.permUnhave())) {
-        inventory.setItem(slot, btn.buildItem(player));
+      int slot = btn.slot();
+      if (slot < 0 || slot >= inventory.getSize()) {
+        continue;
+      }
+      var effective = btn.effectiveFor(player);
+      if (effective != null) {
+        inventory.setItem(slot, effective.buildItem(player));
       }
     }
 
@@ -235,14 +239,26 @@ public class JMenuManager {
       String title = MCColor.remove(i18n.getPHparsed(player, menuData.getTitle()));
       var buttons = menuData.getBedrockButtons();
 
-      // 过滤可用按钮
-      var validButtons = buttons.stream()
-          .filter(btn -> checkPermission(player, btn.perm(), btn.permUnhave()))
-          .toList();
+      // 逐项定版：有权限就是自己，没权限退回 else，两者都没有就丢掉
+      var paragraphs = new java.util.ArrayList<String>();
+      var validButtons = new java.util.ArrayList<JMenuEntry.BedrockButton>();
+      for (var raw : buttons) {
+        var btn = raw.effectiveFor(player);
+        if (btn == null) {
+          continue;
+        }
+        if (btn.paragraph()) {
+          // v2：动作不是已知项 → 文本段落（SimpleForm 的 content 只有一块，
+          // 所以这些段落会集中显示在按钮上方，无法与按钮逐条交错）
+          paragraphs.add(MCColor.strip(btn.text()));
+        } else {
+          validButtons.add(btn);
+        }
+      }
 
       var formBuilder = org.geysermc.cumulus.form.SimpleForm.builder()
           .title(title)
-          .content("");
+          .content(String.join("\n", paragraphs));
 
       for (var btn : validButtons) {
         String text = MCColor.strip(btn.text());
@@ -357,6 +373,7 @@ public class JMenuManager {
    */
   public static boolean checkPermission(Player player, String perm, boolean permUnhave) {
     if (perm == null || perm.isBlank()) return true;
+    if (player == null) return true;
     boolean has = player.hasPermission(perm);
     return permUnhave ? !has : has;
   }

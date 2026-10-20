@@ -26,7 +26,9 @@ public class JMenuMain extends JoyousModel {
   public JMenuMain() {
   };
 
-  public String MODEL_NAME() { return MODEL_NAME; };
+  public String MODEL_NAME() {
+    return MODEL_NAME;
+  };
 
   /** 菜单文件存储路径（惰性初始化） */
   volatile static Path MENU_PATH;
@@ -93,4 +95,69 @@ public class JMenuMain extends JoyousModel {
     }
     jlogger.info("JMenu 模块已禁用");
   };
+
+  static volatile Boolean isNewerModelUsableCache = null;
+
+  public static boolean isNewerModelUsable() {
+    if (isNewerModelUsableCache != null) {
+      return isNewerModelUsableCache;
+    }
+
+    // 优先用 Paper 的 API 获取纯净版本号（如 "1.21.4" 或 "26.1"）
+    String version = Bukkit.getMinecraftVersion();
+    if (version == null || version.isEmpty()) {
+      // 回退方案：从 Bukkit 版本字符串提取
+      version = Bukkit.getBukkitVersion().split("-")[0];
+    }
+
+    String[] parts = version.split("\\.");
+    if (parts.length < 2) {
+      isNewerModelUsableCache = false;
+      return false;
+    }
+
+    int first;
+    try {
+      first = Integer.parseInt(parts[0]);
+    } catch (NumberFormatException e) {
+      isNewerModelUsableCache = false;
+      return false; // 无法解析，保守返回 false
+    }
+
+    // 新格式（26.x 及以后）：年份开头，天然 ≥ 1.21.4
+    if (first >= 26) {
+      isNewerModelUsableCache = true;
+      return true;
+    }
+
+    // 旧格式（1.x.y）：按语义化版本比较
+    if (first != 1) {
+      isNewerModelUsableCache = first > 1;
+      return first > 1; // 处理 2.x 等极端情况
+    }
+
+    int minor;
+    try {
+      minor = Integer.parseInt(parts[1]);
+    } catch (NumberFormatException e) {
+      isNewerModelUsableCache = false;
+      return false;
+    }
+
+    int patch = 0;
+    if (parts.length > 2) {
+      try {
+        patch = Integer.parseInt(parts[2]);
+      } catch (NumberFormatException ignored) {
+        // 忽略无法解析的补丁号，按 0 处理
+      }
+    }
+
+    if (minor != 21) {
+      isNewerModelUsableCache = minor > 21;
+      return isNewerModelUsableCache;
+    }
+    isNewerModelUsableCache = patch >= 4;
+    return isNewerModelUsableCache;
+  }
 }

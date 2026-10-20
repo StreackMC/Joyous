@@ -14,6 +14,12 @@
 
 ## 模块清单 (9个)
 1. **JMenu** — 双端通用菜单(Java箱子GUI + 基岩版Floodgate表单), JSON格式菜单文件(.jmenu), 带缓存TTL
+   - 描述文件已适配 **v2**(`jmev: 2`)：`display.model`(`legacy_model_data` ≤1.21.3 / `item_model` +
+     `custom_model_data` ≥1.21.4，按 `JMenuMain.isNewerModelUsable()` 分流)、`else` 回退按钮
+     (画在原槽位，其 perm/else 无效)、基岩版「动作不是 menu/cmd/op/con/url → 文本段落」
+   - ⚠️ 打开与点击共用 `effectiveFor(player)`，否则会出现「看到回退按钮却执行主按钮动作」；
+     `SimpleForm.content` 只有一块，基岩段落只能集中在按钮上方
+   - `jme`/`jmev` 只做提示不拒绝加载（旧实现从未读过这两个键）
 2. **Entroprix** — 熵流抽卡系统(米池规则), 权重制概率/大小保底/概率提升, PDC持久化保底状态
 3. **JStatusAPI** — 声明式 HTTP 查询API(基于StreackLib的HTTPServer, 由 APIHolders 重构而来)
    - 子端点: PhAPI(占位符, JSON5 payload) / BanAPI(封禁查询) / StatusAPI(服务器状态)

@@ -67,24 +67,28 @@ public class JMenuListener implements Listener {
 
       // 查找对应的按钮
       for (var btn : menu.getJavaButtons()) {
-        int btnSlot = (btn.x() - 1) * 9 + (btn.y() - 1);
-        if (slot == btnSlot) {
-          // 权限校验
-          if (!JMenuManager.checkPermission(player, btn.perm(), btn.permUnhave())) {
-            return;
-          }
-
-          // 播放点击声音
-          player.playSound(player.getLocation(),
-              org.bukkit.Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
-
-          // 关闭菜单后再执行动作（避免 GUI 干扰）
-          player.closeInventory();
-
-          // 执行按钮动作
-          manager.executeAction(player, btn.action(), btn.param());
-          return;
+        if (slot != btn.slot()) {
+          continue;
         }
+        // 权限不满足时执行的是 else 回退按钮的动作（与画面上看到的一致）
+        var effective = btn.effectiveFor(player);
+        if (effective == null) {
+          return; // 没权限也没回退：这一格本来就是空的
+        }
+        if (effective.isNoop()) {
+          return; // v2：动作不是已知项 → 点击无反应，连界面都不关
+        }
+
+        // 播放点击声音
+        player.playSound(player.getLocation(),
+            org.bukkit.Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+
+        // 关闭菜单后再执行动作（避免 GUI 干扰）
+        player.closeInventory();
+
+        // 执行按钮动作
+        manager.executeAction(player, effective.action(), effective.param());
+        return;
       }
     }
   }
