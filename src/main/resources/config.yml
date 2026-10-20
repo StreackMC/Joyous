@@ -377,27 +377,43 @@ JwardChest:
     ## Lore，第一行留空表示空行
     lore:
       - ""
-    ## 资源包模型键（custom_model）——资源包靠它把占位物品画成自己的贴图
-    # 原理：1.21.4+ 的物品可以用 item_model 组件指明「用哪个模型渲染」，
-    #   资源包在 assets/<命名空间>/items/<路径>.json 里定义那个模型。
-    #   我们把键写到占位玻璃板上，客户端就会画你资源包里的贴图，而不是玻璃板本身。
-    # 三种写法，优先级从高到低：
-    #   1) placeholder.model.unsearched / placeholder.model.searching
-    #      —— 想给「未搜索(黑)」「搜索中(白)」配两套不同贴图时分别填这两个键；
-    #   2) 本项 item-model —— 只做了一张贴图、两个状态共用时填这里；
-    #      （上面两个键都没配，才会回落到本项，这就是「两者都未配置时才回落到本项」的意思）
-    #   3) 三项全部留空 —— 不写模型组件，客户端显示玻璃板本色。
-    #      PDC 标记照样会写，"占位物品不可拿走"的保护不受影响。
-    # 键的写法：只能用小写 ASCII（a-z0-9._-/）；带 ":" 按「命名空间:路径」解析，
-    #   不带 ":" 会被当成 minecraft: 命名空间下的路径 ——
-    #   即 joyous_jc_unsearched 落在 assets/minecraft/items/，joyous:jc_unsearched 才落在 assets/joyous/items/。
-    # 另外若下面的 custom-model-data 不为 0，会与 item_model 一起写入，方便用旧机制（CMD）的资源包共存。
-    model:
-      unsearched: ""
-      searching: ""
+    ## 物品模型（item_model 组件）—— 所有占位物品共用这一个键
+    # 1.21.4+ 起物品贴图走「模型烘焙」：item_model 指向资源包里的一个模型定义
+    # （assets/<命名空间>/items/<路径>.json），那个定义可以用 select 读 custom_model_data
+    # 里的字符串、按值切到不同子模型 —— 于是「档次 × 状态」的贴图矩阵完全由资源包声明，
+    # 插件只负责往物品上写 item_model + custom_model_data.strings 两个字段。
+    # 键只能小写 ASCII（a-z0-9._-/）；带 ":" 按「命名空间:路径」解析，
+    # 不带 ":" 会被当成 minecraft 命名空间下的路径（joyous:jc_placeholder 落在 assets/joyous/items/）。
+    # * 留空 = 不写任何模型组件，客户端显示玻璃板本色 —— 没配资源包时请保持留空，
+    #   否则物品会因为找不到模型而显示成「缺失模型」的紫黑格。
     item-model: ""
-    ## 原版 custom_model_data，0 表示不设置
-    custom-model-data: 0
+    ## 写在 custom_model_data.strings[0] 里、表示「未搜索出品质」的值
+    none-rarity: "none"
+    ## 插件写进 custom_model_data.strings 的内容（顺序固定，资源包用 select 的 index 取值）
+    #   strings[0] = 品质：珍惜度 id（见上面 JwardChest.rarities）；未搜索时为上面的 none-rarity
+    #   strings[1] = 状态：unsearched（未搜索）/ searching（搜索中）
+    # 实际只会出现这两种组合：(none, unsearched) 与 (<某档品质>, searching)。
+    # 所以最省事的写法是只按 index 0 分 case；想按「状态 → 品质」两层排布，再把 select 套一层。
+    #
+    # 资源包示例（assets/joyous/items/jc_placeholder.json）：
+    # {
+    #   "model": {
+    #     "type": "minecraft:select",
+    #     "property": "minecraft:custom_model_data",
+    #     "index": 0,
+    #     "fallback": { "type": "minecraft:model", "model": "minecraft:item/glass_pane" },
+    #     "cases": [
+    #       { "when": "none", "model": { "type": "minecraft:model",
+    #           "model": "joyous:item/jc_unsearched" } },
+    #       { "when": "common", "model": { "type": "minecraft:model",
+    #           "model": "joyous:item/jc_searching_common" } },
+    #       { "when": "rare", "model": { "type": "minecraft:model",
+    #           "model": "joyous:item/jc_searching_rare" } }
+    #       ... 其余档次照抄，when 填珍惜度 id
+    #     ]
+    #   }
+    # }
+
   ## 粗筛阶段的占位区域
   prefilter:
     rows: 2

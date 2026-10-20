@@ -59,7 +59,13 @@
      权重为 0 的条目保留但不参与抽取
    - ②「预设代号」即**预设组名**：不为空 ⇒ 生效设置取组、编辑写回组(整组联动)；为空 ⇒ 用自身设置(覆盖关系)
    - 组在 YAML 里的键用 **URL 安全 Base64**(代号允许 `.`，而 SConfig 路径以 `.` 分隔)
-   - GUI 用自定义 `InventoryHolder`(`WardGui.Holder`)区分各类界面；占位玻璃板带 PDC 标记 `joyous:jc_placeholder`
+   - GUI 用自定义 `InventoryHolder`(`WardGui.Holder`)区分各类界面；占位玻璃板带 PDC 标记 `joyous`=`jc_placeholder_(un)searched`
+   - **物品模型映射**(2026-10-20 重写，1.21.4+ 模型烘焙)：占位物品只写两个组件——
+     `item_model`(配置项 `placeholder.item-model`，所有占位共用) +
+     `custom_model_data.strings`= **[品质, 状态]**（未搜索时品质填 `placeholder.none-rarity`=`none`）；
+     资源包用一个 `select`(`property: custom_model_data`, `index: 0`) 按品质分 case。
+     `item-model` **默认留空**——没资源包却写了键会显示「缺失模型」紫黑格。
+     识别是双信号：PDC 优先；组件反查要求「模型键命中 **且** `strings[1]` 是已知状态」
    - **数量分布**(2026-10-15 对齐)：凡「在下限~上限间取整数」都走 `WardDistribution`
      (uniform/low/high + curve)，共两处——结果组总条数(下限和~上限和)、单条结果的物品数量；默认 uniform；
      **总条数下限强制 ≥1** 以免抽出空箱。⚠️ `pick()` 必须用 `floor(shaped*(span+1))`，

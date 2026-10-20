@@ -197,28 +197,31 @@ public class JwardChestMain extends JoyousModel {
     }
 
     /**
-     * 占位物品的资源包模型键（custom_model）
+     * 占位物品的物品模型（{@code item_model} 组件）——<b>所有占位物品共用这一个键</b>
      * <p>
-     * 资源包靠它识别占位物品；PDC 里的 {@code custom_data} 只负责标识「由 Joyous 产生」，
-     * 两者构成双重校验（见 {@code WardGui.isPlaceholder}）。
+     * 1.21.4+ 的模型烘焙系统里，{@code item_model} 指向一个模型定义；那个定义可以用
+     * {@code minecraft:select} 读 {@code custom_model_data.strings} 来决定最终画哪张贴图。
+     * 于是「一档珍惜度 × 两种状态」的贴图矩阵全部由资源包侧声明，插件只负责写这两个字段。
      * <p>
-     * 取值优先级：{@code placeholder.model.<状态>} → {@code placeholder.item-model}（旧的单键写法）
-     * → 空（不设置模型）。
+     * 留空表示不设置模型（客户端显示玻璃板本色，占位保护不受影响）。
      *
-     * @param state 状态名：unsearched / searching
      * @return 模型键；空串表示不设置
      */
-    public static String placeholderModel(String state) {
-      String perState = Joyous.conf.getString(key("placeholder.model." + state), "");
-      if (perState != null && !perState.isBlank()) {
-        return perState.trim();
-      }
-      String single = Joyous.conf.getString(key("placeholder.item-model"), "");
-      return single == null ? "" : single.trim();
+    public static String placeholderItemModel() {
+      String raw = Joyous.conf.getString(key("placeholder.item-model"), "");
+      return raw == null ? "" : raw.trim();
     }
 
-    public static int placeholderCustomModelData() {
-      return Joyous.conf.getInt(key("placeholder.custom-model-data"), 0);
+    /**
+     * 「未搜索」阶段写在 {@code custom_model_data.strings[0]} 里的品质值
+     * <p>
+     * 未搜索的占位是盖住结果的黑玻璃板，此时不该暴露结果品质，所以填一个约定值。
+     *
+     * @return 品质占位值，默认 {@code none}
+     */
+    public static String placeholderNoneRarity() {
+      String raw = Joyous.conf.getString(key("placeholder.none-rarity"), "none");
+      return raw == null || raw.isBlank() ? "none" : raw.trim();
     }
 
     // ── 粗筛 ──

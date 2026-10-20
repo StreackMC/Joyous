@@ -12,6 +12,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
@@ -42,7 +43,7 @@ public final class WardGui {
   /** 搜索中（白色玻璃板） */
   public static final String TAG_SEARCHING = "jc_placeholder_searching";
 
-  /** 状态名（配置键与模型名后缀都用它） */
+  /** 状态名（写进 {@code custom_model_data.strings[1]}） */
   public static final String STATE_UNSEARCHED = "unsearched";
   /** 状态名：搜索中 */
   public static final String STATE_SEARCHING = "searching";
@@ -132,7 +133,8 @@ public final class WardGui {
    * 对应约定里的 {@code custom_data={joyous:"jc_placeholder_unsearched"}}。
    */
   public static ItemStack unsearchedPane() {
-    return pane(Material.BLACK_STAINED_GLASS_PANE, TAG_UNSEARCHED, STATE_UNSEARCHED, null, null);
+    return pane(Material.BLACK_STAINED_GLASS_PANE, STATE_UNSEARCHED,
+        JwardChestMain.CONF.placeholderNoneRarity(), null, null);
   }
 
   /**
@@ -144,10 +146,11 @@ public final class WardGui {
    * 文本里已经编码了颜色，因此两帧相等就代表这一格画出来不会有任何变化，
    * 调用方可以据此跳过更新（这是把发包量压下来的关键）。
    *
+   * @param rarity   该槽结果的珍惜度（写进 {@code custom_model_data.strings[0]}）
    * @param material 玻璃板材质
    * @param text     带颜色码的显示文本
    */
-  public record Frame(Material material, String text) {
+  public record Frame(WardRarity rarity, Material material, String text) {
   }
 
   /**
@@ -190,7 +193,7 @@ public final class WardGui {
    * @param frame 由 {@link #prefilterFrame} / {@link #slotFrame} 算出的一帧
    */
   public static ItemStack searchingPane(Frame frame) {
-    return pane(frame.material(), TAG_SEARCHING, STATE_SEARCHING, frame.text(), null);
+    return pane(frame.material(), STATE_SEARCHING, frame.rarity().id(), frame.text(), null);
   }
 
   /**
@@ -206,7 +209,7 @@ public final class WardGui {
         ? color + seconds(remainMillis, urgent) + " s"
         : color + i18n.tr("jwardchest.container.searching");
     Material material = urgent ? rarity.glass() : Material.WHITE_STAINED_GLASS_PANE;
-    return new Frame(material, text);
+    return new Frame(rarity, material, text);
   }
 
   /** 剩余秒数的显示文本：紧急阶段用 0.1s 精度，其余整秒（量化以减少刷新） */
@@ -228,11 +231,13 @@ public final class WardGui {
   /**
    * 通用玻璃板构造
    *
-   * @param tag   写入 PDC 的来源标记（{@link #TAG_UNSEARCHED} / {@link #TAG_SEARCHING}）
-   * @param state 状态名，用于查资源包模型键（{@link #STATE_UNSEARCHED} / {@link #STATE_SEARCHING}）
+   * @param state     状态名（{@link #STATE_UNSEARCHED} / {@link #STATE_SEARCHING}）——
+   *                  写进 {@code custom_model_data.strings[1]}，PDC 标记也由它推出来
+   * @param rarityArg 品质位（珍惜度 id，或未搜索时的约定值）
    */
-  private static ItemStack pane(Material material, String tag, String state,
+  private static ItemStack pane(Material material, String state, String rarityArg,
       @Nullable String nameOverride, @Nullable List<String> loreOverride) {
+    String tag = tagOfState(state);
     ItemStack item = new ItemStack(material);
     ItemMeta meta = item.getItemMeta();
     if (meta == null) {
@@ -261,7 +266,7 @@ public final class WardGui {
       }
     }
 
-    applyModel(meta, state);
+    applyModel(meta, rarityArg, state);
     meta.getPersistentDataContainer().set(
         new NamespacedKey(Joyous.plugin, PLACEHOLDER_KEY), PersistentDataType.STRING, tag);
     item.setItemMeta(meta);
@@ -269,32 +274,48 @@ public final class WardGui {
   }
 
   /**
-   * 应用资源包模型
+   * 写「物品模型映射」的两个组件
    * <p>
-   * 资源包靠 {@code item_model}（custom_model）识别占位物品，所以这里按状态写模型键；
-   * {@code custom_model_data} 若配置了也一并写入（两种识别方式的资源包都能用）。
+   * 资源包侧只有<b>一个</b>模型定义（{@code placeholder.item-model}），它用
+   * {@code minecraft:select} 读 {@code custom_model_data.strings} 来决定画哪张贴图：
+   * <pre>
+   *   strings[0] = 品质（珍惜度 id；未搜索阶段为 placeholder.none-rarity）
+   *   strings[1] = 状态（unsearched / searching）
+   * </pre>
+   * 于是「N 档珍惜度 × 2 种状态」的贴图矩阵完全由资源包声明，插件不再按状态挑模型键，
+   * 也不会出现「模型键在配置里、状态判断在代码里」两边对不上的情况。
+   * <p>
+   * {@code item-model} 留空时不写任何组件（客户端显示玻璃板本色）。
+   *
+   * @param rarityArg 品质位（珍惜度 id 或未搜索的约定值）
+   * @param state     状态名（{@link #STATE_UNSEARCHED} / {@link #STATE_SEARCHING}）
    */
-  private static void applyModel(ItemMeta meta, String state) {
-    NamespacedKey key = modelKey(state);
-    if (key != null) {
-      meta.setItemModel(key);
+  private static void applyModel(ItemMeta meta, String rarityArg, String state) {
+    NamespacedKey key = itemModelKey();
+    if (key == null) {
+      return;
     }
-    int modelData = JwardChestMain.CONF.placeholderCustomModelData();
-    if (modelData != 0) {
-      meta.setCustomModelData(modelData);
+    meta.setItemModel(key);
+
+    CustomModelDataComponent modelData = meta.getCustomModelDataComponent();
+    if (modelData == null) {
+      jlogger.warn("JwardChest 无法写入 custom_model_data（服务端未提供该组件），占位将退回默认贴图");
+      return;
     }
+    modelData.setStrings(List.of(rarityArg, state));
+    meta.setCustomModelDataComponent(modelData);
   }
 
   /**
-   * 解析某状态配置的 {@code item_model} 键
+   * 解析配置里的 {@code item_model} 键
    * <p>
    * 带 {@code :} 的按「命名空间:路径」解析；不带 {@code :} 的视为 {@code minecraft} 命名空间下的路径。
    *
    * @return 模型键；未配置或非法返回 null
    */
   @Nullable
-  private static NamespacedKey modelKey(String state) {
-    String raw = JwardChestMain.CONF.placeholderModel(state);
+  private static NamespacedKey itemModelKey() {
+    String raw = JwardChestMain.CONF.placeholderItemModel();
     if (raw == null || raw.isBlank()) {
       return null;
     }
@@ -303,23 +324,53 @@ public final class WardGui {
       return value.contains(":") ? NamespacedKey.fromString(value) : NamespacedKey.minecraft(value);
     } catch (Exception e) {
       // 配置里写了非法键（如大写、中文）时不要让整个搜索流程炸掉
-      jlogger.warn("JwardChest 占位物品的模型键 [%s] 非法，已忽略：%s", value, e.getLocalizedMessage());
+      jlogger.warn("JwardChest 占位物品的 item-model [%s] 非法，已忽略：%s", value,
+          e.getLocalizedMessage());
       return null;
     }
   }
 
-  /** 该模型键是否属于我们的占位物品 */
-  private static boolean isOurModel(@Nullable NamespacedKey model) {
-    if (model == null) {
-      return false;
+  /**
+   * 从组件反推「这是我们第几种状态的占位」
+   * <p>
+   * 判定条件两条都要满足：{@code item_model} 命中配置的键，且
+   * {@code custom_model_data.strings[1]} 是我们认识的<b>状态</b>名——
+   * 只看模型键不足以区分状态，只看字符串又可能撞上别人的物品。
+   *
+   * @return 状态名；不是我们的占位返回 null
+   */
+  @Nullable
+  private static String modelState(ItemMeta meta) {
+    NamespacedKey ours = itemModelKey();
+    if (ours == null || !meta.hasItemModel() || !ours.equals(meta.getItemModel())) {
+      return null;
     }
-    for (String state : STATES) {
-      NamespacedKey ours = modelKey(state);
-      if (ours != null && ours.equals(model)) {
-        return true;
+    List<String> strings = modelStrings(meta);
+    if (strings.size() < 2) {
+      return null;
+    }
+    String state = strings.get(1);
+    for (String known : STATES) {
+      if (known.equals(state)) {
+        return state;
       }
     }
-    return false;
+    return null;
+  }
+
+  /** 读 {@code custom_model_data.strings}；没有该组件时返回空列表 */
+  private static List<String> modelStrings(ItemMeta meta) {
+    if (!meta.hasCustomModelDataComponent()) {
+      return List.of();
+    }
+    CustomModelDataComponent modelData = meta.getCustomModelDataComponent();
+    List<String> strings = modelData == null ? null : modelData.getStrings();
+    return strings == null ? List.of() : strings;
+  }
+
+  /** 状态名 → PDC 标记值 */
+  private static String tagOfState(String state) {
+    return STATE_UNSEARCHED.equals(state) ? TAG_UNSEARCHED : TAG_SEARCHING;
   }
 
   // ──────────────────────────────────────────────
@@ -346,7 +397,7 @@ public final class WardGui {
     if (tagOf(meta) != null) {
       return true;
     }
-    return meta.hasItemModel() && isOurModel(meta.getItemModel());
+    return modelState(meta) != null;
   }
 
   /**
@@ -368,15 +419,8 @@ public final class WardGui {
     if (tag != null) {
       return tag;
     }
-    if (meta.hasItemModel() && isOurModel(meta.getItemModel())) {
-      // 只能靠模型反推状态：两种状态共用同一个模型键时，按「未搜索」处理
-      NamespacedKey unsearched = modelKey(STATE_UNSEARCHED);
-      if (unsearched != null && unsearched.equals(meta.getItemModel())) {
-        return TAG_UNSEARCHED;
-      }
-      return TAG_SEARCHING;
-    }
-    return null;
+    String state = modelState(meta);
+    return state == null ? null : tagOfState(state);
   }
 
   /** 读 PDC 里的来源标记 */
