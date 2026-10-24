@@ -50,7 +50,7 @@ public class PHAPI_Backend extends PlaceholderExpansion {
     String result = null;
     for (JoyousPHAPIhandler h : Joyous.PlaceholderService.usableParser) {
       result = Joyous.PlaceholderService.parse(h, player, params);
-      if (result != null && !result.isEmpty() && !result.isBlank())
+      if (result != null)
         break;// 竞争解析
     }
 
