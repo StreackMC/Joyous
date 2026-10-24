@@ -147,8 +147,13 @@ public class PlayerTitleMain extends JoyousModel {
     pdc.set(NAMES.PLAYER_USING_TITLE_NAMESPACED, PersistentDataType.STRING, titleId);
 
     // 通知目标玩家
-    if (!(slience == null || slience))
-      player.sendMessage(i18n.tr("titles.set.done"), getTitle(player));
+    if (!(slience == null || slience)) {
+      if (titleId.equals("empty")) {
+        player.sendMessage(i18n.tr("titles.set.remove"));
+      } else {
+        player.sendMessage(i18n.tr("titles.set.done", getTitle(player)));
+      }
+    }
   }
 
   /**
