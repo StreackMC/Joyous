@@ -43,10 +43,10 @@ public class i18n {
    * @param args 多余的参数用来 String.format
    */
   public static String tr(String key, Object... args) {
-    if (defaultMap == null || currentMap == null) return "<TR_NOT_INIT_YET>";
+    if (defaultMap == null || currentMap == null) return "<TR_NOT_INIT_YET:" + key + ">";
     String result = currentMap.getString(key, "");
     if (result.isEmpty()) {
-      result = defaultMap.getString(key, "<MISSINGNO_TR>");
+      result = defaultMap.getString(key, "<MISSINGNO_TR:" + key + ">");
       // 差量更新
       currentMap.putString(key, result);
     }
