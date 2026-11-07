@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.bukkit.inventory.ItemStack;
+
 /**
  * 结果组抽取
  * <p>
@@ -35,13 +37,16 @@ public final class WardRoller {
 
   /**
    * 抽取结果组
+   * <p>
+   * 每条结果的珍惜度都会写进物品自己的持久化数据组件（见 {@link WardTag}），所以之后无论被搬到哪里，
+   * 品质都不会丢；容器里出现没有标记的物品时，搜索时长与配色按 {@link WardRarity#fallback()} 算。
    *
    * @param profile 生效设置
    * @param random  随机源
-   * @return 结果组，可能为空
+   * @return 结果物品（已写入品质标记），可能为空
    */
-  public static List<WardSession.Loot> roll(WardProfile profile, Random random) {
-    List<WardSession.Loot> out = new ArrayList<>();
+  public static List<ItemStack> roll(WardProfile profile, Random random) {
+    List<ItemStack> out = new ArrayList<>();
 
     // 按珍惜度分组（只保留参与抽取的条目），顺便算出各珍惜度的可用权重
     Map<WardRarity, List<WardItemEntry>> byRarity = new LinkedHashMap<>();
@@ -165,10 +170,10 @@ public final class WardRoller {
     return limit <= 0 || used.getOrDefault(r, 0) < limit;
   }
 
-  /** 抽一条结果：物品实例（数量按条目范围 + 容器的数量分布取值）+ 它的珍惜度 */
-  private static WardSession.Loot loot(WardItemEntry entry, Random random, WardProfile profile) {
+  /** 抽一条结果：物品实例（数量按条目范围 + 容器的数量分布取值），并把珍惜度写进物品 */
+  private static ItemStack loot(WardItemEntry entry, Random random, WardProfile profile) {
     int amount = entry.rollAmount(random, profile.amountDistribution(), profile.amountCurve());
-    return new WardSession.Loot(entry.display(amount), entry.rarity());
+    return WardTag.stamp(entry.display(amount), entry.rarity());
   }
 
   /** 按权重挑一个；全部权重为 0 时返回 null */

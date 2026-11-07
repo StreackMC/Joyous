@@ -4,11 +4,14 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.i18n;
 import com.github.streackmc.Joyous.jlogger;
 import com.github.streackmc.Joyous._Model.JoyousModel;
 
@@ -33,6 +36,7 @@ public class JwardChestMain extends JoyousModel {
   private static volatile JwardChestMain instance;
 
   private WardProfileStore store;
+  private WardStore contents;
   private WardSessionManager sessions;
   private WardSearchController search;
   private WardEditorGui editor;
@@ -40,6 +44,8 @@ public class JwardChestMain extends JoyousModel {
   private WardListener listener;
   private JwardChestCommand command;
   private int cleanupTaskId = -1;
+  /** 存档错误提示的节流（毫秒时间戳） */
+  private volatile long lastStorageNotice;
 
   public JwardChestMain() {
   }
@@ -58,11 +64,20 @@ public class JwardChestMain extends JoyousModel {
 
     store = new WardProfileStore(Joyous.dataPath);
     sessions = new WardSessionManager();
-    search = new WardSearchController(this, sessions);
+    sessions.setEvictionListener(this::onSessionEvicted);
+    search = new WardSearchController(this);
     editor = new WardEditorGui(this, store, sessions, search);
     chatInput = new WardChatInput(store, editor);
     listener = new WardListener(this, store, sessions, search, editor, chatInput);
     command = new JwardChestCommand(this, store, sessions, editor);
+
+    contents = new WardStore(Joyous.database, CONF.storageTable());
+    try {
+      contents.ensureTable();
+    } catch (WardStore.WardStoreException e) {
+      // 建表失败不该让整个模块停摆：容器照常能用，只是内容不跨重启
+      reportStorageError("准备存档表", e);
+    }
 
     Joyous.pluginManager.registerEvents(listener, Joyous.plugin);
     command.register();
@@ -72,7 +87,8 @@ public class JwardChestMain extends JoyousModel {
     cleanupTaskId = Bukkit.getScheduler()
         .runTaskTimer(Joyous.plugin, this::sweep, periodTicks, periodTicks).getTaskId();
 
-    jlogger.info("JwardChest 模块已启用（设置文件：%s）", store.file().getName());
+    jlogger.info("JwardChest 模块已启用（设置文件：%s，存档表：%s）",
+        store.file().getName(), contents.available() ? contents.table() : "未配置数据库");
   }
 
   @Override
@@ -85,6 +101,8 @@ public class JwardChestMain extends JoyousModel {
       search.stopAll();
     }
     if (sessions != null) {
+      // 关服不等于「会话过期」：先摘掉回调，否则 clear() 会把全部存档删掉、重启后重新抽取
+      sessions.setEvictionListener(null);
       sessions.clear();
     }
     if (store != null) {
@@ -120,6 +138,11 @@ public class JwardChestMain extends JoyousModel {
     return store;
   }
 
+  /** 容器内容的存档层 */
+  public WardStore contents() {
+    return contents;
+  }
+
   public WardSessionManager sessions() {
     return sessions;
   }
@@ -134,6 +157,92 @@ public class JwardChestMain extends JoyousModel {
 
   public WardChatInput chatInput() {
     return chatInput;
+  }
+
+  // ──────────────────────────────────────────────
+  // 存档与失效
+  // ──────────────────────────────────────────────
+
+  /**
+   * 会话被回收（过期 / 命令重置）时：把它的存档一起删掉
+   * <p>
+   * 这就是「容器刷新」的实现——内容没了，下次打开自然重新抽取。
+   */
+  private void onSessionEvicted(WardSession session) {
+    if (session == null || session.preview() || contents == null || !contents.available()) {
+      return;
+    }
+    try {
+      contents.delete(session.profileId());
+      jlogger.debug("JwardChest 已清除容器 %s 的存档（会话回收）", session.profileId());
+    } catch (WardStore.WardStoreException e) {
+      reportStorageError("清除容器存档", e);
+    }
+  }
+
+  /**
+   * 让某个容器的内容失效（改完待选物品、解除绑定、命令重置时调用）
+   * <p>
+   * 先按容器摘掉所有会话（会顺带删存档），再补一次删除以覆盖「当前没有任何会话」的情况。
+   *
+   * @param profileId 容器 UUID
+   */
+  public void invalidate(UUID profileId) {
+    if (profileId == null) {
+      return;
+    }
+    sessions.removeByProfile(profileId);
+    if (contents != null && contents.available()) {
+      try {
+        contents.delete(profileId);
+      } catch (WardStore.WardStoreException e) {
+        reportStorageError("清除容器存档", e);
+      }
+    }
+  }
+
+  /** 让所有容器的内容失效（{@code /jc reset all}） */
+  public void invalidateAll() {
+    sessions.clear();
+    if (contents != null && contents.available()) {
+      try {
+        contents.deleteAll();
+      } catch (WardStore.WardStoreException e) {
+        reportStorageError("清空容器存档", e);
+      }
+    }
+  }
+
+  /**
+   * 数据库行为出错时的统一反馈
+   * <p>
+   * 既不静默吞掉（否则就变成「箱子行为诡异」），也不刷屏：日志每次都记，
+   * 在线管理员则按 {@code storage-notice-seconds} 节流提示。
+   *
+   * @param action 正在做的事（写进日志与提示）
+   * @param error  异常
+   */
+  public void reportStorageError(String action, Throwable error) {
+    String detail = error == null ? "" : String.valueOf(error.getMessage());
+    jlogger.warn("JwardChest 存档失败（%s）：%s", action, detail);
+    if (error != null) {
+      jlogger.debug("JwardChest 存档异常堆栈：%s", error);
+    }
+
+    long now = System.currentTimeMillis();
+    long interval = Math.max(5, CONF.storageNoticeSeconds()) * 1000L;
+    if (now - lastStorageNotice < interval) {
+      return;
+    }
+    lastStorageNotice = now;
+
+    String message = i18n.tr("jwardchest.storage.error", action, detail);
+    for (Player player : Bukkit.getOnlinePlayers()) {
+      if (player.hasPermission(WardListener.Perm.EDIT)) {
+        player.sendMessage(message);
+      }
+    }
+    Bukkit.getConsoleSender().sendMessage(message);
   }
 
   // ──────────────────────────────────────────────
@@ -259,6 +368,24 @@ public class JwardChestMain extends JoyousModel {
     /** 聊天栏输入的等待超时（秒） */
     public static int chatInputTimeoutSeconds() {
       return Math.max(5, Joyous.conf.getInt(key("session.chat-input-timeout"), 60));
+    }
+
+    /** 是否允许玩家把物品放进容器（关闭后容器只出不进） */
+    public static boolean allowPlace() {
+      return Joyous.conf.getBoolean(key("session.allow-place"), true);
+    }
+
+    // ── 存档 ──
+
+    /** 存放容器内容的数据表名 */
+    public static String storageTable() {
+      String raw = Joyous.conf.getString(key("storage.table"), "joyous_jwardchest");
+      return raw == null || raw.isBlank() ? "joyous_jwardchest" : raw.trim();
+    }
+
+    /** 存档错误提示的节流间隔（秒） */
+    public static int storageNoticeSeconds() {
+      return Math.max(5, Joyous.conf.getInt(key("storage.notice-seconds"), 60));
     }
 
     /** 命令里「坐标范围」模式的单边最大半径 */

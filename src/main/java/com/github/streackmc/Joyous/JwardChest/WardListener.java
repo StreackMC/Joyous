@@ -15,7 +15,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -38,8 +37,13 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 /**
  * JwardChest 事件监听
  * <p>
- * 负责：拦截绑定方块的打开请求并替换为自定义容器、潜行右键打开编辑界面、
- * 编辑界面与运行时容器的点击/拖拽处理、聊天栏输入截获、关闭容器时收尾。
+ * 运行时容器的交互只有两条路（其余一律取消）：
+ * <ul>
+ *   <li><b>点击有东西的格子 = 领取</b>（点击即领取，不再有「拿起再放回」这种中间态）；</li>
+ *   <li><b>把东西放进空格子</b>：手持物品点空格、Shift+左键背包物品、或直接拖到空格上。</li>
+ * </ul>
+ * 其余点击（拿起、快速移动、数字键交换、丢出、双击收拢）全部拦掉——容器的内容由插件独占管理，
+ * 原版的搬运语义在这里只会造成「物品被吞」或「同一件被两个人拿走」。
  *
  * @author kdxiaoyi
  * @since 0.7.0
@@ -79,7 +83,7 @@ public final class WardListener implements Listener {
     if (block == null) {
       return;
     }
-    java.util.UUID profileId = WardBinding.read(block);
+    UUID profileId = WardBinding.read(block);
     if (profileId == null) {
       return;
     }
@@ -102,7 +106,8 @@ public final class WardListener implements Listener {
     WardProfile profile = store.effective(profileId);
     WardSession session = sessions.getOrCreate(
         WardSessionManager.blockKey(block.getWorld(), block.getX(), block.getY(), block.getZ()),
-        profileId, block.getWorld(), block.getX(), block.getY(), block.getZ(), false);
+        profileId, block.getWorld(), block.getX(), block.getY(), block.getZ(),
+        profile.slots(), false);
     search.open(player, profile, session);
   }
 
@@ -137,27 +142,69 @@ public final class WardListener implements Listener {
           return;
         }
         // 背包侧的 Shift+左键 = 把这个物品登记成一条待选条目（不消耗原物品）
-        ClickType click = event.getClick();
-        if (click == ClickType.SHIFT_LEFT) {
+        if (event.getClick() == org.bukkit.event.inventory.ClickType.SHIFT_LEFT) {
           event.setCancelled(true);
           editor.appendEntry(player, holder, event.getCurrentItem());
           return;
         }
-        // 其余「快捷移动 / 双击收拢」仍可能碰上半区（双击会把光标上的物品
-        // 与容器里同类物品合并），一律挡掉，免得编辑者的物品被塞进我们的界面后丢失
-        if (click.isShiftClick() || click == ClickType.DOUBLE_CLICK) {
+        // 其余「快捷移动 / 双击收拢」仍可能碰上半区，一律挡掉
+        if (event.getClick().isShiftClick()
+            || event.getClick() == org.bukkit.event.inventory.ClickType.DOUBLE_CLICK) {
           event.setCancelled(true);
         }
       }
-      case RUNTIME, PREVIEW -> {
-        // 运行时容器：只保护我方占位物品，其余保持正常交互
-        if (isOurPlaceholderClick(event, player)) {
-          event.setCancelled(true);
-        }
-      }
+      case RUNTIME, PREVIEW -> handleRuntimeClick(event, player, holder);
       default -> {
       }
     }
+  }
+
+  /**
+   * 运行时容器的点击：只认「领取」与「放入」两件事
+   * <p>
+   * 上半区（容器）一律取消原版行为；下半区（玩家背包）只在会被原版搬到上半区的情况下才拦
+   * （Shift+点击、双击收拢），玩家整理自己背包是允许的。
+   */
+  private void handleRuntimeClick(InventoryClickEvent event, Player player, WardGui.Holder holder) {
+    if (!(holder.payload() instanceof WardSession session)) {
+      return;
+    }
+    Inventory top = player.getOpenInventory().getTopInventory();
+    Inventory clicked = event.getClickedInventory();
+    boolean inTop = clicked != null && clicked.equals(top);
+
+    if (!inTop) {
+      org.bukkit.event.inventory.ClickType type = event.getClick();
+      if (type.isShiftClick() && event.getSlot() >= 0) {
+        event.setCancelled(true);
+        search.placeFromInventory(player, session, event.getSlot());
+        return;
+      }
+      if (type == org.bukkit.event.inventory.ClickType.DOUBLE_CLICK) {
+        // 双击会把光标上的物品与「所有界面里的同类物品」合并，会碰到上半区
+        event.setCancelled(true);
+      }
+      return;
+    }
+
+    event.setCancelled(true);
+
+    int slot = event.getRawSlot();
+    if (slot < 0 || slot >= top.getSize()) {
+      return;
+    }
+
+    if (session.hasItem(slot)) {
+      search.claim(player, session, slot);
+      return;
+    }
+
+    ItemStack cursor = event.getCursor();
+    if (cursor == null || cursor.getType().isAir()) {
+      return;
+    }
+    int amount = event.isRightClick() ? 1 : cursor.getAmount();
+    search.placeFromCursor(player, session, slot, amount);
   }
 
   private void safeHandle(InventoryClickEvent event, WardGui.Holder holder) {
@@ -168,48 +215,24 @@ public final class WardListener implements Listener {
     }
   }
 
-  /** 点击的是否为我们的占位玻璃板 */
-  private static boolean isOurPlaceholderClick(InventoryClickEvent event, Player player) {
-    Inventory top = player.getOpenInventory().getTopInventory();
-    int raw = event.getRawSlot();
-    boolean inTop = event.getClickedInventory() != null && event.getClickedInventory().equals(top);
-    if (!inTop || raw < 0 || raw >= top.getSize()) {
-      return false;
-    }
-    ItemStack clicked = event.getCurrentItem();
-    if (WardGui.isPlaceholder(clicked)) {
-      return true;
-    }
-    // 把别人的占位物品丢出去 / 用快捷移动也可以绕过，这里一并挡掉
-    ItemStack cursor = event.getCursor();
-    return WardGui.isPlaceholder(cursor);
-  }
-
   // ──────────────────────────────────────────────
   // 拖拽
   // ──────────────────────────────────────────────
 
+  /**
+   * 拖拽一律取消
+   * <p>
+   * 拖拽会一次性碰多个槽位，与「一次一格事务」的原子模型冲突（部分成功最难处理），
+   * 所以这里统一拒绝；放入请用「点击空格」或「Shift+左键」。
+   */
   @EventHandler(priority = EventPriority.HIGH)
   public void onDrag(InventoryDragEvent event) {
     if (!(event.getWhoClicked() instanceof Player player)) {
       return;
     }
     WardGui.Holder holder = WardGui.holderOf(player.getOpenInventory().getTopInventory());
-    if (holder == null) {
-      return;
-    }
-
-    if (holder.kind() != WardGui.Kind.RUNTIME && holder.kind() != WardGui.Kind.PREVIEW) {
+    if (holder != null) {
       event.setCancelled(true);
-      return;
-    }
-
-    Inventory top = player.getOpenInventory().getTopInventory();
-    for (int slot : event.getRawSlots()) {
-      if (slot >= 0 && slot < top.getSize() && WardGui.isPlaceholder(top.getItem(slot))) {
-        event.setCancelled(true);
-        return;
-      }
     }
   }
 
@@ -228,18 +251,14 @@ public final class WardListener implements Listener {
     }
     switch (holder.kind()) {
       case RUNTIME, PREVIEW -> {
-        // 取消搜索任务：进行中的倒计时全部重置；已搜出的记录保留在会话里
+        // 取消搜索任务：进行中的倒计时全部重置；已揭开的记录保留在会话里
         search.stop(player);
         if (holder.payload() instanceof WardSession session) {
+          session.unbindViewer(player.getUniqueId());
           session.touch();
           if (session.preview()) {
-            // 预览是临时演示：关闭即整个丢弃，重开时重新抽取（不残留"已全部搜出"的状态）
-            jlogger.debug("玩家 %s 关闭临时容器 %s，已保留 %s 个已搜索槽位",
-                player.getName(), session.key(), session.snapshotRevealed(player.getUniqueId()).size());
+            // 预览是临时演示：关闭即整个丢弃，重开时重新抽取
             sessions.remove(session.key());
-          } else {
-            jlogger.debug("玩家 %s 关闭容器 %s，已保留 %s 个已搜索槽位",
-                player.getName(), session.key(), session.snapshotRevealed(player.getUniqueId()).size());
           }
         }
       }
@@ -289,10 +308,6 @@ public final class WardListener implements Listener {
    * <p>
    * 延迟一刻再判断「此刻玩家是否还开着我们自己的界面」——因为子界面之间的跳转、以及
    * 「选完就直接开主界面」这类动作本身也会触发关闭事件，那时不该再叠一次开界面。
-   * 只有确实是玩家自己关掉的（此刻什么都没开）才回主界面。
-   * <p>
-   * 待选物品界面例外：它的改动要点「保存」才生效，这里只是回到主界面，
-   * 工作副本仍然留着，再次进入可以接着改（所以提示语也与其它子界面不同）。
    */
   private void backToEditor(Player player, UUID profileId, @Nullable Location block,
       WardGui.Kind from) {
@@ -322,7 +337,7 @@ public final class WardListener implements Listener {
    * 阻止直接破坏已绑定的方块
    * <p>
    * 无编辑权限的玩家只得到一句"无权限"；有权限的玩家会收到一条可点击的确认提示，
-   * 点击后由 {@code /jwardchest break <坐标>} 代为破坏并解除绑定，避免误拆。
+   * 点击后由 {@code /jwardchest break <坐标>} 代为破坏并解除绑定。
    */
   @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
   public void onBlockBreak(BlockBreakEvent event) {
@@ -352,9 +367,9 @@ public final class WardListener implements Listener {
     search.stop(player);
     chatInput.clear(player);
     editor.clearWorking(player);
-    // 释放该玩家在各会话里的进度记录，避免玩家进出导致内存增长
+    // 从他的视角把所有容器登记摘掉，避免"正在被查看"判定把过期会话一直续命
     for (WardSession session : sessions.all()) {
-      session.forgetPlayer(player.getUniqueId());
+      session.unbindViewer(player.getUniqueId());
     }
     // 编辑到一半直接退出/掉线，别把改动丢掉
     store.flush();

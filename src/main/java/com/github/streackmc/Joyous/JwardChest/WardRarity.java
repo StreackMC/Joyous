@@ -344,6 +344,27 @@ public final class WardRarity implements Comparable<WardRarity> {
     return list().get(0);
   }
 
+  /**
+   * 兜底珍惜度：物品上没有品质标记时用它
+   * <p>
+   * 由配置 {@code JwardChest.fallback-rarity} 指定，缺省或写坏时回落到第一档。
+   * 典型用途是玩家往容器里放进来的、不是本模块产出的物品：它没有
+   * {@link WardTag} 写入的标记，于是搜索时长与紧急配色都按这一档算。
+   *
+   * @return 兜底珍惜度；永不为 null
+   */
+  public static WardRarity fallback() {
+    String id = Joyous.conf == null ? null : Joyous.conf.getString("JwardChest.fallback-rarity", "");
+    WardRarity found = find(id);
+    if (found != null) {
+      return found;
+    }
+    if (id != null && !id.isBlank()) {
+      jlogger.warn("JwardChest 配置里的 fallback-rarity=[%s] 无法识别，已回落到 %s", id, first().id());
+    }
+    return first();
+  }
+
   /** 最后一档（最珍贵的一档） */
   public static WardRarity highest() {
     List<WardRarity> all = list();

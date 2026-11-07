@@ -259,10 +259,12 @@ Restarter:
 # 「战利品箱」：把任意方块绑定成一个带搜索动画的自定义容器
 # /jwardchest new            绑定准星方块并打开编辑界面（别名 /jc）
 # /jwardchest unbind         解除准星方块的绑定
-# /jwardchest reset ...      清除临时数据（结果组/搜索进度）
+# /jwardchest reset ...      让容器刷新（内容重新抽取）
 # /jwardchest reload         重新读取 models/JwardChest/profiles.yml
 # 绑定关系写在区块 PDC（随区块存盘）；容器设置写在 models/JwardChest/profiles.yml；
-# 结果组与搜索进度只在内存里，属于临时数据。
+# 容器内容（谁还剩什么）存在数据库里，并且是全服共享的一份：
+#   * 有人把东西拿走，所有人都看到那一格空了
+#   * 内容只会因为「命令重置」或「会话过期」重新抽取，服务器重启不会补货
 JwardChest:
   ## 是否启用
   # * 不支持热重载
@@ -346,6 +348,12 @@ JwardChest:
       sound: "ui.toast.challenge_complete"
       volume: 1.7
       pitch: 1.8
+  ## 兜底珍惜度
+  # 本模块抽出的每件物品都会把珍惜度写进自己的堆叠组件（custom_data 里的 joyous:jc_rarity），
+  # 品质因此跟着物品走。容器里出现「没有这个标记」的物品时（典型情况：玩家自己放进来的），
+  # 搜索时长与紧急配色就按这里指定的档次算。
+  # * 填上面 rarities 里的一个 id；留空或写错时回落到第一档
+  fallback-rarity: "common"
   ## 搜索
   search:
     ## 物品数量对搜索时长的系数（秒/个）
@@ -420,18 +428,32 @@ JwardChest:
     cols: 5
   ## 运行时状态
   session:
-    # 这些都只在内存里，属于临时数据
+    # 会话本身只在内存里；容器「内容」会落库（见下面 storage），两者都要清掉才算刷新
     ## 空闲多久后回收会话（秒）
     # 只回收「无人打开」的会话，玩家正在看的不会被丢掉
+    # * 会话被回收 = 这个容器刷新：内容与存档一起丢弃，下次打开重新抽取
     idle-timeout-seconds: 3600
     ## 清理任务间隔（秒）
     sweep-seconds: 60
     ## 同时存在的会话上限，超出时丢最久未访问的
+    # 注意：这里只是把缓存挤出去，内容仍会从存档恢复，不算「刷新」
     max-sessions: 512
     ## 单个容器最多展示的结果条数（还会再被容器槽位数夹一次）
     max-results: 54
     ## 聊天栏输入的等待超时（秒）
     chat-input-timeout: 60
+    ## 是否允许玩家往容器里放东西
+    # 关闭后容器「只出不进」；放进去的普通物品没有品质标记，搜索时长按 fallback-rarity
+    allow-place: true
+  ## 存档（容器内容）
+  # 内容只能因为「命令重置」或「会话过期」刷新，所以必须落库，否则重启等于补货。
+  # 用的是 StreackLib 的 Sdb 系列；表不存在时模块启用阶段会自动创建。
+  storage:
+    ## 存放容器内容的表名（只允许字母、数字、下划线）
+    table: "joyous_jwardchest"
+    ## 存档出错时给在线管理员的提示间隔（秒）
+    # 日志每次都会记，这里只控制聊天栏提示的频率，避免刷屏
+    notice-seconds: 60
   ## 命令
   command:
     ## /jwardchest new 能选中多远的方块

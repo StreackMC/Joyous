@@ -711,7 +711,8 @@ public final class WardEditorGui {
     WardSession session = sessions.getOrCreate(
         WardSessionManager.previewKey(loc.getWorld(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(),
             player.getUniqueId()),
-        profileId, loc.getWorld(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), true);
+        profileId, loc.getWorld(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(),
+        profile.slots(), true);
     search.open(player, profile, session, !instant);
   }
 
@@ -931,6 +932,8 @@ public final class WardEditorGui {
             }
           }
           store.save(profile);
+          // 待选物品变了 → 已生成的内容作废，下次打开重新抽取（否则改了表还是旧结果）
+          module.invalidate(state.profileId);
           itemWork.remove(player.getUniqueId());
           player.sendMessage(i18n.tr("jwardchest.items.saved", kept));
           reopenLater(player, () -> openEditor(player, state.profileId, block));

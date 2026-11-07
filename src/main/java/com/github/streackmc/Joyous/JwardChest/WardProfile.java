@@ -284,7 +284,10 @@ public final class WardProfile {
     this.amountDistribution = other.amountDistribution;
     this.amountCurve = other.amountCurve;
     this.entries.clear();
-    this.entries.addAll(other.entries);
+    for (WardItemEntry entry : other.entries) {
+      // 深拷贝：条目是「编辑工作副本」与「仓库对象」之间最容易串味的地方
+      this.entries.add(entry == null ? null : entry.copy());
+    }
   }
 
   // ──────────────────────────────────────────────

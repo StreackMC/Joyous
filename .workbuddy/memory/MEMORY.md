@@ -53,7 +53,7 @@
 9. **JwardChest** — 战利品箱(2026-10-14 新增): 绑定任意方块为带搜索动画的自定义容器
    - 命令 `/jwardchest`(别名 `/jc`): `new` / `unbind` / `reload` / `reset all|preset <代号>|radius <r>|box <坐标…>`
    - **绑定**写在**区块 PDC**(键含方块坐标，随区块存盘)；**设置**落 `models/JwardChest/profiles.yml`；
-     **结果组与搜索进度**只在内存(带维度+坐标，空闲回收 + 总数上限)
+     内容/进度模型见下方「共享箱改造(2026-11-07)」
    - **珍惜度是声明式的**(2026-10-15 重做)：默认 6 档(普通白/稀有绿/**精良蓝**/典藏紫/珍贵金/绝世红)，
      整套由 `config.yml` 的 `JwardChest.rarities` **声明**——一档一条，把 name/color/glass/wool/carpet/
      seconds/sound/volume/pitch 全写在同一条里；**声明顺序即强度顺序**(末条 = `highest()`)。
@@ -86,7 +86,27 @@
      进入紧急窗口时**材质与文字一起变**，配色 普通白/稀有绿/典藏紫/珍贵金(ORANGE)/绝世红，
      窗口 = `clamp(时长 × urgency-ratio, urgency-min-seconds, urgency-seconds)`；
      ⚠️ 普通档紧急色即白色，与平时相同(配色必然结果)
-   - ⚠️ 未验证部分：GUI 交互与搜索动画需要真人在线，headless 只验到「装配+命令+持久化」
+   - **共享箱改造(2026-11-07，进行中)**：容器语义从「每人一份结果快照」改为**全服共享内容**
+     - `WardSession` 只留三样：`ItemStack[] contents`(权威，长度=槽位数)、
+       `revealed{玩家→已揭开的槽位}`(私有)、`viewers{玩家→他自己那份 Inventory}`；
+       **删掉了 `loot` / `slots[]` / `Loot` record / `slotOf`**——「结果在哪个槽」不再单独记
+     - 三态只有一个判据：有东西且我揭开过=真物品；有东西但我没揭开=占位；没东西=空
+       （「已被取走」自然落到空，不需要额外状态位）
+     - **揭开与领取分离**：倒计时结束只 markRevealed，**点击有东西的格子才领取**（点击即领，
+       不用光标搬运）。放入：手持物品点空槽(左键整摞/右键 1 个)、Shift+左键背包物品；拖拽一律取消
+     - **原子模型**：`WardSession.transact(Function<Tx,R>)` = 加锁 → 校验+修改 → 解锁 → 落库 → 派发；
+       **落库失败要把内存改动回滚**（领取→放回、放入→清空），否则「玩家拿到了但库里还在」= 复制
+     - 刷新规则：**只有 `/jc reset*` 或会话过期**才算刷新（`WardSessionManager` 的 evictionListener
+       删存档）；关服时先 `setEvictionListener(null)` 再 clear，否则重启=补货；超上限裁剪只挤缓存不删档
+     - **品质跟着物品走**：`WardTag` 往物品 PDC 写 `joyous:jc_rarity`(= 珍惜度 id)；
+       读不到就用 `WardRarity.fallback()`（配置 `JwardChest.fallback-rarity`，默认 common）。
+       外来物品因此有确定的时长与配色（原先靠槽位映射，外来物品无解）
+     - 存档 `WardStore` 走 **Sdb 原始 SQL**（`act(String)` + `act()` 事务）：建表/`DELETE`+`INSERT`/`SELECT`。
+       ⚠️ 不能混用 `SdbActionContext.table()`——它会自动加 profile 的 `table_prefix`，而原始 SQL 不会，
+       混用就变成「写 A 表读 B 表」。错误一律包成 `WardStoreException` → `reportStorageError`（日志+管理员提示节流）
+     - 编辑器保存待选物品后 `module.invalidate(id)`（会话+存档一起作废），否则改完表还是旧结果
+   - ⚠️ 未验证部分：GUI 交互与搜索动画需要真人在线；headless 已验到「模块启用 + 建表」
+     （0.6.1 运行时 API 与 master-SNAPSHOT 编译期一致，已用 javap 核对）
 
 ## 外部依赖 (全部 provided scope)
 - StreackLib 0.6.1 (核心库,硬依赖)

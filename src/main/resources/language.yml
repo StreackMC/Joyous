@@ -273,7 +273,7 @@ jwardchest:
       maxdraw_total: " &7→ 合计 &f%s~%s &7条"
       dist: "&7数量分布：总条数 &f%s&7（曲线 &f%s&7），物品数量 &f%s&7（曲线 &f%s&7）"
       entries: "&7待选物品：&f%s &7条（参与抽取 &f%s &7条，总权重 &f%s）"
-      session: "&7运行时：结果 &f%s &7条；粗筛&f%s&7；玩家进度 &f%s &7份"
+      session: "&7运行时：剩余 &f%s &7件；粗筛&f%s&7；正在看 &f%s &7人"
       session_none: "&7运行时：暂无（还没被打开过）"
       done: "已过"
       not_done: "未过"
@@ -294,8 +294,24 @@ jwardchest:
     searching: "搜索中"
     empty: "&e这个战利品箱还没有配置任何可抽出的物品。"
     empty_zero_weight: "&e这个战利品箱里所有物品的权重都是 0，抽不出任何东西。"
+    depleted: "&e这个战利品箱已经被搜空了。"
     searched_all: "&a你已搜索出全部结果。"
     no_permission: "&c你没有使用战利品箱的权限。"
+    # 领取
+    claimed: "&a你拿走了 &f%s&a。"
+    slot_empty: "&7这一格已经空了。"
+    not_revealed: "&e你还没把这一格搜出来。"
+    full: "&c你的背包放不下这件东西。"
+    aborted: "&c操作未能完成（存档异常），请稍后再试。"
+    # 放入
+    placed: "&a已放入 &f%s &a个 &f%s&a。"
+    slot_occupied: "&e这一格已经有东西了。"
+    container_full: "&e这个容器已经没有空格了。"
+    place_disabled: "&e这个容器不允许放入物品。"
+    preview_only: "&7预览里不能取走或放入物品。"
+  # 存档出错时给管理员的提示（每次都会写日志，这里只是聊天栏提示）
+  storage:
+    error: "&c[JwardChest] 存档异常（%s）：&f%s&c。容器内容已保留在内存，稍后会随下一次操作重试。"
   protect:
     no_permission: "&c你没有权限破坏这个战利品箱。"
     tip: "&c这是一个战利品箱，&f&n点击这里&r&c 确认破坏"

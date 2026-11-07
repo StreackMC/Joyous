@@ -54,6 +54,16 @@ public final class WardItemEntry {
   }
 
   /**
+   * 复制一份独立条目
+   * <p>
+   * 「生效设置」与编辑界面的工作副本都必须拿到副本，否则改权重/数量会直接改到仓库里的对象：
+   * 于是「取消」取消不掉，而且下一次任何保存都会把这些改动写回文件。
+   */
+  public WardItemEntry copy() {
+    return new WardItemEntry(template, weight, rarity, minAmount, maxAmount);
+  }
+
+  /**
    * 生成用于展示的物品副本
    *
    * @param amount 数量，会被夹取到 1..maxStackSize

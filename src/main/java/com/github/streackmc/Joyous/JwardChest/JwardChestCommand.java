@@ -1,5 +1,6 @@
 package com.github.streackmc.Joyous.JwardChest;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -224,6 +225,8 @@ public final class JwardChestCommand {
     }
     int dropped = sessions.removeByProfile(id);
     WardBinding.remove(block);
+    // 容器内容也一并作废：不然后来重新绑定同一个方块会「继承」上一份内容
+    module.invalidate(id);
     store.flush();
     sender.sendMessage(i18n.tr("jwardchest.command.unbind.done",
         block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), dropped));
@@ -234,11 +237,12 @@ public final class JwardChestCommand {
   // reset
   // ──────────────────────────────────────────────
 
-  /** /jc reset all */
+  /** /jc reset all —— 全部容器重新抽取 */
   private int cmdResetAll(CommandContext<CommandSourceStack> ctx) {
-    int removed = sessions.size();
-    sessions.clear();
-    reply(ctx, i18n.tr("jwardchest.command.reset.all", removed));
+    List<WardSession> affected = new ArrayList<>(sessions.all());
+    module.invalidateAll();
+    closeViewers(affected);
+    reply(ctx, i18n.tr("jwardchest.command.reset.all", affected.size()));
     return 1;
   }
 
@@ -248,10 +252,27 @@ public final class JwardChestCommand {
     List<UUID> ids = store.profilesInGroup(code);
     int removed = 0;
     for (UUID id : ids) {
-      removed += sessions.removeByProfile(id);
+      List<WardSession> affected = sessions.all().stream()
+          .filter(s -> s.profileId().equals(id))
+          .toList();
+      removed += affected.size();
+      module.invalidate(id);
+      closeViewers(affected);
     }
     reply(ctx, i18n.tr("jwardchest.command.reset.preset", code, ids.size(), removed));
     return 1;
+  }
+
+  /** 把正在看这些容器的玩家请出去（内容已经重建，旧界面不该继续留着） */
+  private static void closeViewers(List<WardSession> affected) {
+    for (WardSession session : affected) {
+      for (UUID viewer : session.viewers().keySet()) {
+        Player online = org.bukkit.Bukkit.getPlayer(viewer);
+        if (online != null) {
+          online.closeInventory();
+        }
+      }
+    }
   }
 
   /** /jc reset radius <r> */
@@ -359,11 +380,11 @@ public final class JwardChestCommand {
       reply(ctx, i18n.tr("jwardchest.command.info.session_none"));
     } else {
       reply(ctx, i18n.tr("jwardchest.command.info.session",
-          session.size(),
+          session.remaining(),
           session.prefilted()
               ? i18n.tr("jwardchest.command.info.done")
               : i18n.tr("jwardchest.command.info.not_done"),
-          session.trackedPlayers()));
+          session.viewers().size()));
     }
     return 1;
   }
@@ -403,6 +424,7 @@ public final class JwardChestCommand {
 
     int dropped = sessions.removeByProfile(id);
     WardBinding.remove(block);
+    module.invalidate(id);
     store.flush();
     block.breakNaturally();
     jlogger.debug("JwardChest 方块 %s(%s, %s, %s) 已被破坏并解除绑定，清除 %s 个会话",
