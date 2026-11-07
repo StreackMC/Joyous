@@ -40,6 +40,20 @@ import com.github.streackmc.StreackLib.types.SDatabase.SdbDatabase;
  * <p>
  * <b>写入策略</b>：每次内容变更都立即同步写一次（先 DELETE 再 INSERT，同一事务内）。
  * 领取/放入是人的动作，频率极低，换来的是「写入失败即回滚内存」这个简单可靠的语义。
+ * <p>
+ * <b>SQL 安全边界（CWE-89）</b>：这里的 SQL 是<b>拼接</b>出来的，因为当前 StreackLib 的
+ * {@code SdbActionContext} 还不支持参数化写入——{@code UPDATE} 的 SET 子句会直接抛
+ * {@code UnsupportedOperationException}，参数化分支只会生成 {@code UPDATE tbl SET ?}，
+ * {@code MERGE} 也同样残缺；{@code act(String)} 走的是 {@code Statement}，没有参数位。
+ * 既然只能拼，就把「能拼什么」收紧成<b>白名单</b>：
+ * <ul>
+ *   <li>标识符（表名）：{@link #sanitizeTable(String)} 只留 {@code [A-Za-z0-9_]}，再包反引号；</li>
+ *   <li>值：{@link #quoteValue(String)} <b>不做转义而是断言</b>，只接受
+ *       {@code [A-Za-z0-9+/=_.:@-]}（即 UUID、Base64、数字）。</li>
+ * </ul>
+ * 于是「往 SQL 里加一个自由文本字段」这件事会在运行时立刻失败，而不是悄悄拼出一条可注入的语句。
+ * <b>真要做，正确的顺序是：先把 StreackLib 升到支持 PreparedStatement 的版本，再改用参数化 API</b>，
+ * 不要靠扩展白名单来放行新字段（白名单一放宽，这道防线就没了）。
  *
  * @author kdxiaoyi
  * @since 0.7.0
@@ -48,6 +62,15 @@ public final class WardStore {
 
   /** 编码格式版本；改动编码方式时递增，旧数据会被判定为不兼容而重抽 */
   private static final int FORMAT_VERSION = 1;
+
+  /**
+   * 允许直接拼进 SQL 的值的字符集
+   * <p>
+   * 覆盖：UUID（十六进制与连字符）、标准/URL 安全 Base64、数字、以及少量无害标点。
+   * 不含单双引号、反斜杠、分号、空格、括号、百分号——这些是拼 SQL 时唯一有意义的东西。
+   */
+  private static final java.util.regex.Pattern SAFE_VALUE =
+      java.util.regex.Pattern.compile("[A-Za-z0-9+/=_.:@\\-]*");
 
   private final SdbDatabase db;
   private final String table;
@@ -125,7 +148,7 @@ public final class WardStore {
     SdbDataEntry entry;
     try {
       entry = db.act("SELECT `generated`,`payload` FROM " + tableSql
-          + " WHERE `profile_id`=" + lit(id.toString()) + " LIMIT 1");
+          + " WHERE `profile_id`=" + quoteValue(id.toString()) + " LIMIT 1");
     } catch (Exception e) {
       throw new WardStoreException("读取容器存档失败：" + id, e);
     }
@@ -145,6 +168,10 @@ public final class WardStore {
 
   /**
    * 写入一个容器的存档（整行覆盖）
+   * <p>
+   * 拼进 SQL 的值只有 {@code profile_id}（UUID）与 {@code payload}（Base64），两者都必须能通过
+   * {@link #quoteValue(String)} 的白名单断言。想在这里加自由文本，先去看类注释里的
+   * 「SQL 安全边界」——正确做法是升级 StreackLib 并改用参数化 API，而不是放宽白名单。
    *
    * @param id        容器 UUID
    * @param generated 内容是否已生成
@@ -157,14 +184,14 @@ public final class WardStore {
     }
     String payload = encode(contents);
     String tableName = tableSql;
-    String idLit = lit(id.toString());
-    String payloadLit = lit(payload);
+    String idValue = quoteValue(id.toString());
+    String payloadValue = quoteValue(payload);
     long now = System.currentTimeMillis();
     try (SdbAction action = db.act()) {
-      action.apply("DELETE FROM " + tableName + " WHERE `profile_id`=" + idLit);
+      action.apply("DELETE FROM " + tableName + " WHERE `profile_id`=" + idValue);
       action.apply("INSERT INTO " + tableName
           + " (`profile_id`,`generated`,`payload`,`updated_at`) VALUES ("
-          + idLit + "," + (generated ? 1 : 0) + "," + payloadLit + "," + now + ")");
+          + idValue + "," + (generated ? 1 : 0) + "," + payloadValue + "," + now + ")");
       action.commit();
     } catch (Exception e) {
       throw new WardStoreException("写入容器存档失败：" + id, e);
@@ -181,7 +208,7 @@ public final class WardStore {
     if (db == null) {
       return;
     }
-    exec("DELETE FROM " + tableSql + " WHERE `profile_id`=" + lit(id.toString()));
+    exec("DELETE FROM " + tableSql + " WHERE `profile_id`=" + quoteValue(id.toString()));
   }
 
   /**
@@ -296,18 +323,66 @@ public final class WardStore {
     }
   }
 
-  /** 表名只允许字母、数字与下划线（表名无法参数化，必须自己清洗） */
+  /**
+   * 清洗表名：标识符无法参数化，所以只允许字母、数字与下划线
+   * <p>
+   * 被剔除过字符时记一条警告——表名是「拼进 SQL 的标识符」，静默改名会让管理员以为数据丢了
+   * （明明写的是 {@code my-table}，实际建的是 {@code mytable}）。
+   */
   private static String sanitizeTable(String raw) {
     String cleaned = raw.replaceAll("[^A-Za-z0-9_]", "");
-    return cleaned.isEmpty() ? "joyous_jwardchest" : cleaned;
+    if (cleaned.isEmpty()) {
+      jlogger.warn("JwardChest 配置的表名 [%s] 不含任何可用字符，已回落到 joyous_jwardchest", raw);
+      return "joyous_jwardchest";
+    }
+    if (!cleaned.equals(raw)) {
+      jlogger.warn("JwardChest 配置的表名 [%s] 含非法字符，实际使用 [%s]（只允许字母、数字、下划线）",
+          raw, cleaned);
+    }
+    return cleaned;
   }
 
-  /** SQL 字符串字面量转义（我们写入的值都是 UUID / Base64 / 数字，理论上无需转义，仍做一层保险） */
-  private static String lit(String value) {
+  /**
+   * 把值包成 SQL 字符串字面量，<b>并把「能不能拼」收紧成白名单断言</b>
+   * <p>
+   * 这里刻意<b>不做转义</b>：转义是「尽力让危险字符变得无害」，一旦哪天漏掉一个字符就静默出事；
+   * 断言是「只要出现危险字符就当场失败」，谁想往 SQL 里塞自由文本都会立刻看到异常。
+   * <p>
+   * 当前调用点只有 UUID 与 Base64，都落在白名单内，所以行为与直接拼接完全一致。
+   *
+   * @param value 待拼入的值，null 映射为 SQL {@code NULL}
+   * @return 可直接拼进 SQL 的字面量
+   * @throws UnsafeSqlValueException 值里出现了白名单之外的字符（说明有人想拼自由文本）
+   */
+  private static String quoteValue(@Nullable String value) {
     if (value == null) {
       return "NULL";
     }
-    return "'" + value.replace("\\", "\\\\").replace("'", "''") + "'";
+    if (!SAFE_VALUE.matcher(value).matches()) {
+      // 先落一条 severe：即使上层把它当普通异常吞了，日志里也一定看得到「有人往 SQL 里塞了自由文本」
+      jlogger.severe("JwardChest 拒绝把非白名单字符拼进 SQL（长度 %s），疑似有代码把自由文本写进了存档层",
+          value.length());
+      throw new UnsafeSqlValueException(value);
+    }
+    return "'" + value + "'";
+  }
+
+  /**
+   * 有值想拼进 SQL 但不在白名单内
+   * <p>
+   * 这不是「用户输入有问题」，而是<b>调用方把不该拼接的数据交给了 SQL</b>。
+   * 正确做法见类注释：升级 StreackLib 到支持 PreparedStatement 的版本，改用参数化 API；
+   * <b>不要</b>为了让它通过而扩大 {@link #SAFE_VALUE} ——那等于把这道断言拆掉。
+   */
+  public static final class UnsafeSqlValueException extends IllegalArgumentException {
+    private static final long serialVersionUID = 1L;
+
+    UnsafeSqlValueException(String value) {
+      super("拒绝把非白名单字符拼进 SQL（长度 " + value.length() + "）。"
+          + "WardStore 只允许 UUID / Base64 / 数字这类可解析的值；"
+          + "若要写入自由文本，请先升级 StreackLib 并迁移到参数化（PreparedStatement）API，"
+          + "而不是放宽 SAFE_VALUE。");
+    }
   }
 
   /** 存档层异常（供调用方统一反馈） */

@@ -104,10 +104,12 @@
      - 存档 `WardStore` 走 **Sdb 原始 SQL**（`act(String)` + `act()` 事务）：建表/`DELETE`+`INSERT`/`SELECT`。
        ⚠️ 不能混用 `SdbActionContext.table()`——它会自动加 profile 的 `table_prefix`，而原始 SQL 不会，
        混用就变成「写 A 表读 B 表」。错误一律包成 `WardStoreException` → `reportStorageError`（日志+管理员提示节流）
-       ⚠️ **SQL 注入面(CWE-89)**：`lit()` 是**转义式**拼接而不是参数化（Sdb 的 UPDATE/MERGE 参数化路径
-       未实现，`buildSQL` 直接抛 UnsupportedOperationException）→ 只有「表名走白名单 `[A-Za-z0-9_]`、
-       值只有 UUID / Base64 / 数字」这个不变量在保证安全。**往里加任何自由文本字段（代号/名字/标题）
-       之前必须先加白名单断言或等库支持 PreparedStatement**
+       ⚠️ **SQL 注入面(CWE-89)**：Sdb 的 UPDATE/MERGE 参数化路径未实现（`buildSQL` 直接抛
+       UnsupportedOperationException）、`act(String)` 用 `Statement` 没有参数位 → 只能拼接。
+       因此 `quoteValue()` 是**白名单断言而不是转义**：只接受 `[A-Za-z0-9+/=_.:@-]`（UUID/Base64/数字），
+       越界即 `UnsafeSqlValueException` + 一条 severe。表名另走 `sanitizeTable()`（只留 `[A-Za-z0-9_]`，
+       被清洗过会 WARN）。**要写自由文本字段，必须先把 StreackLib 升到支持 PreparedStatement 的版本并
+       改用参数化 API，不许放宽 SAFE_VALUE**
      - 编辑器保存待选物品后 `module.invalidate(id)`（会话+存档一起作废），否则改完表还是旧结果
    - ⚠️ 未验证部分：GUI 交互与搜索动画需要真人在线；headless 已验到「模块启用 + 建表」
      （0.6.1 运行时 API 与 master-SNAPSHOT 编译期一致，已用 javap 核对）
