@@ -151,6 +151,7 @@ public class PlayerTitleMain extends JoyousModel {
       if (titleId.equals("empty")) {
         player.sendMessage(i18n.tr("titles.set.remove"));
       } else {
+        // TODO: paper高版本不使用颜色代码，转为 MiniMessage 格式，需要适配
         player.sendMessage(i18n.tr("titles.set.done", getTitle(player)));
       }
     }
