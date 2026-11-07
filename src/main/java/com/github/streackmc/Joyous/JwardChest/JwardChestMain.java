@@ -375,6 +375,16 @@ public class JwardChestMain extends JoyousModel {
       return Joyous.conf.getBoolean(key("session.allow-place"), true);
     }
 
+    /**
+     * 是否允许放入「不是本模块产出」的物品
+     * <p>
+     * 本模块抽出的物品带有 {@code joyous:jc_rarity} 标记；关掉这一项后，只有带标记的物品能放进容器，
+     * 玩家往里塞自己的东西会被拒绝。
+     */
+    public static boolean allowForeignPlace() {
+      return Joyous.conf.getBoolean(key("session.allow-foreign-place"), true);
+    }
+
     // ── 存档 ──
 
     /** 存放容器内容的数据表名 */

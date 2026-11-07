@@ -308,6 +308,7 @@ jwardchest:
     slot_occupied: "&e这一格已经有东西了。"
     container_full: "&e这个容器已经没有空格了。"
     place_disabled: "&e这个容器不允许放入物品。"
+    foreign_denied: "&e这个容器只接受战利品箱产出的物品。"
     preview_only: "&7预览里不能取走或放入物品。"
   # 存档出错时给管理员的提示（每次都会写日志，这里只是聊天栏提示）
   storage:

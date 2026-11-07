@@ -100,7 +100,9 @@
        删存档）；关服时先 `setEvictionListener(null)` 再 clear，否则重启=补货；超上限裁剪只挤缓存不删档
      - **品质跟着物品走**：`WardTag` 往物品 PDC 写 `joyous:jc_rarity`(= 珍惜度 id)；
        读不到就用 `WardRarity.fallback()`（配置 `JwardChest.fallback-rarity`，默认 common）。
-       外来物品因此有确定的时长与配色（原先靠槽位映射，外来物品无解）
+       外来物品因此有确定的时长与配色（原先靠槽位映射，外来物品无解）。
+       `WardTag.hasTag()` = 只认标记在不在（不校验 id 是否还在 rarities 里）；
+       配置 `session.allow-place`(总开关) / `session.allow-foreign-place`(关掉则只收带标记的物品)
      - 存档 `WardStore` 走 **Sdb 原始 SQL**（`act(String)` + `act()` 事务）：建表/`DELETE`+`INSERT`/`SELECT`。
        ⚠️ 不能混用 `SdbActionContext.table()`——它会自动加 profile 的 `table_prefix`，而原始 SQL 不会，
        混用就变成「写 A 表读 B 表」。错误一律包成 `WardStoreException` → `reportStorageError`（日志+管理员提示节流）

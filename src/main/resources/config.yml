@@ -445,6 +445,12 @@ JwardChest:
     ## 是否允许玩家往容器里放东西
     # 关闭后容器「只出不进」；放进去的普通物品没有品质标记，搜索时长按 fallback-rarity
     allow-place: true
+    ## 是否允许放入「不是本模块产出」的物品
+    # 本模块抽出的物品带着 joyous:jc_rarity 标记，用它判定「是不是我们产出的」。
+    #   * true  = 任何物品都能放进来（外来物品的搜索时长与配色按 fallback-rarity 算）
+    #   * false = 只接受带标记的物品，玩家往里塞自己的东西会被拒绝
+    # 前提是 allow-place: true；allow-place 已关时本项无意义。
+    allow-foreign-place: true
   ## 存档（容器内容）
   # 内容只能因为「命令重置」或「会话过期」刷新，所以必须落库，否则重启等于补货。
   # 用的是 StreackLib 的 Sdb 系列；表不存在时模块启用阶段会自动创建。

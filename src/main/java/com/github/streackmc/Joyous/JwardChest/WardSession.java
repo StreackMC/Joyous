@@ -51,7 +51,9 @@ public final class WardSession {
     /** 该玩家还没揭开这一格 */
     NOT_REVEALED,
     /** 玩家的背包放不下 */
-    PLAYER_FULL
+    PLAYER_FULL,
+    /** 物品不是本模块产出的，而配置禁止放入外来物品 */
+    FOREIGN_ITEM
   }
 
   /**

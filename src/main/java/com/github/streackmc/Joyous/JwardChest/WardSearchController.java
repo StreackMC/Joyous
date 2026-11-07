@@ -271,8 +271,9 @@ public final class WardSearchController {
   /**
    * 把光标上的物品放进某一格
    * <p>
-   * 放入的物品不一定来自本模块，因此它可能没有品质标记；读取方一律按
-   * {@link WardRarity#fallback()} 算搜索时长与配色，不会因为「不认识」而失败。
+   * 放入的物品不一定来自本模块：允许的话，它没有品质标记也能放，读取方按
+   * {@link WardRarity#fallback()} 算搜索时长与配色；不允许的话（配置
+   * {@code session.allow-foreign-place: false}）只有带标记的物品能放进来。
    *
    * @param amount 放几个（右键 1 个，左键一整摞）
    */
@@ -298,6 +299,9 @@ public final class WardSearchController {
       }
       if (t.hasItem(slot)) {
         return WardSession.OpResult.OCCUPIED;
+      }
+      if (!acceptsPlacement(moving)) {
+        return WardSession.OpResult.FOREIGN_ITEM;
       }
       t.put(slot, moving);
       t.markRevealed(uuid, slot);
@@ -352,6 +356,9 @@ public final class WardSearchController {
     int[] target = { -1 };
 
     WardSession.OpResult result = session.transact(t -> {
+      if (!acceptsPlacement(moving)) {
+        return WardSession.OpResult.FOREIGN_ITEM;
+      }
       int free = -1;
       for (int i = 0; i < t.slotCount(); i++) {
         if (!t.hasItem(i)) {
@@ -401,6 +408,18 @@ public final class WardSearchController {
     return true;
   }
 
+  /**
+   * 这件物品允不允许放进容器
+   * <p>
+   * 配置 {@code session.allow-foreign-place} 关掉时，只接受<b>带品质标记</b>的物品，
+   * 也就是本模块抽出来的那些（见 {@link WardTag#hasTag(ItemStack)}）。
+   *
+   * @param item 待放入的物品
+   */
+  private static boolean acceptsPlacement(ItemStack item) {
+    return JwardChestMain.CONF.allowForeignPlace() || WardTag.hasTag(item);
+  }
+
   /** 把失败原因说清楚，别让玩家对着空气点 */
   private static void reportOpFailure(Player player, WardSession.OpResult result) {
     switch (result) {
@@ -409,6 +428,7 @@ public final class WardSearchController {
       case CONTAINER_FULL -> player.sendMessage(i18n.tr("jwardchest.container.container_full"));
       case NOT_REVEALED -> player.sendMessage(i18n.tr("jwardchest.container.not_revealed"));
       case PLAYER_FULL -> player.sendMessage(i18n.tr("jwardchest.container.full"));
+      case FOREIGN_ITEM -> player.sendMessage(i18n.tr("jwardchest.container.foreign_denied"));
       case OUT_OF_RANGE -> player.sendMessage(i18n.tr("jwardchest.container.aborted"));
       default -> {
       }

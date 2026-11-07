@@ -92,8 +92,27 @@ public final class WardTag {
     return WardRarity.find(id);
   }
 
-  /** 是否带有本模块写入的品质标记（且能识别） */
-  public static boolean isTagged(@Nullable ItemStack item) {
-    return taggedRarity(item) != null;
+  /**
+   * 是否带有本模块写入的品质标记 —— <b>只认「标记在不在」，不管 id 还认不认得</b>
+   * <p>
+   * 这是「这件物品是不是本模块产出的」的判据（配置 {@code session.allow-foreign-place}
+   * 关掉后，不带的物品不许放进容器）。
+   * <p>
+   * 之所以不去校验 id 是否还在 <b>rarities</b> 声明里：管理员删掉某一档之后，之前抽出去的那些
+   * 物品仍然是「我们产出的」，不该突然变成外来物。至于搜索时长，{@link #rarityOf(ItemStack)}
+   * 读不到 id 时会自动回落到 {@link WardRarity#fallback()}，两者互不影响。
+   *
+   * @param item 待判定的物品，可为 null
+   */
+  public static boolean hasTag(@Nullable ItemStack item) {
+    if (item == null || item.getType().isAir() || !item.hasItemMeta()) {
+      return false;
+    }
+    ItemMeta meta = item.getItemMeta();
+    if (meta == null) {
+      return false;
+    }
+    String id = meta.getPersistentDataContainer().get(rarityKey(), PersistentDataType.STRING);
+    return id != null && !id.isBlank();
   }
 }
