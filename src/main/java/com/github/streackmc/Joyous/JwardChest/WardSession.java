@@ -85,8 +85,11 @@ public final class WardSession {
     /** 该玩家是否已揭开这一格 */
     boolean revealedBy(UUID player, int slot);
 
-    /** 标记该玩家已揭开这一格 */
+    /** 标记该玩家已揭开这一格（只做记账，不动搜索游标） */
     void markRevealed(UUID player, int slot);
+
+    /** 标记该玩家「搜完了这一格」：揭开它，并把搜索游标推到这一格 */
+    void markSearched(UUID player, int slot);
 
     /** 容器里还有多少件东西 */
     int remaining();
@@ -107,17 +110,32 @@ public final class WardSession {
   /** 内容变更锁（见类注释的并发模型） */
   private final ReentrantLock lock = new ReentrantLock();
 
-  /** 玩家 → 已揭开的槽位 */
-  private final Map<UUID, Set<Integer>> revealed = new ConcurrentHashMap<>();
+  /** 玩家 → 他自己的搜索进度（已揭开的槽位 + 游标 + 粗筛） */
+  private final Map<UUID, Progress> progress = new ConcurrentHashMap<>();
 
   /** 正在看这个容器的玩家 → 他们各自的那份界面 */
   private final Map<UUID, Inventory> viewers = new ConcurrentHashMap<>();
 
   /** 内容是否已生成（抽取或从存档恢复） */
   private volatile boolean generated;
-  /** 是否已走过粗筛 */
-  private volatile boolean prefilted;
   private volatile long lastAccess = System.currentTimeMillis();
+
+  /**
+   * 单个玩家的搜索进度
+   * <p>
+   * <b>{@code cursor}</b> 是「上一次搜完的那一格」，下一格从这里往后找（绕回队首）。
+   * 用它而不是「最小的未揭开槽位」，是因为内容是全服共享的：别人往靠前的空槽里放东西时，
+   * 用「最小未揭开」会把这个玩家硬拽回队首重搜，于是谁往里塞东西谁就能拖慢别人的进度。
+   * 按游标顺序搜索时，新放进去的东西只会排在他自己这一轮的队尾。
+   */
+  private static final class Progress {
+    /** 已揭开的槽位 */
+    final Set<Integer> revealed = ConcurrentHashMap.newKeySet();
+    /** 上一次搜完的槽位；-1 表示还没开始 */
+    volatile int cursor = -1;
+    /** 该玩家是否已经走过粗筛（每人一次，不是整个容器一次） */
+    volatile boolean prefilted;
+  }
 
   public WardSession(String key, UUID profileId, String world, int x, int y, int z,
       int slotCount, boolean preview) {
@@ -163,12 +181,21 @@ public final class WardSession {
     return generated;
   }
 
-  public boolean prefilted() {
-    return prefilted;
+  /** 该玩家是否已经走过粗筛 */
+  public boolean prefilted(UUID player) {
+    return player != null && progressOf(player).prefilted;
   }
 
-  public void prefilted(boolean value) {
-    this.prefilted = value;
+  /** 标记该玩家已走过粗筛 */
+  public void prefilted(UUID player, boolean value) {
+    if (player != null) {
+      progressOf(player).prefilted = value;
+    }
+  }
+
+  /** 该玩家当前的搜索游标（上一次搜完的槽位；-1 表示还没开始） */
+  public int cursorOf(UUID player) {
+    return player == null ? -1 : progressOf(player).cursor;
   }
 
   /** 槽位总数 */
@@ -199,22 +226,32 @@ public final class WardSession {
     if (player == null) {
       return false;
     }
-    Set<Integer> set = revealed.get(player);
-    return set != null && set.contains(slot);
+    return progressOf(player).revealed.contains(slot);
   }
 
   /**
-   * 该玩家下一格需要搜索的槽位
+   * 该玩家下一格需要搜索的槽位 —— <b>从游标往后找，绕回队首</b>
    * <p>
-   * 判据只有一条：<b>这一格装着东西，而该玩家还没揭开它</b>。
-   * 空槽（被取走了 / 从来就是空）自然被跳过，所以「已取走」不需要单独的状态位。
+   * 两个判据：这一格装着东西、而该玩家还没揭开它。空槽（被取走 / 从来就是空）自然被跳过，
+   * 所以「已取走」不需要单独的状态位。
+   * <p>
+   * 关键点是<b>起点</b>：从 {@code cursor + 1} 开始而不是从 0 开始。内容是全服共享的，
+   * 若按「最小未揭开」找，别人往靠前的空槽里塞东西就会把当前玩家拽回队首，
+   * 于是「谁往里放东西，谁就能拖慢别人的搜索顺序」。按游标顺序走时，新出现的东西
+   * 只会排在他自己这一轮的队尾，不会被插队。
    *
    * @return 槽位下标；没有可搜的返回 -1
    */
   public int nextSearchSlot(UUID player) {
-    Set<Integer> set = revealed.get(player);
-    for (int slot = 0; slot < contents.length; slot++) {
-      if (contents[slot] != null && (set == null || !set.contains(slot))) {
+    if (player == null || contents.length == 0) {
+      return -1;
+    }
+    Progress p = progressOf(player);
+    int total = contents.length;
+    int start = Math.floorMod(p.cursor + 1, total);
+    for (int i = 0; i < total; i++) {
+      int slot = (start + i) % total;
+      if (contents[slot] != null && !p.revealed.contains(slot)) {
         return slot;
       }
     }
@@ -224,6 +261,11 @@ public final class WardSession {
   /** 该玩家是否已经把能搜的都搜完了 */
   public boolean searchedAll(UUID player) {
     return nextSearchSlot(player) < 0;
+  }
+
+  /** 取（或创建）某玩家的进度 */
+  private Progress progressOf(UUID player) {
+    return progress.computeIfAbsent(player, k -> new Progress());
   }
 
   /** 容器里还剩多少件东西 */
@@ -264,10 +306,23 @@ public final class WardSession {
     }
   }
 
-  /** 标记某玩家已揭开某格 */
+  /** 标记某玩家已揭开某格（只做记账，不动搜索游标） */
   public void markRevealed(UUID player, int slot) {
     transact(t -> {
       t.markRevealed(player, slot);
+      return null;
+    });
+  }
+
+  /**
+   * 标记某玩家「搜完了这一格」：揭开它，并把他的搜索游标推到这一格
+   * <p>
+   * 与 {@link #markRevealed(UUID, int)} 的区别就是游标——只有真正走完倒计时才算「搜索完成」，
+   * 补记（比如放入物品时顺手标记「他自己知道这一格是什么」）不该改变他的搜索顺序。
+   */
+  public void markSearched(UUID player, int slot) {
+    transact(t -> {
+      t.markSearched(player, slot);
       return null;
     });
   }
@@ -310,9 +365,10 @@ public final class WardSession {
         return;
       }
       contents[slot] = item.clone();
-      // 放了新东西 → 所有人（包括刚放的人之外）都要重新搜索这一格
-      for (Set<Integer> set : revealed.values()) {
-        set.remove(slot);
+      // 放了新东西 → 所有玩家都要重新搜索这一格（但不动任何人的游标：
+      // 这一格会在各人自己那一轮绕回到它时才被搜到，不会被插队）
+      for (Progress p : progress.values()) {
+        p.revealed.remove(slot);
       }
     }
 
@@ -326,7 +382,17 @@ public final class WardSession {
       if (player == null || !WardSession.this.inRange(slot)) {
         return;
       }
-      revealed.computeIfAbsent(player, k -> ConcurrentHashMap.newKeySet()).add(slot);
+      progressOf(player).revealed.add(slot);
+    }
+
+    @Override
+    public void markSearched(UUID player, int slot) {
+      if (player == null || !WardSession.this.inRange(slot)) {
+        return;
+      }
+      Progress p = progressOf(player);
+      p.revealed.add(slot);
+      p.cursor = slot;
     }
 
     @Override
@@ -351,7 +417,7 @@ public final class WardSession {
       for (int i = 0; i < contents.length; i++) {
         contents[i] = null;
       }
-      revealed.clear();
+      progress.clear();
       if (items == null || items.isEmpty() || contents.length == 0) {
         return 0;
       }
@@ -387,7 +453,7 @@ public final class WardSession {
         ItemStack item = ordered.get(i);
         contents[i] = (item == null || item.getType().isAir()) ? null : item.clone();
       }
-      revealed.clear();
+      progress.clear();
       generated = true;
       return true;
     });
@@ -414,9 +480,8 @@ public final class WardSession {
       for (int i = 0; i < contents.length; i++) {
         contents[i] = null;
       }
-      revealed.clear();
+      progress.clear();
       generated = false;
-      prefilted = false;
       return null;
     });
   }

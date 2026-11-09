@@ -379,11 +379,9 @@ public final class JwardChestCommand {
     if (session == null) {
       reply(ctx, i18n.tr("jwardchest.command.info.session_none"));
     } else {
+      // 粗筛是「每人一次」的，容器层面没有统一状态，因此只报剩余件数与观看人数
       reply(ctx, i18n.tr("jwardchest.command.info.session",
           session.remaining(),
-          session.prefilted()
-              ? i18n.tr("jwardchest.command.info.done")
-              : i18n.tr("jwardchest.command.info.not_done"),
           session.viewers().size()));
     }
     return 1;

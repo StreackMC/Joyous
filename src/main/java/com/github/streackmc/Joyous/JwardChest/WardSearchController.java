@@ -481,7 +481,7 @@ public final class WardSearchController {
     Search s = new Search(session.key(), player.getUniqueId());
     s.profile = profile;
     s.current = -1;
-    s.prefilterDone = !profile.prefilterEnabled() || session.prefilted();
+    s.prefilterDone = !profile.prefilterEnabled() || session.prefilted(player.getUniqueId());
     running.put(s.taskKey(), s);
 
     long interval = JwardChestMain.CONF.updateIntervalTicks();
@@ -571,7 +571,7 @@ public final class WardSearchController {
     }
 
     // 粗筛结束：回到「按自己的进度渲染」的视图
-    session.prefilted(true);
+    session.prefilted(s.playerId, true);
     s.prefilterDone = true;
     s.forgetFrameCache();
     buildView(open, session, s.playerId, false);
@@ -607,7 +607,7 @@ public final class WardSearchController {
 
     if (!session.hasItem(slot)) {
       // 倒计时途中被别人取走了：不必再等，直接揭过
-      session.markRevealed(s.playerId, slot);
+      session.markSearched(s.playerId, slot);
       renderSlot(open, session, s.playerId, slot);
       s.current = -1;
       return;
@@ -623,7 +623,7 @@ public final class WardSearchController {
     }
 
     // 完成：揭开这一格（内容仍在容器里，谁点谁拿走）
-    session.markRevealed(s.playerId, slot);
+    session.markSearched(s.playerId, slot);
     renderSlot(open, session, s.playerId, slot);
     rarity.playCompletion(player);
     s.current = -1;
