@@ -1,143 +1,101 @@
 # Joyous 项目长期记忆
 
 ## 项目概述
-- **Joyous** 是「栈流Streack」Minecraft 服务器的玩法功能插件
-- groupId: `com.github.streackmc`, artifactId: `Joyous`, version: `0.3.0`
-- 基于 Paper 1.21.8 API + Java 21
-- 许可证: GPL-3.0
-- 仓库: https://github.com/StreackMC/Joyous
+- 「栈流Streack」Minecraft 服务器的玩法功能插件；`com.github.streackmc:Joyous:0.3.0`
+- Paper 1.21.8 API + Java 21，GPL-3.0，仓库 https://github.com/StreackMC/Joyous
 
 ## 架构
-- 模块化设计: 所有功能模块继承 `JoyousModel` 抽象类，在 `entry.Models` 中统一注册
-- 核心层: `Joyous`(全局上下文) / `PHAPI`(PlaceholderAPI桥接) / `logger`(多后端日志) / `i18n`(多语言)
-- 入口: `entry extends JavaPlugin` — onEnable 中初始化配置→检查依赖→遍历注册模块
+- 模块化：继承 `JoyousModel`，在 `entry.Models` 静态块注册；`onEnable` 里配置→依赖→遍历启用
+- 核心层：`Joyous`(全局上下文/权限/命令注册) / `PHAPI`(PAPI 桥接，竞争解析) / `jlogger` / `i18n`
+- 配置：`Joyous.conf`(SConfig, 自动重载) + `confDefault`(内置镜像) + `confBuild`(plugin.yml)
+- ⚠️ **SConfig 构造器**：`SConfig(String,String)` 是 **(路径, 类型)**；按字符串内容解析必须用
+  **三参** `SConfig(content, type, name)`。两参传内容会静默得到空配置
+- ⚠️ `SConfig.putString(key, null)` 会 NPE
+- 玩家文本走 `Joyous.i18n.tr(...)`(language.yml) + legacy→Component，避免 `sendMessage(String)`
 
-## 模块清单 (9个)
-1. **JMenu** — 双端通用菜单(Java箱子GUI + 基岩版Floodgate表单), JSON格式菜单文件(.jmenu), 带缓存TTL
-   - 描述文件已适配 **v2**(`jmev: 2`)：`display.model`(`legacy_model_data` ≤1.21.3 / `item_model` +
-     `custom_model_data` ≥1.21.4，按 `JMenuMain.isNewerModelUsable()` 分流)、`else` 回退按钮
-     (画在原槽位，其 perm/else 无效)、基岩版「动作不是 menu/cmd/op/con/url → 文本段落」
-   - ⚠️ 打开与点击共用 `effectiveFor(player)`，否则会出现「看到回退按钮却执行主按钮动作」；
-     `SimpleForm.content` 只有一块，基岩段落只能集中在按钮上方
-   - `jme`/`jmev` 只做提示不拒绝加载（旧实现从未读过这两个键）
-2. **Entroprix** — 熵流抽卡系统(米池规则), 权重制概率/大小保底/概率提升, PDC持久化保底状态
-3. **JStatusAPI** — 声明式 HTTP 查询API(基于StreackLib的HTTPServer, 由 APIHolders 重构而来)
-   - 子端点: PhAPI(占位符, JSON5 payload) / BanAPI(封禁查询) / StatusAPI(服务器状态)
-   - 基类 `JStatusApiSubhandler` 提供统一声明式缓存 `cached(cacheKey, builder)` / `cachedAt(key)`
-   - 注册: `subhandlers[]` + `CONF.path(getPath())`，基路径 `JStatusAPI.baseurl`（默认 `/japi/`）
-   - 配置键: `baseurl` / `cors-allowed` / `cache`(秒) / `white-mode` / `ph_list`（支持 `regex:` 前缀）
-   - 缓存键必须按请求区分（Status 固定、Ban 按 target 集、Ph 按 payload），TTL<=0 即禁用缓存
-   - ⚠️ 已知问题: BanApi 按玩家名查走 StreackLib `checkBan`(旧 NAME 列表)看不到 PROFILE 封禁；
-     `PHAPI.commonPHAPI` 定义了但从未 registerParser；`SConfig.putString(key, null)` 会 NPE
-4. **PlayerTitle** — 轻量玩家称号系统(Placeholder+权限控制)
-5. **Mails** — 关服邮件通知(基于StreackLib的SMail)
-6. **EnvExport** — 环境变量KV存储(可通过占位符和命令读写)
-7. **Restarter** — 服务器重启器(计划重启/关闭、自动重启时间条件+内存检测、假人恢复、preventInterrupt)
-   - 内存检测: Old Gen占用率(MemoryPoolMXBean)、连续采样、泄漏检测(Full GC回收率)、堆转储、重启间隔保护
-   - 持久化: dat.json (SConfig JSON)，存储 fakePlayers + lastMemoryRestart
-   - 语义化执行: performRestart()/performShutdown() 封装最终逻辑
-   - ⚠️ 2026-10-05 审计出 4 个 P0（onDisable 调度任务必被取消致 preventInterrupt 失效、计划重启被误判为异常关闭、假人名单在踢人后才采集致丢失、时间条件 List 强转 CCE），详见 memory/2026-10-05.md
-8. **Neonaic** — 与 Neonaic（Neonai-Connector, NodeJS AI/聊天机器人）的桥接 + 玩法特性
-   - `bridge/` 传输层: JSON+LF 分帧 / 握手 / 请求响应 / 心跳；UDS(AF_UNIX 监听) 与 HTTP 双通道
-   - 连接不由插件生命周期管理：公开 API（`NeonaicSubsystem.startConnection/stopConnection/restartConnection`）
-     + 命令 `/neonaic bridge status|start|stop|restart`；`connect.auto-connect` 默认 false
-   - **重连**：Joyous 是监听端、不主动重连；对端断开后 accept 循环继续，等 Neonaic 指数退避重拨
-   - `chat/` 玩法: 聊天格式渲染、AI 随机/@/命令触发、群服互联(from-mc/to-mc)
-     · to-mc 入站的**已绑定来源显示 MC 玩家名**(非 QQ 昵称)——`chat.broadcast` 的 `user` 带 `uuid`/`name`/`nickname`，
-       绑定解析只能由 Neonaic 侧做(它持有关联)；新增 `[nickname]` token，`*-cover` 悬浮也走 token 替换
-   - **身份绑定**（2026-10-11 重构）: 自助**绑定代码流程**——MC `/neonaicbindidentity` 取一次性代码(缺省5分钟)
-     → 聊天侧 `/joyous:bind <code>` 经 `identity.claim` 认领 → MC `/neonaicunbindidentity` 经 `identity.unbind` 解绑；
-     关联(qUSR#… ↔ UUID)权威持有方是 Neonaic；旧「直接设置」保留为管理员命令 `/neonaic bind ...`(默认 OP)
-   - 占位符 `%joyous_neonaic_name%` / `%joyous_neonaic_subname%`；命令族 `/neonaic ...` + 配置化自助命令
-   - 协议 V2 设计见 `docs/neonaic/PROTOCOL-V2.md`（⚠️ `docs/neonaic` 在 .gitignore，属本地文档）
-9. **JwardChest** — 战利品箱(2026-10-14 新增): 绑定任意方块为带搜索动画的自定义容器
-   - 命令 `/jwardchest`(别名 `/jc`): `new` / `unbind` / `reload` / `reset all|preset <代号>|radius <r>|box <坐标…>`
-   - **绑定**写在**区块 PDC**(键含方块坐标，随区块存盘)；**设置**落 `models/JwardChest/profiles.yml`；
-     内容/进度模型见下方「共享箱改造(2026-11-07)」
-   - **珍惜度是声明式的**(2026-10-15 重做)：默认 6 档(普通白/稀有绿/**精良蓝**/典藏紫/珍贵金/绝世红)，
-     整套由 `config.yml` 的 `JwardChest.rarities` **声明**——一档一条，把 name/color/glass/wool/carpet/
-     seconds/sound/volume/pitch 全写在同一条里；**声明顺序即强度顺序**(末条 = `highest()`)。
-     `WardRarity` 不再是 enum 而是不可变数据类 + 静态注册表(`list/size/byIndex/find/byId/first/
-     highest/indexOf/ids/reload`)；**equals 按 id**(热重载后的新实例仍能命中设置里存下的旧键)、
-     **compareTo 按 index**、`Map<WardRarity,?>` 由 `EnumMap` 换成 `LinkedHashMap`。
-     增删/改名/调顺序都只改配置；配置缺失或写坏时回落到代码内置的同一份默认(记 WARN)。
-     ⚠️ 改 id = 换档(设置里那档的值读不回来)；`/jc reload` 会重建声明。
-     权重为 0 的条目保留但不参与抽取
-   - ②「预设代号」即**预设组名**：不为空 ⇒ 生效设置取组、编辑写回组(整组联动)；为空 ⇒ 用自身设置(覆盖关系)
-   - 组在 YAML 里的键用 **URL 安全 Base64**(代号允许 `.`，而 SConfig 路径以 `.` 分隔)
-   - GUI 用自定义 `InventoryHolder`(`WardGui.Holder`)区分各类界面；占位玻璃板带 PDC 标记 `joyous`=`jc_placeholder_(un)searched`
-   - **物品模型映射**(2026-10-20 重写，1.21.4+ 模型烘焙)：占位物品只写两个组件——
-     `item_model`(配置项 `placeholder.item-model`，所有占位共用) +
-     `custom_model_data.strings`= **[品质, 状态]**（未搜索时品质填 `placeholder.none-rarity`=`none`）；
-     资源包用一个 `select`(`property: custom_model_data`, `index: 0`) 按品质分 case。
-     `item-model` **默认留空**——没资源包却写了键会显示「缺失模型」紫黑格。
-     识别是双信号：PDC 优先；组件反查要求「模型键命中 **且** `strings[1]` 是已知状态」
-   - **数量分布**(2026-10-15 对齐)：凡「在下限~上限间取整数」都走 `WardDistribution`
-     (uniform/low/high + curve)，共两处——结果组总条数(下限和~上限和)、单条结果的物品数量；默认 uniform；
-     **总条数下限强制 ≥1** 以免抽出空箱。⚠️ `pick()` 必须用 `floor(shaped*(span+1))`，
-     用 `round(shaped*span)` 会让两端概率减半
-   - 每珍惜度有 `minDraw`(保底) 与 `maxDraw`(上限)：先发满保底，其余按权重分摊并受上限约束；
-     上限 0 = 不限；总条数全 0 时按容器容量抽满
-   - 编辑器放入物品 = 登记模板(**不消耗**物品、继承堆叠数量)，列表每次操作后紧凑排列(自动排序)
-   - 物品文本一律过 `WardGui.legacy()`(内部 `ensureReset`)，否则原版把物品名渲染成斜体
-   - **搜索中占位走「帧」API**(2026-10-15)：`WardGui.Frame(material, text)` 是「一次计算的全部产物」，
-     `prefilterFrame()`(粗筛,带秒数) / `slotFrame()`(逐结果,不带秒数) 出帧、`searchingPane(frame)` 出物品；
-     控制器 `push(..., Frame)` 用 `Frame[] frameCache` 去重(比较一帧 = 比较整格画出来的样子)。
-     进入紧急窗口时**材质与文字一起变**，配色 普通白/稀有绿/典藏紫/珍贵金(ORANGE)/绝世红，
-     窗口 = `clamp(时长 × urgency-ratio, urgency-min-seconds, urgency-seconds)`；
-     ⚠️ 普通档紧急色即白色，与平时相同(配色必然结果)
-   - **共享箱改造(2026-11-07，进行中)**：容器语义从「每人一份结果快照」改为**全服共享内容**
-     - `WardSession` 只留三样：`ItemStack[] contents`(权威，长度=槽位数)、
-       `revealed{玩家→已揭开的槽位}`(私有)、`viewers{玩家→他自己那份 Inventory}`；
-       **删掉了 `loot` / `slots[]` / `Loot` record / `slotOf`**——「结果在哪个槽」不再单独记
-     - 三态只有一个判据：有东西且我揭开过=真物品；有东西但我没揭开=占位；没东西=空
-       （「已被取走」自然落到空，不需要额外状态位）
-     - **揭开与领取分离**：倒计时结束只 markSearched，**点击有东西的格子才领取**（点击即领，
-       不用光标搬运）。放入：手持物品点空槽(左键整摞/右键 1 个)、Shift+左键背包物品；拖拽一律取消
-     - **搜索顺序 = 每玩家环形游标**（`Progress.cursor`）：完成一格才 `markSearched` 把游标推到它，
-       下一格从 `cursor+1` 往后找、绕回队首。⚠️ **不要改回「最小未揭开槽位」**——内容共享时，
-       别人往靠前的空槽放东西会把这个玩家硬拽回队首，等于让 B 能拖慢 A 的进度。
-       同理 `prefilted` 也从「整个容器一次」改成每玩家一份（`Progress.prefilted`）。
-       记账用的 `markRevealed`（放入时标记「他自己知道这格是什么」）**不能动游标**
-     - **原子模型**：`WardSession.transact(Function<Tx,R>)` = 加锁 → 校验+修改 → 解锁 → 落库 → 派发；
-       **落库失败要把内存改动回滚**（领取→放回、放入→清空），否则「玩家拿到了但库里还在」= 复制
-     - 刷新规则：**只有 `/jc reset*` 或会话过期**才算刷新（`WardSessionManager` 的 evictionListener
-       删存档）；关服时先 `setEvictionListener(null)` 再 clear，否则重启=补货；超上限裁剪只挤缓存不删档
-     - **品质跟着物品走**：`WardTag` 往物品 PDC 写 `joyous:jc_rarity`(= 珍惜度 id)；
-       读不到就用 `WardRarity.fallback()`（配置 `JwardChest.fallback-rarity`，默认 common）。
-       外来物品因此有确定的时长与配色（原先靠槽位映射，外来物品无解）。
-       `WardTag.hasTag()` = 只认标记在不在（不校验 id 是否还在 rarities 里）；
-       配置 `session.allow-place`(总开关) / `session.allow-foreign-place`(关掉则只收带标记的物品)
-     - 存档 `WardStore` 走 **Sdb 原始 SQL**（`act(String)` + `act()` 事务）：建表/`DELETE`+`INSERT`/`SELECT`。
-       ⚠️ 不能混用 `SdbActionContext.table()`——它会自动加 profile 的 `table_prefix`，而原始 SQL 不会，
-       混用就变成「写 A 表读 B 表」。错误一律包成 `WardStoreException` → `reportStorageError`（日志+管理员提示节流）
-       ⚠️ **SQL 注入面(CWE-89)**：Sdb 的 UPDATE/MERGE 参数化路径未实现（`buildSQL` 直接抛
-       UnsupportedOperationException）、`act(String)` 用 `Statement` 没有参数位 → 只能拼接。
-       因此 `quoteValue()` 是**白名单断言而不是转义**：只接受 `[A-Za-z0-9+/=_.:@-]`（UUID/Base64/数字），
-       越界即 `UnsafeSqlValueException` + 一条 severe。表名另走 `sanitizeTable()`（只留 `[A-Za-z0-9_]`，
-       被清洗过会 WARN）。**要写自由文本字段，必须先把 StreackLib 升到支持 PreparedStatement 的版本并
-       改用参数化 API，不许放宽 SAFE_VALUE**
-     - 编辑器保存待选物品后 `module.invalidate(id)`（会话+存档一起作废），否则改完表还是旧结果
-   - ⚠️ 未验证部分：GUI 交互与搜索动画需要真人在线；headless 已验到「模块启用 + 建表」
-     （0.6.1 运行时 API 与 master-SNAPSHOT 编译期一致，已用 javap 核对）
+## 模块（10 个）
+1. **JMenu** — 双端菜单(Java 箱子 + Floodgate 表单)，`.jmenu` JSON，带 TTL 缓存
+   - 描述文件 v2：`display.model`(`legacy_model_data` ≤1.21.3 / `item_model` ≥1.21.4)、`else` 回退按钮
+   - 打开与点击共用 `effectiveFor(player)`，否则「看到回退按钮却执行主按钮动作」
+2. **Entroprix** — 熵流抽卡(米池、权重、大小保底)，PDC 持久化
+3. **JStatusAPI** — 声明式 HTTP 查询(StreackLib HTTPServer)；子端点 Ph/Ban/Status
+   - 缓存键必须按请求区分，TTL<=0 禁用；`PHAPI.commonPHAPI` 定义了但从未 registerParser
+4. **PlayerTitle** — 称号(占位符+权限)
+5. **Mails** — 关服邮件(StreackLib SMail)
+6. **EnvExport** — 环境变量 KV
+7. **Restarter** — 计划重启/内存检测(Old Gen+泄漏+堆转储)/假人恢复
+   - ⚠️ 2026-10-05 审计出 4 个 P0（onDisable 调度任务必被取消致 preventInterrupt 失效、
+     计划重启被误判异常关闭、假人名单踢人后才采集、时间条件 List 强转 CCE）见 `2026-10-05.md`
+8. **Neonaic** — 与 Neonai-Connector 的桥接 + 群服互联
+   - `bridge/`：JSON+LF 分帧 / 握手 / 心跳；UDS 与 HTTP 双通道；插件是**监听端不主动重连**
+   - 身份绑定走**一次性绑定码**：MC 取码 → 聊天侧 `/joyous:bind <code>` 认领；关联权威在 Neonaic
+   - `docs/neonaic/` 在 .gitignore（本地文档）
+9. **JwardChest** — 战利品箱（方块绑定 → 带搜索动画的自定义容器）
+   - 命令 `/jwardchest`(`/jc`)；绑定写**区块 PDC**，设置落 `models/JwardChest/profiles.yml`
+   - 珍惜度**声明式**：`config.yml` 的 `JwardChest.rarities` 一档一条，声明顺序即强度；
+     `WardRarity` 是数据类+静态注册表（equals 按 id，compareTo 按 index），改 id = 换档
+   - 「预设代号」= 预设组名（非空则整组联动）；组键用 URL 安全 Base64（避免 `.` 与 SConfig 路径冲突）
+   - 容器语义（2026-11-07 共享箱改造）：`contents[]`(权威) + `revealed{玩家→槽}`(私有) + `viewers`
+     · 三态唯一判据：有东西且我揭开过=真物品；没揭开=占位；没东西=空（已取走自然落到空）
+     · 揭开与领取分离：倒计时只 markSearched，**点击有东西的格子才领取**
+     · 搜索顺序 = **每玩家环形游标**（`Progress.cursor`）；⚠️ 别改回「最小未揭开槽位」
+       （别人往靠前空槽放东西会把玩家拽回队首）
+     · `transact()` = 加锁→校验+修改→解锁→落库→派发；**落库失败必须回滚内存**（否则复制）
+     · 刷新只由 `/jc reset*` 或会话过期触发；关服先 `setEvictionListener(null)` 再 clear（否则重启=补货）
+     · 品质跟着物品走：`WardTag` 写 PDC `joyous:jc_rarity`，读不到用 `fallback-rarity`
+     · 物品模型：`item_model` + `custom_model_data.strings=[品质,状态]`；`item-model` 默认留空
+       （没资源包却写键会显示「缺失模型」紫黑格）
+     · 数量分布走 `WardDistribution`；⚠️ `pick()` 必须 `floor(shaped*(span+1))`，用 round 会让两端概率减半
+   - 界面：自定义 `InventoryHolder`(`WardGui.Holder`)、文本一律过 `WardGui.legacy()`(防斜体)
+   - ⚠️ 改完待选物品要 `module.invalidate(id)`，否则表还是旧结果
+10. **JSell**（2026-11-09 新增）— 出售系统：玩家 GUI `/jsell`(`/sell`) + 管理 `/jsellset`(`/sellset`)
+   - 托管/结算/限额/占位符细节见下方「JSell 要点」
 
-## 外部依赖 (全部 provided scope)
-- StreackLib 0.6.1 (核心库,硬依赖)
-- PlaceholderAPI 2.11.6 (软依赖)
-- Geyser/Floodgate API (软依赖,基岩版支持)
-- Paper API 1.21.8 / Spigot API 1.21.5
+## 外部依赖（全部 provided）
+StreackLib 0.6.1 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spigot 1.21.5
+
+## 数据库（StreackLib Sdb）
+- `SdbDatabase.act(String)` 走 `Statement`（无参数位）；`act(SdbActionContext)` 走参数化
+- ⚠️ **ActionContext 没有 INSERT**（只有 SELECT/UPDATE/MERGE/DELETE/CREATE/ALTER/DROP/TRUNCATE）；
+  写行只能原始 SQL → **值必须白名单断言**（UUID/Base64/数字），自由文本一律塞进 Base64 payload
+- ⚠️ 不能混用 `SdbActionContext.table()`（自动加 `table_prefix`）与原始 SQL（不加）→ 会写 A 表读 B 表
+- `db.act(sql)` 每次自动提交；多语句用 `try (SdbAction a = db.act()) { a.apply(...); a.commit(); }`
 
 ## 关键设计模式
-- PHAPI竞争解析: 多个模块注册 JoyousPHAPIhandler, 按注册顺序竞争解析占位符
-- 配置热重载: SConfig.setAutoReload(true), 配置变更自动触发事件
-- PDC持久化: 玩家数据使用 Bukkit PersistentDataContainer 存储(保底状态/称号选择)
-- 命令注册: Paper Brigadier API (Commands.literal/argument)
-- ⚠️ **SConfig 构造器**：`SConfig(String,String)` 是 **(路径, 类型)**；按**字符串内容**解析必须用
-  **三参** `SConfig(content, type, name)`（name 可为 null）。用两参传内容会静默得到**空配置**
-- 面向玩家的文本走 `Joyous.i18n.tr(...)`（language.yml）+ `NeonaicText`(legacy→Adventure Component)，
-  避免已弃用的 `sendMessage(String)` 与硬编码
+- PHAPI 竞争解析：模块实现 `JoyousPHAPIhandler` 并 `Joyous.PlaceholderService.registerParser`，
+  返回 null 表示不处理（`%joyous_xxx%` → params = `xxx`）
+- PDC 持久化玩家数据；命令用 Paper Brigadier（`Commands.literal/argument` + `ArgumentTypes.*`）
+- 权限用 `Joyous.addPermissions(PermDef.all/op/none(...))`，命令节点用 `.requires(...)`
 
 ## Git 约定
-- 提交身份: username="Neonai", email="neonai+coding@kdxiaoyi.top"
-- 仅通过命令行 `-c user.name= -c user.email=` 携带，不写入git配置
-- 记忆文件也要一起提交，所以需要在提交之前先写记忆
+- 身份 `Neonai <neonai+coding@kdxiaoyi.top>`，仅命令行 `-c` 携带；只 add 本次产出；不做任何远程同步
+- 记忆文件属任务产出，先写记忆再提交
+
+## JSell 要点
+- 命令 `/jsell`(`/sell`)：`gui`/`hand`/`inv`/`all`；`/jsellset`(`/sellset`)：编辑界面/`reload`/`pending`/`restore <tx>`
+- 权限 **`joyous.jsell.use`（默认 all，但必须有节点）**、`joyous.jsell.admin`
+- **可售列表**落 `models/JSell/items.yml`，但**不是分层 YAML**：一行一条整条 Base64
+  （`items: [ "<b64>" ]`）。⚠️ 原因：SConfig 的 `put("a.<uuid>.b")` 会把动态键写坏
+  （层级与字面键混在一起，读回来找不到）→ 模块内所有「动态键 + 复合路径」的存档都别用点号路径
+- 匹配（`SellMatch`）：STRICT = `ItemStack#isSimilar`（忽略数量）；CONTAINS =
+  ⚠️ **不能用 `ItemStack#serialize()`**（1.21.5+ 已从 `type/meta` 变成 `id/components`），
+  改为「PDC 子集 + Lore 前缀 + 附魔等级 ≥ + 自定义名一致 + 其余**数据组件**逐项相等」；
+  组件按 `type.getKey().getKey()` 判名（`CUSTOM_DATA` 等常量在 1.21.8 API 里根本没暴露）
+- 托管模型（抗灾核心）：界面里的物品 = 权威内容，每次变动同步写 `jsell_escrow`；
+  关界面/断线 = 取消（原样退还 + 删行 + `player.saveData()`），崩服 = 下次上线交付
+- 结算协议（`jsell_tx` 多阶段）：PREPARED(只记日志) → COMMITTED(已接管物品) →
+  REFUNDED(退款已交还) → PAID(命令可能已跑) → 删除。
+  **PREPARED/COMMITTED 可整单退回；REFUNDED/PAID 只能按已售处理**（重复执行命令=刷钱）
+- 交付顺序一律「**先删库、再给物品**」：同一微窗口里宁可少给（可人工补），绝不复制
+- 「钱」这个外部副作用无法事务化：停在 REFUNDED/PAID 的单子留给 `/jsellset pending` 人工核查
+- 限购：`jsell_usage` 流水 + `SUM(amount)`；`limitCount<=0` 不限、`limitSeconds<=0` 终身累计；
+  查询失败时保守返回 0（宁可卖不掉，也不打穿限购）
+- GUI：6×9，前 5 行放入区，45 关闭 / 49 结算预览 / 53 确认（**金额防抖刷新，`repaint` 只重画物品区**）
+- 展示物品永远是 `clone()`（追加 lore / 改名都在副本上）→ 「展示与实物互不影响」的落点
+- ⚠️ 取消事件里改光标必须 `runTask` 延后 `setItemOnCursor`，否则被服务端还原
+- ⚠️ 改可售列表后要 `store.flush()`；`SellEntryStore` 有材质索引 `byMaterial`（save/delete 置脏）
+- 已用「真机自检」验过（临时 selftest + SQLite）：匹配语义、条目/托管/事务存档往返（PDC 不丢）、
+  限购额度、SQL 白名单；**未验证**：真人 GUI 交互与命令派发（需客户端）
+- ⚠️ 构建注意：VS Code Java 语言服务器会把 ECJ 的「带错误的 class」写进 `target/classes`，
+  随后 `mvn package` 增量编译会跳过它 → 出现「`Unresolved compilation problems`」的运行时错误。
+  **改完代码一律 `mvn clean package`**

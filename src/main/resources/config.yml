@@ -467,6 +467,74 @@ JwardChest:
     ## reset radius 的最大半径
     reset-radius-limit: 256
 
+## JSell 模块
+# 出售系统：玩家把物品放进界面（或直接 hand/inv/all）按可售列表计价，确认后一次性结算。
+# 可售列表由管理员在游戏内编辑：/jsellset
+JSell:
+  ## 是否启用
+  enabled: true
+  ## 货币单位
+  unit:
+    # 只影响显示，不影响给钱（给钱交给下面的命令）
+    # 例：金币 → 「确认以 1200 金币出售」
+    name: "金币"
+  ## 经济接入
+  economy:
+    ## 给钱要执行的命令，按顺序逐条以控制台身份执行
+    # 支持的占位符：
+    #   %player%  玩家名
+    #   %uuid%   玩家 UUID
+    #   %amount%  本次结算金额（纯数字，按下面 decimals 保留小数）
+    #   %count%   本次卖出的总件数
+    #   %unit%    上面的货币单位名
+    # 例：
+    #   - "eco give %player% %amount%"
+    #   - "points add %player% %amount%"
+    commands:
+      - "eco give %player% %amount%"
+    ## 金额保留几位小数（0-6）
+    # 同时影响显示与命令里的 %amount%
+    decimals: 2
+  ## 界面
+  gui:
+    ## 是否在界面物品上追加「售出价值」说明行
+    # 只加在展示用的副本上，被卖掉的实体物品不会被改动
+    append-lore: true
+    ## 确认按钮金额的防抖刷新间隔（刻）
+    # 连续放入时会合并成一次刷新；调大更省，但不建议超过 10
+    debounce-ticks: 2
+    ## 放入区最大格数（6 行界面里前 5 行 = 45 格）
+    max-slots: 45
+    ## 是否允许把不可售物品放进界面
+    # true  = 随便放，结算时把不可售的退回（放不下掉在脚下）
+    # false = 直接拒绝放入，界面里只会出现能卖的东西
+    allow-unsellable: true
+  ## 命令
+  command:
+    ## 管理员编辑时，聊天栏输入的等待超时（秒）
+    chat-input-timeout: 60
+    ## 单次结算里「逐件命令」的执行上限
+    # 逐件命令是一格执行一次，一次卖上千件会把主线程拖住；超过上限的部分会跳过并记日志
+    # 0 表示不限制（不推荐）
+    per-item-limit: 512
+  ## 存档（托管物品 / 事务日志 / 销量）
+  # 用 StreackLib 的 Sdb 系列；表不存在时模块启用阶段会自动创建。
+  # ⚠️ 这里存的是「玩家交出来但还没结算的物品」，删库等于吞物品，请与玩家数据一起备份。
+  storage:
+    ## 托管物品（界面里还没结算的东西）
+    escrow-table: "joyous_jsell_escrow"
+    ## 出售事务日志（崩服恢复用）
+    tx-table: "joyous_jsell_tx"
+    ## 销量流水（限购统计）
+    usage-table: "joyous_jsell_usage"
+    ## 存档出错时给在线管理员的提示间隔（秒）
+    notice-seconds: 60
+    ## 销量流水保留天数
+    # 只影响限购统计，不影响物品；限购是「终身累计」时建议不要太小
+    usage-retention-days: 30
+    ## 清理过期流水的间隔（秒）
+    sweep-seconds: 600
+
 ## 数据库档案名
 # 需要在 StreackLib 中配置这个数据库档案
 dbprofile: 'profile_mysql'

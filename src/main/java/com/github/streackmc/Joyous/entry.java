@@ -12,6 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
 import com.github.streackmc.Joyous.EnvExport.EnvExport;
 import com.github.streackmc.Joyous.JMenu.JMenuMain;
+import com.github.streackmc.Joyous.JSell.JSellMain;
 import com.github.streackmc.Joyous.JStatusAPI.JStatusAPIMain;
 import com.github.streackmc.Joyous.JwardChest.JwardChestMain;
 import com.github.streackmc.Joyous.Mails.MailsMain;
@@ -46,6 +47,7 @@ public class entry extends JavaPlugin {
       addModel(new MailsMain());
       addModel(new RestarterMain());
       addModel(new JwardChestMain());
+      addModel(new JSellMain());
       addModel(new NeonaicSubsystem());
     }
   }
