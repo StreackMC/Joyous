@@ -20,6 +20,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.interact.PageArbiter;
+import com.github.streackmc.Joyous.utils.interact.PagePriorityEnum;
 
 import net.kyori.adventure.text.Component;
 
@@ -83,66 +85,13 @@ public final class WardEditorGui {
    * @param block     被绑定的方块（预览需要它的坐标）
    */
   public void openEditor(Player player, UUID profileId, Location block) {
-    WardProfile profile = store.effective(profileId);
-    WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.EDITOR, profileId, block);
-    Inventory inv = Bukkit.createInventory(holder, 27,
-        WardGui.title(player, i18n.tr("jwardchest.editor.gui_title")));
-    holder.attach(inv);
-
-    inv.setItem(10, button(profile.container().icon(),
-        i18n.tr("jwardchest.editor.container_type", profile.container().displayName()),
-        List.of(
-            i18n.tr("jwardchest.editor.container_type_current", profile.container().id(), profile.slots()),
-            i18n.tr("jwardchest.editor.click"))));
-
-    String code = profile.inPreset() ? profile.presetCode() : WardProfile.UNSET_CODE;
-    inv.setItem(11, button(Material.NAME_TAG,
-        i18n.tr("jwardchest.editor.code_label"),
-        List.of(
-            i18n.tr("jwardchest.editor.code_current", code),
-            i18n.tr("jwardchest.editor.code_hint"))));
-
-    inv.setItem(12, button(Material.CHEST_MINECART,
-        i18n.tr("jwardchest.editor.items_label"),
-        List.of(
-            i18n.tr("jwardchest.editor.items_count", profile.entryCount(), profile.totalWeight()),
-            i18n.tr("jwardchest.editor.click"))));
-
-    inv.setItem(13, button(Material.HOPPER,
-        i18n.tr("jwardchest.editor.maxdraw"),
-        maxDrawLore(profile)));
-
-    inv.setItem(14, button(Material.OAK_SIGN,
-        i18n.tr("jwardchest.editor.title_label"),
-        List.of(
-            i18n.tr("jwardchest.editor.title_current", profile.title()),
-            i18n.tr("jwardchest.editor.click"))));
-
-    inv.setItem(15, button(Material.CLOCK,
-        i18n.tr("jwardchest.editor.prefilter"),
-        List.of(
-            i18n.tr("jwardchest.editor.prefilter_current",
-                profile.prefilterEnabled() ? profile.prefilterSeconds() + "s" : "0"),
-            i18n.tr("jwardchest.editor.click"))));
-
-    inv.setItem(16, button(Material.SPYGLASS,
-        i18n.tr("jwardchest.editor.preview"),
-        List.of(
-            i18n.tr("jwardchest.editor.preview_hint"),
-            i18n.tr("jwardchest.editor.preview_hint_instant"))));
-
-    inv.setItem(17, button(Material.COMPARATOR,
-        i18n.tr("jwardchest.editor.distribution", profile.countDistribution().id()),
-        List.of(
-            i18n.tr("jwardchest.editor.distribution_hint"),
-            i18n.tr("jwardchest.dist.count_label", profile.countDistribution().id()),
-            i18n.tr("jwardchest.dist.amount_label", profile.amountDistribution().id()),
-            i18n.tr("jwardchest.editor.click"))));
-
-    player.openInventory(inv);
+    // 界面本体在 WardEditorPage 里；这里只负责把页面交给仲裁器
+    PageArbiter.get().open(player, new WardEditorPage(this, store, profileId, block),
+        PagePriorityEnum.REPLACE);
   }
 
-  private static List<String> maxDrawLore(WardProfile profile) {
+  /** 主界面「最大抽出数量」那段 Lore（页面与命令共用） */
+  static List<String> maxDrawLore(WardProfile profile) {
     List<String> lore = new ArrayList<>();
     for (WardRarity r : WardRarity.list()) {
       lore.add(r.color() + r.displayName() + " §7→ §f" + profile.minDraw(r) + " §8~ §f"
@@ -176,7 +125,7 @@ public final class WardEditorGui {
   // 容器类型子菜单
   // ──────────────────────────────────────────────
 
-  private void openContainerPicker(Player player, UUID profileId, Location block) {
+  void openContainerPicker(Player player, UUID profileId, Location block) {
     WardProfile profile = store.effective(profileId);
     WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.CONTAINER_PICKER, profileId, block);
     Inventory inv = Bukkit.createInventory(holder, 27,
@@ -198,7 +147,7 @@ public final class WardEditorGui {
   }
 
   /** 箱子行数选择 */
-  private void openRowsPicker(Player player, UUID profileId, Location block) {
+  void openRowsPicker(Player player, UUID profileId, Location block) {
     WardProfile profile = store.effective(profileId);
     WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.CONTAINER_PICKER, profileId, block);
     Inventory inv = Bukkit.createInventory(holder, 9,
@@ -228,7 +177,7 @@ public final class WardEditorGui {
    * 两行：上排「最小」（地毯）＝保底，下排「最大」（羊毛）＝上限。
    * 上限只是上限——设 3 不等于一定抽 3 条，实际条数由权重分摊与总条数决定。
    */
-  private void openMaxDraw(Player player, UUID profileId, Location block) {
+  void openMaxDraw(Player player, UUID profileId, Location block) {
     WardProfile profile = store.effective(profileId);
     WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.MAX_DRAW, profileId, block);
     Inventory inv = Bukkit.createInventory(holder, MAX_DRAW_SIZE,
@@ -299,7 +248,7 @@ public final class WardEditorGui {
    * 左端两格管「结果组总条数」，右端两格管「单条结果的物品数量」；
    * 每对分别是「分布」与「曲线指数」。分布与曲线都属于<b>容器设置</b>，随容器/预设组落盘。
    */
-  private void openDistribution(Player player, UUID profileId, Location block) {
+  void openDistribution(Player player, UUID profileId, Location block) {
     WardProfile profile = store.effective(profileId);
     WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.DISTRIBUTION, profileId, block);
     Inventory inv = Bukkit.createInventory(holder, 9,
@@ -480,7 +429,7 @@ public final class WardEditorGui {
   // 待选物品子菜单
   // ──────────────────────────────────────────────
 
-  private void openItemEditor(Player player, UUID profileId, Location block) {
+  void openItemEditor(Player player, UUID profileId, Location block) {
     ItemEditorState state = itemWork.get(player.getUniqueId());
     if (state == null || !state.profileId.equals(profileId)) {
       state = new ItemEditorState(profileId, store.effective(profileId));
@@ -705,7 +654,7 @@ public final class WardEditorGui {
    *
    * @param instant Shift 点击时为 true：跳过粗筛与搜索动画，直接摆出全部结果
    */
-  private void openPreview(Player player, UUID profileId, Location block, boolean instant) {
+  void openPreview(Player player, UUID profileId, Location block, boolean instant) {
     WardProfile profile = store.effective(profileId);
     Location loc = block == null ? player.getLocation() : block;
     WardSession session = sessions.getOrCreate(
@@ -730,9 +679,6 @@ public final class WardEditorGui {
       return false;
     }
     switch (holder.kind()) {
-      case EDITOR -> {
-        return handleEditorClick(event, player, holder);
-      }
       case CONTAINER_PICKER -> {
         return handlePickerClick(event, player, holder);
       }
@@ -749,55 +695,6 @@ public final class WardEditorGui {
         return false;
       }
     }
-  }
-
-  private boolean handleEditorClick(InventoryClickEvent event, Player player, WardGui.Holder holder) {
-    if (event.getClickedInventory() == null
-        || !event.getClickedInventory().equals(player.getOpenInventory().getTopInventory())) {
-      return true;
-    }
-    UUID id = holder.profileId();
-    Location block = holder.payload() instanceof Location l ? l : null;
-
-    switch (event.getRawSlot()) {
-      case 10 -> openContainerPicker(player, id, block);
-      case 11 -> {
-        WardProfile profile = store.effective(id);
-        String old = profile.inPreset() ? profile.presetCode() : WardProfile.UNSET_CODE;
-        module.chatInput().request(player, WardChatInput.TYPE_CODE, old, value -> {
-          store.setPresetCode(id, value);
-          player.sendMessage(i18n.tr("jwardchest.editor.code_updated", value));
-        }, () -> reopenLater(player, () -> openEditor(player, id, block)));
-      }
-      case 12 -> openItemEditor(player, id, block);
-      case 13 -> openMaxDraw(player, id, block);
-      case 14 -> {
-        WardProfile profile = store.effective(id);
-        module.chatInput().request(player, WardChatInput.TYPE_TITLE, profile.title(), value -> {
-          WardProfile updated = store.effective(id);
-          updated.title(value);
-          store.save(updated);
-          player.sendMessage(i18n.tr("jwardchest.editor.title_updated", value));
-        }, () -> reopenLater(player, () -> openEditor(player, id, block)));
-      }
-      case 15 -> {
-        WardProfile profile = store.effective(id);
-        module.chatInput().request(player, WardChatInput.TYPE_WEIGHT,
-            String.valueOf(profile.prefilterSeconds()), value -> {
-              int seconds = parseIntOrDefault(value, profile.prefilterSeconds());
-              WardProfile updated = store.effective(id);
-              updated.prefilterSeconds(seconds);
-              store.save(updated);
-              player.sendMessage(i18n.tr("jwardchest.editor.prefilter_updated", seconds));
-            }, () -> reopenLater(player, () -> openEditor(player, id, block)));
-      }
-      case 16 -> openPreview(player, id, block, event.isShiftClick());
-      case 17 -> openDistribution(player, id, block);
-      default -> {
-        return true;
-      }
-    }
-    return true;
   }
 
   private boolean handlePickerClick(InventoryClickEvent event, Player player, WardGui.Holder holder) {
@@ -1100,7 +997,7 @@ public final class WardEditorGui {
     }
   }
 
-  private static int parseIntOrDefault(String value, int def) {
+  static int parseIntOrDefault(String value, int def) {
     try {
       return Integer.parseInt(value.trim());
     } catch (Exception e) {

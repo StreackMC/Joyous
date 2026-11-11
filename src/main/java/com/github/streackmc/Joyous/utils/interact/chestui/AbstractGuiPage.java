@@ -23,6 +23,10 @@ public abstract class AbstractGuiPage implements IGuiInteract {
   @Nullable
   private Inventory inventory;
 
+  /** 与 {@link #inventory} 配套的 Holder，用来判断「玩家当前开的还是不是我这份界面」 */
+  @Nullable
+  private InteractHolder holder;
+
   @Override
   @Nullable
   public Inventory inventory() {
@@ -66,21 +70,31 @@ public abstract class AbstractGuiPage implements IGuiInteract {
     if (player == null) {
       return;
     }
-    InteractHolder holder = new InteractHolder(this);
-    Inventory view = container().create(holder, rows(), title(player));
-    holder.attach(view);
+    InteractHolder fresh = new InteractHolder(this);
+    Inventory view = container().create(fresh, rows(), title(player));
+    fresh.attach(view);
+    holder = fresh;
     inventory = view;
     render(ctx, new Canvas(view));
     player.openInventory(view);
   }
 
+  /**
+   * 关掉自己那份界面
+   * <p>
+   * 必须按 Holder 判断「玩家当前开的还是不是我」：切到另一个界面时，服务端会先对旧界面发关闭事件，
+   * 那时若再补一次 {@code closeInventory()}，会把刚要打开的新界面一起吞掉。
+   */
   private void closeView() {
     Inventory view = inventory;
-    if (view == null) {
+    InteractHolder mine = holder;
+    if (view == null || mine == null) {
       return;
     }
     for (HumanEntity viewer : view.getViewers().toArray(new HumanEntity[0])) {
-      viewer.closeInventory();
+      if (InteractHolder.of(viewer.getOpenInventory().getTopInventory()) == mine) {
+        viewer.closeInventory();
+      }
     }
   }
 }

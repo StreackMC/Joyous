@@ -125,7 +125,7 @@ public final class WardListener implements Listener {
     }
 
     switch (holder.kind()) {
-      case EDITOR, CONTAINER_PICKER, MAX_DRAW, DISTRIBUTION -> {
+      case CONTAINER_PICKER, MAX_DRAW, DISTRIBUTION -> {
         // 纯按钮界面：全部取消原版行为
         event.setCancelled(true);
         safeHandle(event, holder);
@@ -200,40 +200,19 @@ public final class WardListener implements Listener {
       return;
     }
     switch (holder.kind()) {
-      case EDITOR, CONTAINER_PICKER, ITEM_EDITOR, MAX_DRAW, DISTRIBUTION -> {
-        // 编辑类界面关闭时统一落盘：一次编辑只写一次文件
+      case CONTAINER_PICKER, ITEM_EDITOR, MAX_DRAW, DISTRIBUTION -> {
+        // 子界面关闭时统一落盘：一次编辑只写一次文件
         store.flush();
         // 正在等待聊天栏输入时（是我们自己关掉界面让他打字的），什么提示都别发
         if (chatInput.isWaiting(player)) {
           break;
         }
-        if (holder.kind() == WardGui.Kind.EDITOR) {
-          notifyEditorLeft(player);
-        } else {
-          backToEditor(player, holder.profileId(),
-              holder.payload() instanceof Location l ? l : null, holder.kind());
-        }
+        backToEditor(player, holder.profileId(),
+            holder.payload() instanceof Location l ? l : null, holder.kind());
       }
       default -> {
       }
     }
-  }
-
-  /**
-   * 真离开编辑界面时给一句反馈
-   * <p>
-   * 我们自己的界面之间跳转（主界面→子菜单）也会触发关闭事件，
-   * 所以延迟一刻再判断「此时是否还有我们的界面开着」，只在真的退干净时才提示。
-   */
-  private static void notifyEditorLeft(Player player) {
-    Bukkit.getScheduler().runTask(Joyous.plugin, () -> {
-      if (!player.isOnline()) {
-        return;
-      }
-      if (WardGui.holderOf(player.getOpenInventory().getTopInventory()) == null) {
-        player.sendMessage(i18n.tr("jwardchest.editor.closed"));
-      }
-    });
   }
 
   /** 需要「关掉后自动回到主界面」的子界面 */

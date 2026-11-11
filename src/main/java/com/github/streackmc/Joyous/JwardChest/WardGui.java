@@ -59,8 +59,6 @@ public final class WardGui {
 
   /** 我们的界面类型（运行时容器已迁到 {@code WardRuntimePage}，不在其中） */
   public enum Kind {
-    /** 编辑界面主界面 */
-    EDITOR,
     /** 容器类型选择子菜单 */
     CONTAINER_PICKER,
     /** 待选物品编辑子菜单 */

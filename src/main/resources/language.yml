@@ -253,6 +253,7 @@ jwardchest:
       min: "最小数量"
       max: "最大数量"
       weight: "权重"
+      prefilter: "粗筛时长（秒，0 表示关闭粗筛）"
       dist: "数量分布（uniform / low / high / normal）"
       curve: "曲线指数（≥1，越大越集中）"
     paste_hint: "&7[点击粘贴旧值]"
