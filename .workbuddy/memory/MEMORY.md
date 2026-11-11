@@ -11,6 +11,13 @@
 - ⚠️ **SConfig 构造器**：`SConfig(String,String)` 是 **(路径, 类型)**；按字符串内容解析必须用
   **三参** `SConfig(content, type, name)`。两参传内容会静默得到空配置
 - ⚠️ `SConfig.putString(key, null)` 会 NPE
+- ⚠️ **SConfig 嵌套写入（重要）**：0.6.1（线上跑的）与本地 m2 的 `master-SNAPSHOT`（2459 行）
+  都有同一个缺陷 —— `putNested` 拿「第一个点」当「最后一个点」，**≥3 层写入**会把前缀重复进叶子键
+  （`putString("a.b.c", v)` → `{a={b={"b.c"=v}}}`，读不回；`remove` 则静默无效）。
+  `splitWithNormalDot` 已是 master@9dac922(2026-10-14) 的修复版，可实测通过；但**没有发布版含它**
+  （最新 tag 仍是 0.6.1 / 2026-08-12）。→ 写配置要么 ≤2 层，要么 `putSection(path, Map)`（1 个点）
+- ⚠️ 由此连带：`i18n.tr` 的差量回写写的就是 3 层键，在 0.6.1 上会把 language.yml 写成
+  `jsell: { editor.title: … }` 这种残缺键（线上已积 231 个）→ 管理员改这些译文**不生效**（每次回落内置默认）
 - 玩家文本走 `Joyous.i18n.tr(...)`(language.yml) + legacy→Component，避免 `sendMessage(String)`
 
 ## 模块（10 个）
