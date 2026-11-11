@@ -59,7 +59,7 @@
    - 托管/结算/限额/占位符细节见下方「JSell 要点」
 
 ## 外部依赖（全部 provided）
-StreackLib 0.6.1 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spigot 1.21.5
+StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spigot 1.21.5
 
 ## 数据库（StreackLib Sdb）
 - `SdbDatabase.act(String)` 走 `Statement`（无参数位）；`act(SdbActionContext)` 走参数化
