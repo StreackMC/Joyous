@@ -13,7 +13,7 @@ import org.bukkit.plugin.Plugin;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.interact.PageArbiter;
-import com.github.streackmc.Joyous.utils.interact.PagePriority;
+import com.github.streackmc.Joyous.utils.interact.PagePriorityEnum;
 import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
@@ -181,10 +181,10 @@ public class JMenuManager {
    * 为 Java 版玩家打开箱子 GUI 菜单
    * <p>
    * 交给页面仲裁器：菜单作为一页显示，排队、挂起、清理都不再由本类维护。
-   * 子菜单用 {@link PagePriority#REPLACE}——换页就是换页，ESC 不会退回上一级。
+   * 子菜单用 {@link PagePriorityEnum#REPLACE}——换页就是换页，ESC 不会退回上一级。
    */
   private void openJavaMenu(JMenuEntry menuData, Player player) {
-    PageArbiter.get().open(player, new JMenuPage(menuData, this), PagePriority.REPLACE);
+    PageArbiter.get().open(player, new JMenuPage(menuData, this), PagePriorityEnum.REPLACE);
     player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_HIT, 0.5f, 1.0f);
   }
 

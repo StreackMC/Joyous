@@ -30,9 +30,9 @@ package com.github.streackmc.Joyous.utils.interact;
  *
  * @author Neonai
  * @since 0.7.0
- * @see PagePriority
+ * @see PagePriorityEnum
  */
-public interface JoyousPage {
+public interface IJoyousPage {
 
   /**
    * 页面标识
@@ -53,11 +53,11 @@ public interface JoyousPage {
   }
 
   /**
-   * 是否允许被 {@link PagePriority#INSTANT} 挂起后放回队列
+   * 是否允许被 {@link PagePriorityEnum#INSTANT} 挂起后放回队列
    * <p>
    * 默认 {@code false}：不可保留是安全侧——宁可让页面被正常结束，也不要留下半截状态。
    *
-   * @see JoyousPage 类注释里的判定口径
+   * @see IJoyousPage 类注释里的判定口径
    */
   default boolean keepable() {
     return false;
@@ -66,18 +66,18 @@ public interface JoyousPage {
   /**
    * 第一次显示时调用
    * <p>
-   * 在这里开界面、建模型、起定时任务。此时 {@link PageContext#state()} 已经是
-   * {@link PageState#VISIBLE}。
+   * 在这里开界面、建模型、起定时任务。此时 {@link IPageContext#state()} 已经是
+   * {@link PageStateEnum#VISIBLE}。
    */
-  default void onAttach(PageContext ctx) {
+  default void onAttach(IPageContext ctx) {
   }
 
   /**
-   * 被 {@link PagePriority#INSTANT} 挤下去时调用
+   * 被 {@link PagePriorityEnum#INSTANT} 挤下去时调用
    * <p>
    * 界面已被关闭，但流程不结束。应在这里停掉自己的定时任务，并保证模型完整保留。
    */
-  default void onSuspend(PageContext ctx) {
+  default void onSuspend(IPageContext ctx) {
   }
 
   /**
@@ -85,23 +85,23 @@ public interface JoyousPage {
    * <p>
    * 应重绘界面并从模型续算，<b>不要</b>重跑 {@link #onAttach} 里的初始化副作用。
    */
-  default void onResume(PageContext ctx) {
+  default void onResume(IPageContext ctx) {
   }
 
   /**
    * 终止时调用（每个页面最多一次）
    * <p>
-   * 这里是唯一允许做终止副作用的地方。被丢弃的 {@link PageState#PENDING} 页面不会触发它，
+   * 这里是唯一允许做终止副作用的地方。被丢弃的 {@link PageStateEnum#PENDING} 页面不会触发它，
    * 因为按契约那时还没有任何资源。
    */
-  default void onDetach(PageContext ctx, DetachReason why) {
+  default void onDetach(IPageContext ctx, DetachReasonEnum why) {
   }
 
   /**
    * 轮到自己出队时的有效性检查
    * <p>
    * 排队期间世界可能变了（方块被拆、条目被删、玩家换了位置），返回 {@code false} 会被直接丢弃
-   * 并以 {@link DetachReason#INVALID} 终止，不会显示。
+   * 并以 {@link DetachReasonEnum#INVALID} 终止，不会显示。
    */
   default boolean stillValid() {
     return true;

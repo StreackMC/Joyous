@@ -15,9 +15,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
-import com.github.streackmc.Joyous.utils.interact.Canvas;
+import com.github.streackmc.Joyous.utils.interact.chestui.Canvas;
 import com.github.streackmc.Joyous.utils.interact.PageArbiter;
-import com.github.streackmc.Joyous.utils.interact.PagePriority;
+import com.github.streackmc.Joyous.utils.interact.PagePriorityEnum;
 import com.github.streackmc.Joyous.utils.jlogger;
 
 import net.kyori.adventure.text.Component;
@@ -76,7 +76,7 @@ public final class WardSearchController {
     // 界面本身交给页面层：排队、挂起、恢复、关闭都由仲裁器统一处理
     PageArbiter.get().open(player,
         new WardRuntimePage(profile, session, this, module.sessions(), animate),
-        PagePriority.REPLACE);
+        PagePriorityEnum.REPLACE);
   }
 
   /** 空内容时给出准确原因 */

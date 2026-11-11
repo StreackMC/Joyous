@@ -8,7 +8,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * @author Neonai
  * @since 0.7.0
  */
-public enum PageState {
+public enum PageStateEnum {
 
   /** 已创建、还没显示过，躺在队列里等 */
   PENDING,

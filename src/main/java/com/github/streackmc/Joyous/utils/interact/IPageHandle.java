@@ -4,21 +4,24 @@ package com.github.streackmc.Joyous.utils.interact;
  * 交给调用方的页面句柄
  * <p>
  * 只暴露「看状态」和「结束自己」两件事，不允许绕过仲裁器改状态。
- * 句柄在页面终止后依然有效（`state()` 返回 {@link PageState#DETACHED}），可以安全地长期持有。
+ * 句柄在页面终止后依然有效（`state()` 返回 {@link PageStateEnum#DETACHED}），可以安全地长期持有。
  *
  * @author Neonai
  * @since 0.7.0
  */
-public interface PageHandle {
+public interface IPageHandle {
 
-  /** 页面标识（与 {@link JoyousPage#key()} 一致） */
+  /** 页面标识（与 {@link IJoyousPage#key()} 一致） */
   String key();
 
-  /** 页面目的（与 {@link JoyousPage#purpose()} 一致），用于同 id 不同用途的去重判断 */
+  /** 页面目的（与 {@link IJoyousPage#purpose()} 一致），用于同 id 不同用途的去重判断 */
   String purpose();
 
+  /** 对应的页面实现对象（事件路由用来确认「这个界面确实属于当前页面」） */
+  IJoyousPage page();
+
   /** 当前状态 */
-  PageState state();
+  PageStateEnum state();
 
   /** 是否还活着（未终止） */
   default boolean active() {

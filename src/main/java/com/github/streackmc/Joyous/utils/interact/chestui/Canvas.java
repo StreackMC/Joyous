@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.utils.interact;
+package com.github.streackmc.Joyous.utils.interact.chestui;
 
 import java.util.List;
 

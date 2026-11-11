@@ -9,26 +9,26 @@ import com.github.streackmc.Joyous.utils.jlogger;
 /**
  * 一个页面在仲裁器里的登记项
  * <p>
- * 既是内部状态载体，也是交给页面实现的 {@link PageContext}。
+ * 既是内部状态载体，也是交给页面实现的 {@link IPageContext}。
  * 生命周期与队列位置全部由 {@link PlayerPages} 维护，这里只存数据。
  *
  * @author Neonai
  * @since 0.7.0
  */
-final class PageEntry implements PageContext {
+final class PageEntry implements IPageContext {
 
   private final PlayerPages owner;
   @Nullable
   private final Player player;
-  private final JoyousPage page;
+  private final IJoyousPage page;
   /** 提交时刻，用于同帧多条请求的排序 */
   private final long submittedAt;
   /** 同一毫秒内提交时的次序，保证排序稳定 */
   private final long sequence;
 
-  private PageState state = PageState.PENDING;
+  private PageStateEnum state = PageStateEnum.PENDING;
 
-  PageEntry(PlayerPages owner, @Nullable Player player, JoyousPage page, long submittedAt, long sequence) {
+  PageEntry(PlayerPages owner, @Nullable Player player, IJoyousPage page, long submittedAt, long sequence) {
     this.owner = owner;
     this.player = player;
     this.page = page;
@@ -36,7 +36,8 @@ final class PageEntry implements PageContext {
     this.sequence = sequence;
   }
 
-  JoyousPage page() {
+  @Override
+  public IJoyousPage page() {
     return page;
   }
 
@@ -49,21 +50,21 @@ final class PageEntry implements PageContext {
   }
 
   /** 状态由 {@link PlayerPages} 改写 */
-  void state(PageState next) {
+  void state(PageStateEnum next) {
     this.state = next;
   }
 
   /**
    * 是否已排队过久
    * <p>
-   * 只对 {@link PageState#PENDING} 生效：被挂起的页面是玩家「未完成的工作」，不该因为放久了就消失。
+   * 只对 {@link PageStateEnum#PENDING} 生效：被挂起的页面是玩家「未完成的工作」，不该因为放久了就消失。
    */
   boolean expired() {
-    return state == PageState.PENDING
+    return state == PageStateEnum.PENDING
         && System.currentTimeMillis() - submittedAt > PlayerPages.PENDING_TTL_MS;
   }
 
-  /** 带异常兜底的 {@link JoyousPage#stillValid()}：页面自己炸了就当它失效 */
+  /** 带异常兜底的 {@link IJoyousPage#stillValid()}：页面自己炸了就当它失效 */
   boolean stillValid() {
     try {
       return page.stillValid();
@@ -91,7 +92,7 @@ final class PageEntry implements PageContext {
   }
 
   // ──────────────────────────────────────────────
-  // PageContext / PageHandle
+  // IPageContext / IPageHandle
   // ──────────────────────────────────────────────
 
   @Override
@@ -112,7 +113,7 @@ final class PageEntry implements PageContext {
   }
 
   @Override
-  public PageState state() {
+  public PageStateEnum state() {
     return state;
   }
 

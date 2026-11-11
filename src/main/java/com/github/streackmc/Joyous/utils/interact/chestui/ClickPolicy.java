@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.utils.interact;
+package com.github.streackmc.Joyous.utils.interact.chestui;
 
 import org.bukkit.event.inventory.ClickType;
 
@@ -6,7 +6,7 @@ import org.bukkit.event.inventory.ClickType;
  * 一个页面允许原版搬运语义到什么程度
  * <p>
  * 取消策略与「这一格点了算什么」是两件事：策略由路由统一执行，语义在
- * {@link GuiInteract#onClick} 里决定。把两者混在一起写，是三个模块原先各自
+ * {@link IGuiInteract#onClick} 里决定。把两者混在一起写，是三个模块原先各自
  * 演化出不同行为的原因。
  *
  * @param cancelTop  上半区的点击一律取消

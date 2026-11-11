@@ -27,7 +27,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  *
  * <h2>为什么「立即关闭」是同步的，而「显示」要延后一 tick</h2>
  * 关闭界面在任何时机都安全；打开界面若发生在自己正在处理的点击事件里，会与光标、后续事件打架。
- * 所以 {@link PagePriority#INSTANT}/{@link PagePriority#REPLACE} 对当前页的处理立即执行，
+ * 所以 {@link PagePriorityEnum#INSTANT}/{@link PagePriorityEnum#REPLACE} 对当前页的处理立即执行，
  * 新页面的 attach 统一排到下一 tick。
  *
  * @author Neonai
@@ -49,7 +49,7 @@ final class PlayerPages {
     void schedule(Runnable task);
   }
 
-  private record Pending(PageEntry entry, PagePriority priority) {
+  private record Pending(PageEntry entry, PagePriorityEnum priority) {
   }
 
   @Nullable
@@ -81,7 +81,7 @@ final class PlayerPages {
    * <p>
    * 相同玩家下 {@code (key, purpose)} 已在显示或排队时视为重复，直接返回既有句柄。
    */
-  PageHandle open(JoyousPage page, PagePriority priority) {
+  IPageHandle open(IJoyousPage page, PagePriorityEnum priority) {
     PageEntry existing = find(page.key(), page.purpose());
     if (existing != null) {
       jlogger.debug("页面已在栈中，忽略重复请求：玩家 %s 的 %s（优先度 %s）",
@@ -110,18 +110,18 @@ final class PlayerPages {
       return false;
     }
     if (entry == visible) {
-      detach(entry, DetachReason.CLOSED);
+      detach(entry, DetachReasonEnum.CLOSED);
       if (!draining) {
         requestDrain();
       }
       return true;
     }
     if (queue.remove(entry)) {
-      detach(entry, DetachReason.CLOSED);
+      detach(entry, DetachReasonEnum.CLOSED);
       return true;
     }
     requests.removeIf(p -> p.entry() == entry);
-    detach(entry, DetachReason.CLOSED);
+    detach(entry, DetachReasonEnum.CLOSED);
     return true;
   }
 
@@ -173,7 +173,7 @@ final class PlayerPages {
   }
 
   /** 清空一切（退出 / 停服） */
-  void clear(DetachReason why) {
+  void clear(DetachReasonEnum why) {
     List<PageEntry> all = new ArrayList<>();
     if (visible != null) {
       all.add(visible);
@@ -203,7 +203,7 @@ final class PlayerPages {
     }
     for (PageEntry e : expired) {
       jlogger.debug("页面排队超时：玩家 %s 的 %s", playerName(), e.describe());
-      detach(e, DetachReason.TIMEOUT);
+      detach(e, DetachReasonEnum.TIMEOUT);
     }
   }
 
@@ -273,7 +273,7 @@ final class PlayerPages {
           MAX_STEPS, playerName(), describe());
       while (!requests.isEmpty()) {
         Pending p = requests.pollFirst();
-        detach(p.entry(), DetachReason.DISCARDED);
+        detach(p.entry(), DetachReasonEnum.DISCARDED);
       }
     }
     if (!requests.isEmpty() || (visible == null && !queue.isEmpty())) {
@@ -289,11 +289,11 @@ final class PlayerPages {
     }
     switch (req.priority()) {
       case INSTANT -> {
-        retireVisible(PagePriority.INSTANT, entry);
+        retireVisible(PagePriorityEnum.INSTANT, entry);
         promote(entry);
       }
       case REPLACE -> {
-        retireVisible(PagePriority.REPLACE, entry);
+        retireVisible(PagePriorityEnum.REPLACE, entry);
         promote(entry);
       }
       case INSERT -> enqueueHead(entry);
@@ -307,25 +307,25 @@ final class PlayerPages {
    * {@code INSTANT} + 可保留 → 挂起（压回队头，等新页结束再恢复）；
    * 其余情况 → 正常终止。不可保留时的降级只写日志，不打扰玩家。
    */
-  private void retireVisible(PagePriority priority, @Nullable PageEntry incoming) {
+  private void retireVisible(PagePriorityEnum priority, @Nullable PageEntry incoming) {
     PageEntry current = visible;
     if (current == null) {
       return;
     }
-    if (priority == PagePriority.INSTANT && current.page().keepable()) {
+    if (priority == PagePriorityEnum.INSTANT && current.page().keepable()) {
       visible = null;
-      current.state(PageState.SUSPENDED);
+      current.state(PageStateEnum.SUSPENDED);
       queue.addFirst(current);
       invokeSuspend(current);
       return;
     }
-    if (priority == PagePriority.INSTANT) {
+    if (priority == PagePriorityEnum.INSTANT) {
       jlogger.warning("页面降级：玩家 %s(%s) 请求 INSTANT 显示 [%s]，但当前页 [%s] 不可保留，按 REPLACE 处理",
           playerName(), playerId(),
           incoming == null ? "-" : incoming.label(),
           current.describe());
     }
-    detach(current, DetachReason.REPLACED);
+    detach(current, DetachReasonEnum.REPLACED);
   }
 
   /** 把条目推上前台（首次 attach 或从挂起恢复） */
@@ -339,15 +339,15 @@ final class PlayerPages {
       return;
     }
     if (entry.expired()) {
-      detach(entry, DetachReason.TIMEOUT);
+      detach(entry, DetachReasonEnum.TIMEOUT);
       return;
     }
     if (!entry.stillValid()) {
-      detach(entry, DetachReason.INVALID);
+      detach(entry, DetachReasonEnum.INVALID);
       return;
     }
-    boolean resume = entry.state() == PageState.SUSPENDED;
-    entry.state(PageState.VISIBLE);
+    boolean resume = entry.state() == PageStateEnum.SUSPENDED;
+    entry.state(PageStateEnum.VISIBLE);
     visible = entry;
     if (resume) {
       invokeResume(entry);
@@ -375,11 +375,11 @@ final class PlayerPages {
   }
 
   /** 终止一个条目：状态、队列位置、钩子一次做完 */
-  private void detach(PageEntry entry, DetachReason why) {
+  private void detach(PageEntry entry, DetachReasonEnum why) {
     if (entry.state().terminal()) {
       return;
     }
-    entry.state(PageState.DETACHED);
+    entry.state(PageStateEnum.DETACHED);
     if (visible == entry) {
       visible = null;
     }
@@ -394,7 +394,7 @@ final class PlayerPages {
 
   private void discard(PageEntry entry, String reason) {
     jlogger.debug("丢弃页面（%s）：玩家 %s 的 %s", reason, playerName(), entry.describe());
-    detach(entry, DetachReason.DISCARDED);
+    detach(entry, DetachReasonEnum.DISCARDED);
   }
 
   private void requestDrain() {
@@ -413,7 +413,7 @@ final class PlayerPages {
   // ──────────────────────────────────────────────
 
   private void invokeAttach(PageEntry entry) {
-    if (entry.state() != PageState.VISIBLE) {
+    if (entry.state() != PageStateEnum.VISIBLE) {
       return;
     }
     try {
@@ -432,7 +432,7 @@ final class PlayerPages {
   }
 
   private void invokeResume(PageEntry entry) {
-    if (entry.state() != PageState.VISIBLE) {
+    if (entry.state() != PageStateEnum.VISIBLE) {
       return;
     }
     try {

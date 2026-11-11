@@ -17,7 +17,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
-import com.github.streackmc.Joyous.utils.interact.Canvas;
+import com.github.streackmc.Joyous.utils.interact.chestui.Canvas;
 import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 

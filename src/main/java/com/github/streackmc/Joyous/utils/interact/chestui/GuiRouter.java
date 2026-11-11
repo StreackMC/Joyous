@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.utils.interact;
+package com.github.streackmc.Joyous.utils.interact.chestui;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -9,6 +9,9 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 
+import com.github.streackmc.Joyous.utils.interact.IPageContext;
+import com.github.streackmc.Joyous.utils.interact.PageArbiter;
+import com.github.streackmc.Joyous.utils.interact.PageStateEnum;
 import com.github.streackmc.Joyous.utils.jlogger;
 
 /**
@@ -29,11 +32,11 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * @author Neonai
  * @since 0.7.0
  */
-final class GuiRouter implements Listener {
+public final class GuiRouter implements Listener {
 
   private final PageArbiter arbiter;
 
-  GuiRouter(PageArbiter arbiter) {
+  public GuiRouter(PageArbiter arbiter) {
     this.arbiter = arbiter;
   }
 
@@ -42,7 +45,7 @@ final class GuiRouter implements Listener {
     if (!(event.getWhoClicked() instanceof Player player)) {
       return;
     }
-    GuiInteract page = pageOf(event.getView().getTopInventory());
+    IGuiInteract page = pageOf(event.getView().getTopInventory());
     if (page == null) {
       return;
     }
@@ -67,8 +70,8 @@ final class GuiRouter implements Listener {
         return;
       }
     }
-    PageContext ctx = arbiter.visible(player);
-    if (!(ctx instanceof PageEntry entry) || entry.page() != page) {
+    IPageContext ctx = arbiter.visible(player);
+    if (ctx == null || ctx.page() != page) {
       return;
     }
     try {
@@ -84,7 +87,7 @@ final class GuiRouter implements Listener {
     if (!(event.getWhoClicked() instanceof Player player)) {
       return;
     }
-    GuiInteract page = pageOf(event.getView().getTopInventory());
+    IGuiInteract page = pageOf(event.getView().getTopInventory());
     if (page == null || !page.policy().cancelDrag()) {
       return;
     }
@@ -102,15 +105,15 @@ final class GuiRouter implements Listener {
     if (!(event.getPlayer() instanceof Player player)) {
       return;
     }
-    GuiInteract page = pageOf(event.getInventory());
+    IGuiInteract page = pageOf(event.getInventory());
     if (page == null) {
       return;
     }
-    PageContext ctx = arbiter.visible(player);
-    if (!(ctx instanceof PageEntry entry) || entry.page() != page) {
+    IPageContext ctx = arbiter.visible(player);
+    if (ctx == null || ctx.page() != page) {
       return;
     }
-    if (ctx.state() != PageState.VISIBLE) {
+    if (ctx.state() != PageStateEnum.VISIBLE) {
       return; // 是我们自己关的（切页 / 挂起 / 终止），不是玩家退出
     }
     ctx.close();
@@ -123,7 +126,7 @@ final class GuiRouter implements Listener {
     return InteractHolder.of(clicked) != null ? Click.Region.TOP : Click.Region.BOTTOM;
   }
 
-  private static GuiInteract pageOf(Inventory inventory) {
+  private static IGuiInteract pageOf(Inventory inventory) {
     InteractHolder holder = InteractHolder.of(inventory);
     return holder == null ? null : holder.page();
   }

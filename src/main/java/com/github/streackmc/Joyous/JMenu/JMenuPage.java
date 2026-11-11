@@ -3,11 +3,11 @@ package com.github.streackmc.Joyous.JMenu;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
-import com.github.streackmc.Joyous.utils.interact.Canvas;
-import com.github.streackmc.Joyous.utils.interact.Click;
-import com.github.streackmc.Joyous.utils.interact.InteractContainer;
-import com.github.streackmc.Joyous.utils.interact.PageContext;
-import com.github.streackmc.Joyous.utils.interact.SimpleGuiPage;
+import com.github.streackmc.Joyous.utils.interact.chestui.Canvas;
+import com.github.streackmc.Joyous.utils.interact.chestui.Click;
+import com.github.streackmc.Joyous.utils.interact.chestui.InteractContainerEnum;
+import com.github.streackmc.Joyous.utils.interact.IPageContext;
+import com.github.streackmc.Joyous.utils.interact.chestui.AbstractGuiPage;
 
 import net.kyori.adventure.text.Component;
 
@@ -24,7 +24,7 @@ import net.kyori.adventure.text.Component;
  * @author Neonai
  * @since 0.7.0
  */
-public final class JMenuPage extends SimpleGuiPage {
+public final class JMenuPage extends AbstractGuiPage {
 
   /** 页面 key：同一玩家的所有 JMenu 共用，靠 purpose 区分具体菜单 */
   public static final String KEY = "jmenu";
@@ -53,13 +53,13 @@ public final class JMenuPage extends SimpleGuiPage {
   }
 
   @Override
-  public InteractContainer container() {
-    return InteractContainer.CHEST;
+  public InteractContainerEnum container() {
+    return InteractContainerEnum.CHEST;
   }
 
   @Override
   public int rows() {
-    return InteractContainer.clampRows(menu.getLines());
+    return InteractContainerEnum.clampRows(menu.getLines());
   }
 
   @Override
@@ -68,7 +68,7 @@ public final class JMenuPage extends SimpleGuiPage {
   }
 
   @Override
-  public void render(PageContext ctx, Canvas canvas) {
+  public void render(IPageContext ctx, Canvas canvas) {
     Player player = ctx.player();
     if (player == null) {
       return;
@@ -88,7 +88,7 @@ public final class JMenuPage extends SimpleGuiPage {
   }
 
   @Override
-  public Verdict onClick(PageContext ctx, Click click) {
+  public Verdict onClick(IPageContext ctx, Click click) {
     if (!click.top()) {
       return Verdict.IGNORED; // 菜单整页独占：背包侧只由策略拦，这里不做语义处理
     }

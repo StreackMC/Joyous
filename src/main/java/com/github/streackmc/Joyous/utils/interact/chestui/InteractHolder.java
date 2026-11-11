@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.utils.interact;
+package com.github.streackmc.Joyous.utils.interact.chestui;
 
 import javax.annotation.Nullable;
 
@@ -17,14 +17,14 @@ import org.bukkit.inventory.InventoryHolder;
  */
 public final class InteractHolder implements InventoryHolder {
 
-  private final GuiInteract page;
+  private final IGuiInteract page;
   private Inventory inventory;
 
-  public InteractHolder(GuiInteract page) {
+  public InteractHolder(IGuiInteract page) {
     this.page = page;
   }
 
-  public GuiInteract page() {
+  public IGuiInteract page() {
     return page;
   }
 

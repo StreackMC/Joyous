@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.utils.interact;
+package com.github.streackmc.Joyous.utils.interact.chestui;
 
 import java.util.Locale;
 
@@ -21,7 +21,7 @@ import net.kyori.adventure.text.Component;
  * @author Neonai
  * @since 0.7.0
  */
-public enum InteractContainer {
+public enum InteractContainerEnum {
 
   CHEST("chest", InventoryType.CHEST, true),
   DISPENSER("dispenser", InventoryType.DISPENSER, false),
@@ -37,7 +37,7 @@ public enum InteractContainer {
   private final InventoryType type;
   private final boolean variableRows;
 
-  InteractContainer(String id, InventoryType type, boolean variableRows) {
+  InteractContainerEnum(String id, InventoryType type, boolean variableRows) {
     this.id = id;
     this.type = type;
     this.variableRows = variableRows;
@@ -88,12 +88,12 @@ public enum InteractContainer {
    *
    * @param id 标识，可为 null
    */
-  public static InteractContainer byId(String id) {
+  public static InteractContainerEnum byId(String id) {
     if (id == null || id.isBlank()) {
       return CHEST;
     }
     String needle = id.trim().toLowerCase(Locale.ROOT);
-    for (InteractContainer c : values()) {
+    for (InteractContainerEnum c : values()) {
       if (c.id.equals(needle)) {
         return c;
       }

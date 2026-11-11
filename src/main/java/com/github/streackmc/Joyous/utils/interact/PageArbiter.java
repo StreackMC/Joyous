@@ -16,6 +16,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 
 import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.utils.interact.chestui.GuiRouter;
 import com.github.streackmc.Joyous.utils.jlogger;
 
 /**
@@ -27,11 +28,11 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * <table border="1">
  *   <caption>对当前页 / 队列 / 生命周期的影响</caption>
  *   <tr><th>优先度</th><th>当前页面</th><th>队列</th><th>钩子</th></tr>
- *   <tr><td>{@link PagePriority#INSTANT}</td><td>挂起并压回队头</td><td>当前页插到队头</td>
+ *   <tr><td>{@link PagePriorityEnum#INSTANT}</td><td>挂起并压回队头</td><td>当前页插到队头</td>
  *       <td>onSuspend</td></tr>
- *   <tr><td>{@link PagePriority#REPLACE}</td><td>终止</td><td>不变</td><td>onDetach(REPLACED)</td></tr>
- *   <tr><td>{@link PagePriority#NORMAL}</td><td>不变</td><td>追加队尾</td><td>无</td></tr>
- *   <tr><td>{@link PagePriority#INSERT}</td><td>不变</td><td>插到队头</td><td>无</td></tr>
+ *   <tr><td>{@link PagePriorityEnum#REPLACE}</td><td>终止</td><td>不变</td><td>onDetach(REPLACED)</td></tr>
+ *   <tr><td>{@link PagePriorityEnum#NORMAL}</td><td>不变</td><td>追加队尾</td><td>无</td></tr>
+ *   <tr><td>{@link PagePriorityEnum#INSERT}</td><td>不变</td><td>插到队头</td><td>无</td></tr>
  * </table>
  *
  * <h2>状态转移</h2>
@@ -52,7 +53,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  *   <li><b>重入</b>：转移过程中再次 {@link #open} 只入待办，当前转移收尾后处理；
  *       单轮最多 32 次转移，超出则丢弃剩余并告警。</li>
  *   <li><b>去重</b>：同一玩家下 {@code (key, purpose)} 相同即视为重复，忽略新请求并返回既有句柄。</li>
- *   <li><b>不可保留</b>：{@code INSTANT} 遇到 {@link JoyousPage#keepable()} 为 false 的当前页时
+ *   <li><b>不可保留</b>：{@code INSTANT} 遇到 {@link IJoyousPage#keepable()} 为 false 的当前页时
  *       降级为 {@code REPLACE}，只写日志（含玩家与双方页面的 key/purpose），不打扰玩家。</li>
  * </ul>
  *
@@ -110,7 +111,7 @@ public final class PageArbiter implements Listener {
    * @param priority 优先度
    * @return 句柄；若 {@code (key, purpose)} 已在栈中，返回既有的那一个
    */
-  public PageHandle open(Player player, JoyousPage page, PagePriority priority) {
+  public IPageHandle open(Player player, IJoyousPage page, PagePriorityEnum priority) {
     Objects.requireNonNull(player, "player");
     Objects.requireNonNull(page, "page");
     Objects.requireNonNull(priority, "priority");
@@ -120,7 +121,7 @@ public final class PageArbiter implements Listener {
       // 异步调用（例如聊天事件里）统一转主线程，句柄先占位再回填
       DeferredHandle deferred = new DeferredHandle(page);
       Bukkit.getScheduler().runTask(plugin, () -> {
-        PageHandle real = stateOf(player).open(page, priority);
+        IPageHandle real = stateOf(player).open(page, priority);
         deferred.bind(real);
       });
       return deferred;
@@ -157,7 +158,7 @@ public final class PageArbiter implements Listener {
   }
 
   /** 结束该玩家所有页面 */
-  public void clear(Player player, DetachReason why) {
+  public void clear(Player player, DetachReasonEnum why) {
     PlayerPages state = states.remove(player.getUniqueId());
     if (state != null) {
       state.clear(why);
@@ -170,7 +171,7 @@ public final class PageArbiter implements Listener {
    * 供事件路由使用；页面终止或玩家没有页面时返回 null。
    */
   @Nullable
-  public PageContext visible(Player player) {
+  public IPageContext visible(Player player) {
     PlayerPages state = states.get(player.getUniqueId());
     return state == null ? null : state.visibleEntry();
   }
@@ -184,7 +185,7 @@ public final class PageArbiter implements Listener {
   /** 停服：清空所有玩家并停止清扫 */
   public synchronized void shutdown() {
     for (PlayerPages state : states.values()) {
-      state.clear(DetachReason.SHUTDOWN);
+      state.clear(DetachReasonEnum.SHUTDOWN);
     }
     states.clear();
     installed = false;
@@ -215,7 +216,7 @@ public final class PageArbiter implements Listener {
       PlayerPages state = e.getValue();
       if (Bukkit.getPlayer(e.getKey()) == null) {
         // 退出事件没赶上（例如热重载）时的兜底
-        state.clear(DetachReason.QUIT);
+        state.clear(DetachReasonEnum.QUIT);
         states.remove(e.getKey(), state);
         continue;
       }
@@ -239,30 +240,32 @@ public final class PageArbiter implements Listener {
   public void onQuit(PlayerQuitEvent event) {
     PlayerPages state = states.remove(event.getPlayer().getUniqueId());
     if (state != null) {
-      state.clear(DetachReason.QUIT);
+      state.clear(DetachReasonEnum.QUIT);
     }
   }
 
   /**
    * 异步提交时的占位句柄
    * <p>
-   * 在真正的条目建立之前，状态一律按 {@link PageState#PENDING} 报告；
+   * 在真正的条目建立之前，状态一律按 {@link PageStateEnum#PENDING} 报告；
    * 若在此之前就被 {@link #close()}，等条目建好后立刻收尾。
    */
-  private static final class DeferredHandle implements PageHandle {
+  private static final class DeferredHandle implements IPageHandle {
 
+    private final IJoyousPage page;
     private final String key;
     private final String purpose;
-    private volatile PageHandle delegate;
+    private volatile IPageHandle delegate;
     private volatile boolean cancelled;
 
-    DeferredHandle(JoyousPage page) {
+    DeferredHandle(IJoyousPage page) {
+      this.page = page;
       this.key = page.key();
       String p = page.purpose();
       this.purpose = p == null ? "" : p;
     }
 
-    void bind(PageHandle handle) {
+    void bind(IPageHandle handle) {
       this.delegate = handle;
       if (cancelled) {
         handle.close();
@@ -280,17 +283,23 @@ public final class PageArbiter implements Listener {
     }
 
     @Override
-    public PageState state() {
-      PageHandle handle = delegate;
+    public IJoyousPage page() {
+      IPageHandle handle = delegate;
+      return handle != null ? handle.page() : page;
+    }
+
+    @Override
+    public PageStateEnum state() {
+      IPageHandle handle = delegate;
       if (handle != null) {
         return handle.state();
       }
-      return cancelled ? PageState.DETACHED : PageState.PENDING;
+      return cancelled ? PageStateEnum.DETACHED : PageStateEnum.PENDING;
     }
 
     @Override
     public boolean close() {
-      PageHandle handle = delegate;
+      IPageHandle handle = delegate;
       if (handle != null) {
         return handle.close();
       }

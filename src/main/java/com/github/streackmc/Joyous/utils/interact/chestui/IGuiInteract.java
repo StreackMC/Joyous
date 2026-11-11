@@ -1,9 +1,13 @@
-package com.github.streackmc.Joyous.utils.interact;
+package com.github.streackmc.Joyous.utils.interact.chestui;
 
 import javax.annotation.Nullable;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+
+import com.github.streackmc.Joyous.utils.interact.IJoyousPage;
+import com.github.streackmc.Joyous.utils.interact.IPageContext;
+import com.github.streackmc.Joyous.utils.interact.PageArbiter;
 
 import net.kyori.adventure.text.Component;
 
@@ -16,7 +20,7 @@ import net.kyori.adventure.text.Component;
  * @author Neonai
  * @since 0.7.0
  */
-public interface GuiInteract extends JoyousPage {
+public interface IGuiInteract extends IJoyousPage {
 
   /** 点击的处理结果 */
   enum Verdict {
@@ -27,7 +31,7 @@ public interface GuiInteract extends JoyousPage {
   }
 
   /** 容器外形 */
-  InteractContainer container();
+  InteractContainerEnum container();
 
   /** 行数（只对箱子有效） */
   default int rows() {
@@ -42,7 +46,7 @@ public interface GuiInteract extends JoyousPage {
    * <p>
    * 允许被反复调用（重绘、恢复、广播），实现必须是「从模型现算」的，不要缓存上次画的东西。
    */
-  void render(PageContext ctx, Canvas canvas);
+  void render(IPageContext ctx, Canvas canvas);
 
   /**
    * 点击
@@ -50,7 +54,7 @@ public interface GuiInteract extends JoyousPage {
    * 上半区与玩家背包的点击都会转过来，用 {@link Click#top()} 区分；界面之外的点击不会。
    * 不关心背包侧就自己判 {@code click.top()}——不要假设只有上半区。
    */
-  default Verdict onClick(PageContext ctx, Click click) {
+  default Verdict onClick(IPageContext ctx, Click click) {
     return Verdict.IGNORED;
   }
 
@@ -62,7 +66,7 @@ public interface GuiInteract extends JoyousPage {
   /**
    * 当前这份界面
    * <p>
-   * 用来判断「关闭事件是不是我自己关的」。由 {@link SimpleGuiPage} 维护；
+   * 用来判断「关闭事件是不是我自己关的」。由 {@link AbstractGuiPage} 维护；
    * 不用 Inventory 承载内容的页面（例如铁砧）可以一直返回 null。
    */
   @Nullable

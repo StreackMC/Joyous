@@ -1,10 +1,13 @@
-package com.github.streackmc.Joyous.utils.interact;
+package com.github.streackmc.Joyous.utils.interact.chestui;
 
 import javax.annotation.Nullable;
 
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+
+import com.github.streackmc.Joyous.utils.interact.DetachReasonEnum;
+import com.github.streackmc.Joyous.utils.interact.IPageContext;
 
 /**
  * 容器界面的通用基类
@@ -15,7 +18,7 @@ import org.bukkit.inventory.Inventory;
  * @author Neonai
  * @since 0.7.0
  */
-public abstract class SimpleGuiPage implements GuiInteract {
+public abstract class AbstractGuiPage implements IGuiInteract {
 
   @Nullable
   private Inventory inventory;
@@ -27,22 +30,22 @@ public abstract class SimpleGuiPage implements GuiInteract {
   }
 
   @Override
-  public void onAttach(PageContext ctx) {
+  public void onAttach(IPageContext ctx) {
     openView(ctx);
   }
 
   @Override
-  public void onResume(PageContext ctx) {
+  public void onResume(IPageContext ctx) {
     openView(ctx);
   }
 
   @Override
-  public void onSuspend(PageContext ctx) {
+  public void onSuspend(IPageContext ctx) {
     closeView();
   }
 
   @Override
-  public void onDetach(PageContext ctx, DetachReason why) {
+  public void onDetach(IPageContext ctx, DetachReasonEnum why) {
     closeView();
   }
 
@@ -51,14 +54,14 @@ public abstract class SimpleGuiPage implements GuiInteract {
    * <p>
    * 不会重开界面，也不会触发任何生命周期钩子。
    */
-  protected final void repaint(PageContext ctx) {
+  protected final void repaint(IPageContext ctx) {
     Inventory view = inventory;
     if (view != null) {
       render(ctx, new Canvas(view));
     }
   }
 
-  private void openView(PageContext ctx) {
+  private void openView(IPageContext ctx) {
     Player player = ctx.player();
     if (player == null) {
       return;

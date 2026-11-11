@@ -5,14 +5,14 @@ import javax.annotation.Nullable;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 
-import com.github.streackmc.Joyous.utils.interact.Canvas;
-import com.github.streackmc.Joyous.utils.interact.Click;
-import com.github.streackmc.Joyous.utils.interact.ClickPolicy;
-import com.github.streackmc.Joyous.utils.interact.DetachReason;
-import com.github.streackmc.Joyous.utils.interact.InteractContainer;
-import com.github.streackmc.Joyous.utils.interact.InteractHolder;
-import com.github.streackmc.Joyous.utils.interact.PageContext;
-import com.github.streackmc.Joyous.utils.interact.SimpleGuiPage;
+import com.github.streackmc.Joyous.utils.interact.chestui.Canvas;
+import com.github.streackmc.Joyous.utils.interact.chestui.Click;
+import com.github.streackmc.Joyous.utils.interact.chestui.ClickPolicy;
+import com.github.streackmc.Joyous.utils.interact.DetachReasonEnum;
+import com.github.streackmc.Joyous.utils.interact.chestui.InteractContainerEnum;
+import com.github.streackmc.Joyous.utils.interact.chestui.InteractHolder;
+import com.github.streackmc.Joyous.utils.interact.IPageContext;
+import com.github.streackmc.Joyous.utils.interact.chestui.AbstractGuiPage;
 
 import net.kyori.adventure.text.Component;
 
@@ -31,7 +31,7 @@ import net.kyori.adventure.text.Component;
  * @author Neonai
  * @since 0.7.0
  */
-final class WardRuntimePage extends SimpleGuiPage {
+final class WardRuntimePage extends AbstractGuiPage {
 
   static final String KEY = "ward.runtime";
 
@@ -80,8 +80,8 @@ final class WardRuntimePage extends SimpleGuiPage {
   }
 
   @Override
-  public InteractContainer container() {
-    return InteractContainer.byId(profile.container().id());
+  public InteractContainerEnum container() {
+    return InteractContainerEnum.byId(profile.container().id());
   }
 
   @Override
@@ -101,7 +101,7 @@ final class WardRuntimePage extends SimpleGuiPage {
   }
 
   @Override
-  public void render(PageContext ctx, Canvas canvas) {
+  public void render(IPageContext ctx, Canvas canvas) {
     Player viewer = ctx.player();
     if (viewer == null) {
       return;
@@ -111,7 +111,7 @@ final class WardRuntimePage extends SimpleGuiPage {
   }
 
   @Override
-  public Verdict onClick(PageContext ctx, Click click) {
+  public Verdict onClick(IPageContext ctx, Click click) {
     Player player = click.player();
     if (!click.top()) {
       // 背包侧：Shift+左键 = 把这一格登记成「放入」
@@ -137,25 +137,25 @@ final class WardRuntimePage extends SimpleGuiPage {
   // ──────────────────────────────────────────────
 
   @Override
-  public void onAttach(PageContext ctx) {
+  public void onAttach(IPageContext ctx) {
     super.onAttach(ctx);
     bind(ctx);
   }
 
   @Override
-  public void onResume(PageContext ctx) {
+  public void onResume(IPageContext ctx) {
     super.onResume(ctx);
     bind(ctx);
   }
 
   @Override
-  public void onSuspend(PageContext ctx) {
+  public void onSuspend(IPageContext ctx) {
     unbind(ctx);
     super.onSuspend(ctx);
   }
 
   @Override
-  public void onDetach(PageContext ctx, DetachReason why) {
+  public void onDetach(IPageContext ctx, DetachReasonEnum why) {
     unbind(ctx);
     super.onDetach(ctx, why);
     if (session.preview()) {
@@ -165,7 +165,7 @@ final class WardRuntimePage extends SimpleGuiPage {
   }
 
   /** 界面已开好：登记为观看者，并按需启动搜索动画 */
-  private void bind(PageContext ctx) {
+  private void bind(IPageContext ctx) {
     Player player = ctx.player();
     Inventory view = inventory();
     if (player == null || view == null) {
@@ -180,7 +180,7 @@ final class WardRuntimePage extends SimpleGuiPage {
   }
 
   /** 界面要收起来了：停任务、摘掉观看者（进度与内容留在会话里） */
-  private void unbind(PageContext ctx) {
+  private void unbind(IPageContext ctx) {
     Player player = ctx.player();
     if (player == null) {
       return;

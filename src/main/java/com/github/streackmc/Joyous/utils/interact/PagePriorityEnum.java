@@ -12,13 +12,13 @@ package com.github.streackmc.Joyous.utils.interact;
  * @author Neonai
  * @since 0.7.0
  */
-public enum PagePriority {
+public enum PagePriorityEnum {
 
   /**
    * 立即显示，并<b>挂起</b>当前页面
    * <p>
    * 当前页面的界面立刻关闭，但流程不结束：它被压回队列头部，等新页面结束后自动恢复。
-   * 只有在当前页面 {@link JoyousPage#keepable()} 为 {@code true} 时才成立；
+   * 只有在当前页面 {@link IJoyousPage#keepable()} 为 {@code true} 时才成立；
    * 否则退化为 {@link #REPLACE}（只记日志，不打扰玩家）。
    * <p>
    * 适用：系统提示、二次确认、聊天输入——这些东西插一下就走，玩家还要回到原来的界面。
@@ -56,7 +56,7 @@ public enum PagePriority {
 
   private final String description;
 
-  PagePriority(String description) {
+  PagePriorityEnum(String description) {
     this.description = description;
   }
 

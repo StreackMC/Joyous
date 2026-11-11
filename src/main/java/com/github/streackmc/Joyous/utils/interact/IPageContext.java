@@ -16,7 +16,7 @@ import org.bukkit.entity.Player;
  * @author Neonai
  * @since 0.7.0
  */
-public interface PageContext extends PageHandle {
+public interface IPageContext extends IPageHandle {
 
   /**
    * 所属玩家
