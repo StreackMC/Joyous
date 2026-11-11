@@ -128,9 +128,13 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
   `Canvas`（legacy/title/button，收掉三份 ensureReset）+ `InteractHolder`（唯一 Holder）+
   `InteractContainer`（容器外形表）+ `Click`/`ClickPolicy`（取消策略与语义分离）+ `GuiRouter`（点击/拖拽/关闭路由）。
   ⚠️ 关闭事件只有 `state()==VISIBLE` 才算玩家主动退出——切页/挂起/终止都会触发 close，必须按状态过滤。
-- 已迁移：JMenu（`JMenuPage`，key=`jmenu`、purpose=菜单路径、keepable=true、子菜单用 REPLACE）；
-  `ACTIVE_MENUS` 与四个事件处理器已删。**待迁移**：JWardChest（多 viewer 共享模型、需 `dirtyModel` 广播）、
-  JSell（`SELL` 关界面即退款 → keepable=false）、以及 `TextInteract`（Chat/Anvil 两种 transport）。
+- 已迁移：JMenu（`JMenuPage`，key=`jmenu`、purpose=菜单路径、keepable=true、子菜单用 REPLACE，
+  `ACTIVE_MENUS` 与四个事件处理器已删）；JWardChest **运行时容器**（`WardRuntimePage`，purpose=会话 key、
+  keepable=非预览；`render` 从会话现算，`tick` 用 `sessionOf(inventory)` 反查；广播仍由 controller 直写各 viewer 的界面）。
+  **待迁移**：Ward 编辑界面 5 个子界面（仍用 `WardGui.Holder`）、`WardChatInput`、JSell 全部、
+  `TextInteract`（Chat/Anvil 两种 transport）。
+- ⚠️ `Click.slot` 是**相对所点击容器**的槽位（`event.getSlot()`），不是 rawSlot：背包侧 rawSlot 带上半区偏移，
+  直接拿去取物品会拿错。路由同时转发上半区与背包侧点击，页面自己判 `click.top()`。
 - ⚠️ 铁砧输入只能用**真实 AnvilMenu**：`MenuType.ANVIL.builder().location(..).checkReachable(false).build(player)`；
   `createInventory(holder, ANVIL)` 的假铁砧收不到打字（`handleRenameItem` 要求 `containerMenu instanceof AnvilMenu`，
   而假铁砧是 `CraftContainer`）；`openAnvil` 自 1.21.4 弃用；读文本用 `AnvilView#getRenameText()`。
