@@ -8,8 +8,8 @@ import java.util.List;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
-import com.github.streackmc.Joyous.jlogger;
-import com.github.streackmc.Joyous._Model.JoyousModel;
+import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.types.SMail;

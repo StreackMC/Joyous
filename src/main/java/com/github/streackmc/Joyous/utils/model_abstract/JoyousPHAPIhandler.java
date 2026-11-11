@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous._Model;
+package com.github.streackmc.Joyous.utils.model_abstract;
 
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;

@@ -22,8 +22,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.persistence.PersistentDataType;
 
-import com.github.streackmc.Joyous.i18n;
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.utils.MCColor;
 

@@ -17,7 +17,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 
 /**
  * 珍惜度（<b>声明式</b>）

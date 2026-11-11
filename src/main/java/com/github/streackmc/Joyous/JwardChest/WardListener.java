@@ -25,8 +25,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.i18n;
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.jlogger;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;

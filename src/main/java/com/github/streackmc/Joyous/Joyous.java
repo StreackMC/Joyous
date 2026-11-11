@@ -19,6 +19,9 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.ApiStatus.Internal;
 
+import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.placeholderapi.PHAPI;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.types.SDatabase.SdbDatabase;

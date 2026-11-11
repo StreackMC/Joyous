@@ -5,7 +5,7 @@ import java.util.Random;
 
 import javax.annotation.Nullable;
 
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 
 /**
  * 数量取值分布

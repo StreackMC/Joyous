@@ -10,13 +10,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Neonaic.NeonaicConfig;
 import com.github.streackmc.Joyous.Neonaic.NeonaicText;
 import com.github.streackmc.Joyous.Neonaic.bridge.BridgeException;
 import com.github.streackmc.Joyous.Neonaic.bridge.BridgeProtocol;
 import com.github.streackmc.Joyous.Neonaic.bridge.NeonaicBridge;
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 
 /**
  * 身份绑定：**绑定代码流程**（自助绑定）与解绑。

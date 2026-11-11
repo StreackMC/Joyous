@@ -10,8 +10,8 @@ import org.nanohttpd.protocols.http.IHTTPSession;
 import org.nanohttpd.protocols.http.response.Response;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.jlogger;
-import com.github.streackmc.Joyous._Model.JoyousModel;
+import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 import com.github.streackmc.StreackLib.StreackLib;
 import com.github.streackmc.StreackLib.types.HTTPServer;
 

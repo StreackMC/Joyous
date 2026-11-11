@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous;
+package com.github.streackmc.Joyous.utils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
+import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
 /**

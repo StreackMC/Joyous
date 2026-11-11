@@ -17,7 +17,7 @@ import javax.annotation.Nullable;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.types.SConfig;
 
 /**

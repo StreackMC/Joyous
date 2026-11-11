@@ -4,7 +4,7 @@ import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
-import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
+import com.github.streackmc.Joyous.utils.model_abstract.JoyousPHAPIhandler;
 
 /**
  * Neonaic 模块的占位符处理器。

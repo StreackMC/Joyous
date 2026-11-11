@@ -12,9 +12,9 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
-import com.github.streackmc.Joyous.i18n;
-import com.github.streackmc.Joyous.jlogger;
-import com.github.streackmc.Joyous._Model.JoyousModel;
+import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.utils.MCColor;
 

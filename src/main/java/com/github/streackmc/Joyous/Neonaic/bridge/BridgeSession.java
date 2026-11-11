@@ -11,7 +11,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 
 /**
  * 传输无关的桥接会话（V1 §5 / §6 的 Java 实现）。

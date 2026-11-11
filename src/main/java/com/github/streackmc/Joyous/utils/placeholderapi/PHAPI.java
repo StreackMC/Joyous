@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous;
+package com.github.streackmc.Joyous.utils.placeholderapi;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.List;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
+import com.github.streackmc.Joyous.utils.model_abstract.JoyousPHAPIhandler;
 import com.github.streackmc.StreackLib.StreackLib;
 
 public class PHAPI {

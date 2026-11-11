@@ -12,7 +12,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.types.SConfig;
 
 /**

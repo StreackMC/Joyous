@@ -1,11 +1,13 @@
-package com.github.streackmc.Joyous;
+package com.github.streackmc.Joyous.utils.placeholderapi;
 
 import javax.annotation.Nullable;
 
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
+import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.model_abstract.JoyousPHAPIhandler;
 
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;

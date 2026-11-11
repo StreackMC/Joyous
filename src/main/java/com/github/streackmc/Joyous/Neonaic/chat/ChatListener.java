@@ -13,7 +13,7 @@ import org.bukkit.event.Listener;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Neonaic.NeonaicConfig;
 import com.github.streackmc.Joyous.Neonaic.bridge.NeonaicBridge;
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;

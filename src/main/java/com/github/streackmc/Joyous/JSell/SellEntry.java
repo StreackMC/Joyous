@@ -9,7 +9,7 @@ import javax.annotation.Nullable;
 
 import org.bukkit.inventory.ItemStack;
 
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 
 /**
  * 一条「可售物品」定义

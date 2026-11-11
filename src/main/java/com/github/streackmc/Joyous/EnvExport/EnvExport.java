@@ -10,9 +10,9 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.jlogger;
-import com.github.streackmc.Joyous._Model.JoyousModel;
-import com.github.streackmc.Joyous._Model.JoyousPHAPIhandler;
+import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
+import com.github.streackmc.Joyous.utils.model_abstract.JoyousPHAPIhandler;
 import com.github.streackmc.StreackLib.types.SConfig;
 
 public class EnvExport extends JoyousModel {

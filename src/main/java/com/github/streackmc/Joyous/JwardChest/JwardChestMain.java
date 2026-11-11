@@ -11,9 +11,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.github.streackmc.Joyous.Joyous;
-import com.github.streackmc.Joyous.i18n;
-import com.github.streackmc.Joyous.jlogger;
-import com.github.streackmc.Joyous._Model.JoyousModel;
+import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 
 /**
  * JwardChest 模块主类

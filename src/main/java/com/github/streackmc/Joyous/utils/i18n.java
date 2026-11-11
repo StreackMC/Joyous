@@ -1,10 +1,11 @@
-package com.github.streackmc.Joyous;
+package com.github.streackmc.Joyous.utils;
 
 import java.io.File;
 import java.nio.file.Files;
 
 import org.bukkit.entity.Player;
 
+import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.StreackLib.types.SConfig;
 import com.github.streackmc.StreackLib.utils.MCColor;
 import com.github.streackmc.StreackLib.utils.SFile;
@@ -12,8 +13,13 @@ import com.github.streackmc.StreackLib.utils.SFile;
 public class i18n {
   public static volatile SConfig defaultMap;
   public static volatile SConfig currentMap;
+  private static volatile boolean initialized = false;
 
-  protected static void init(File parent) {
+  public static void init(File parent) {
+    if (initialized)
+      throw new IllegalStateException("i18n 已经初始化过了");
+    
+    initialized = true;
     currentMap = new SConfig(parent.toPath().resolve("language.yml"), "yml");
     currentMap.setAutoReload(true);
 

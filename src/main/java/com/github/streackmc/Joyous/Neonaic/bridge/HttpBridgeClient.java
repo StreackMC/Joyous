@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 
 /**
  * HTTP 通道客户端（PROTOCOL §9 / V2 §5.6）。

@@ -19,7 +19,7 @@ import org.nanohttpd.protocols.http.request.Method;
 import org.nanohttpd.protocols.http.response.Response;
 import org.nanohttpd.protocols.http.response.Status;
 
-import com.github.streackmc.Joyous.jlogger;
+import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.self.manager;
 import com.github.streackmc.StreackLib.types.SConfig;
 

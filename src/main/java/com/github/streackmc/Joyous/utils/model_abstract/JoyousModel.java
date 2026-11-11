@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous._Model;
+package com.github.streackmc.Joyous.utils.model_abstract;
 
 public abstract class JoyousModel {
 
