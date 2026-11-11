@@ -115,16 +115,23 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
   随后 `mvn package` 增量编译会跳过它 → 出现「`Unresolved compilation problems`」的运行时错误。
   **改完代码一律 `mvn clean package`**
 
-## 共享交互层（排队内核已实现，界面层未接线）
+## 共享交互层（排队内核 + 容器页面层已实现，JMenu 已迁入）
 - 触发：JMenu / JSell / JwardChest 三模块各自重复实现「容器 UI + 聊天输入」。**不放 StreackLib**——
   它刻意零平台引用（核心不许出现 `org.bukkit`，平台代码只在 `@Internal` 叶子），UI 是 public 且 Paper 专属，
   放进去等于破坏跨平台承诺；且发版节奏按月（0.5.2→0.6.2 跨 5 个月），UI 迭代按周。
-- 已落地 `utils/interact`（9 个类）：`PagePriority{INSTANT,REPLACE,NORMAL,INSERT}` + `JoyousPage.keepable()`
+- 排队内核 `utils/interact`：`PagePriority{INSTANT,REPLACE,NORMAL,INSERT}` + `JoyousPage.keepable()`
   + 每玩家队列；**视图关闭 ≠ 会话终止** → `onSuspend/onResume` vs `onDetach`（副作用恰好一次）。
   规则：当前页立即关闭、新页延后 1 tick；同帧立即类按 (submittedAt,seq) 依次应用；同 key+同 purpose 去重；
-  队列上限 8 / PENDING 过期 10 分钟 / 单轮最多 32 次转移。`PageArbiter.get().install(plugin)` 接入。
-- 待建：`TextInteract`（ChatInteract/AnvilInteract 两种 transport）、`GuiInteract` + Canvas；
-  容器类型表直接提升 `WardContainerType`（泛型 `T` 无收益）。
+  队列上限 8 / PENDING 过期 10 分钟 / 单轮最多 32 次转移。`PageArbiter.get().install(plugin)` 接入
+  （`entry.onEnable` 在子模块之前调用，`onDisable` 先 shutdown）。
+- 容器页面层：`GuiInteract`（外形/标题/render/onClick）+ `SimpleGuiPage`（开界面·重绘·关闭）+
+  `Canvas`（legacy/title/button，收掉三份 ensureReset）+ `InteractHolder`（唯一 Holder）+
+  `InteractContainer`（容器外形表）+ `Click`/`ClickPolicy`（取消策略与语义分离）+ `GuiRouter`（点击/拖拽/关闭路由）。
+  ⚠️ 关闭事件只有 `state()==VISIBLE` 才算玩家主动退出——切页/挂起/终止都会触发 close，必须按状态过滤。
+- 已迁移：JMenu（`JMenuPage`，key=`jmenu`、purpose=菜单路径、keepable=true、子菜单用 REPLACE）；
+  `ACTIVE_MENUS` 与四个事件处理器已删。**待迁移**：JWardChest（多 viewer 共享模型、需 `dirtyModel` 广播）、
+  JSell（`SELL` 关界面即退款 → keepable=false）、以及 `TextInteract`（Chat/Anvil 两种 transport）。
 - ⚠️ 铁砧输入只能用**真实 AnvilMenu**：`MenuType.ANVIL.builder().location(..).checkReachable(false).build(player)`；
   `createInventory(holder, ANVIL)` 的假铁砧收不到打字（`handleRenameItem` 要求 `containerMenu instanceof AnvilMenu`，
   而假铁砧是 `CraftContainer`）；`openAnvil` 自 1.21.4 弃用；读文本用 `AnvilView#getRenameText()`。
+- ⚠️ 1.21.8 的 `ClickType` **没有** `COLLECT_TO_CURSOR`，双手收集表现为 `DOUBLE_CLICK`。
