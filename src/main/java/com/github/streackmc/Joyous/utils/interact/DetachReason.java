@@ -6,7 +6,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * 只在 {@link JoyousPage#onDetach(PageContext, DetachReason)} 里出现，
  * 消费端据此决定「要不要退款 / 要不要落库 / 要不要提示玩家」。
  *
- * @author kdxiaoyi
+ * @author Neonai
  * @since 0.7.0
  */
 public enum DetachReason {

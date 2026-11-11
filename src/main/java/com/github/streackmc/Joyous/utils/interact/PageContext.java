@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
  * 注意：钩子内再次 {@link PageArbiter#open} 是允许的，但那个请求会排在当前转移<b>之后</b>处理，
  * 不会造成递归（见 {@code PageArbiter} 的重入规则）。
  *
- * @author kdxiaoyi
+ * @author Neonai
  * @since 0.7.0
  */
 public interface PageContext extends PageHandle {

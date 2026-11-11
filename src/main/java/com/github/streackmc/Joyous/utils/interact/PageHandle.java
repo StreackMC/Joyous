@@ -6,7 +6,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * 只暴露「看状态」和「结束自己」两件事，不允许绕过仲裁器改状态。
  * 句柄在页面终止后依然有效（`state()` 返回 {@link PageState#DETACHED}），可以安全地长期持有。
  *
- * @author kdxiaoyi
+ * @author Neonai
  * @since 0.7.0
  */
 public interface PageHandle {

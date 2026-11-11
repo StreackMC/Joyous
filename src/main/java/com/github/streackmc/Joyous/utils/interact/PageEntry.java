@@ -12,7 +12,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 既是内部状态载体，也是交给页面实现的 {@link PageContext}。
  * 生命周期与队列位置全部由 {@link PlayerPages} 维护，这里只存数据。
  *
- * @author kdxiaoyi
+ * @author Neonai
  * @since 0.7.0
  */
 final class PageEntry implements PageContext {

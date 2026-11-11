@@ -30,7 +30,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 所以 {@link PagePriority#INSTANT}/{@link PagePriority#REPLACE} 对当前页的处理立即执行，
  * 新页面的 attach 统一排到下一 tick。
  *
- * @author kdxiaoyi
+ * @author Neonai
  * @since 0.7.0
  */
 final class PlayerPages {

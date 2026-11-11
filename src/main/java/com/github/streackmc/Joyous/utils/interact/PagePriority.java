@@ -9,7 +9,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * <b>选用建议</b>：除非目的很明确（例如「替换掉当前编辑器」「必须排到玩家现有队列后面」），
  * 一般都选 {@link #INSTANT}。它是唯一一个既能保证玩家立刻看到、又不会毁掉他手上进度的选项。
  *
- * @author kdxiaoyi
+ * @author Neonai
  * @since 0.7.0
  */
 public enum PagePriority {

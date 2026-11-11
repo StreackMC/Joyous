@@ -56,7 +56,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  *       降级为 {@code REPLACE}，只写日志（含玩家与双方页面的 key/purpose），不打扰玩家。</li>
  * </ul>
  *
- * @author kdxiaoyi
+ * @author Neonai
  * @since 0.7.0
  */
 public final class PageArbiter implements Listener {

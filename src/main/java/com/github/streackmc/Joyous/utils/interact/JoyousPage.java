@@ -28,7 +28,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * 返回 {@code true} 却做不到上面任何一条，会让玩家遇到「看起来恢复了、其实状态已被结算过」的错乱，
  * 这比直接不保留更糟。
  *
- * @author kdxiaoyi
+ * @author Neonai
  * @since 0.7.0
  * @see PagePriority
  */

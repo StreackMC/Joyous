@@ -5,7 +5,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * <p>
  * 转移路径见 {@link PageArbiter} 的类注释；只有 {@link #DETACHED} 是吸收态。
  *
- * @author kdxiaoyi
+ * @author Neonai
  * @since 0.7.0
  */
 public enum PageState {
