@@ -20,6 +20,7 @@ import com.github.streackmc.Joyous.Neonaic.NeonaicSubsystem;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
 import com.github.streackmc.Joyous.Restarter.RestarterMain;
 import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.interact.PageArbiter;
 import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 import com.github.streackmc.Joyous.utils.placeholderapi.PHAPI;
@@ -122,6 +123,8 @@ public class entry extends JavaPlugin {
 
     // 子模块
     jlogger.info("正在启用子模块...");
+    // 页面仲裁器要先于各模块就绪：模块启用时会立刻往里面登记页面
+    PageArbiter.get().install(this);
     Models.models.forEach((name, model) -> {
       try {
         if (!Joyous.conf.getBoolean(name + ".enabled", true)) {
@@ -141,6 +144,8 @@ public class entry extends JavaPlugin {
 
   @Override
   public void onDisable() {
+    // 先收掉所有玩家的页面（钩子要在模块还活着的时候执行）
+    PageArbiter.get().shutdown();
     jlogger.info("正在禁用子模块...");
     Models.models.forEach((name, model) -> {
       try {

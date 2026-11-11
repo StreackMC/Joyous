@@ -3,25 +3,23 @@ package com.github.streackmc.Joyous.JMenu;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.interact.PageArbiter;
+import com.github.streackmc.Joyous.utils.interact.PagePriority;
 import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
  * JMenu 管理器
@@ -42,8 +40,6 @@ public class JMenuManager {
   public final Map<String, JMenuEntry> MENU_CACHE = new HashMap<>();
   /** 缓存过期时间 <路径, 过期时间戳> */
   public final Map<String, Long> MENU_CACHE_EXPIRE = new HashMap<>();
-  /** 玩家当前打开的菜单 <玩家UUID, 菜单> */
-  public final Map<UUID, JMenuEntry> ACTIVE_MENUS = new HashMap<>();
 
   /** 读写锁 */
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -152,7 +148,7 @@ public class JMenuManager {
    */
   public void openMenuFor(String menuPath, Player player) throws IllegalArgumentException {
     if (menuPath == null) {
-      player.closeInventory();
+      PageArbiter.get().close(player, JMenuPage.KEY, null);
       return;
     }
 
@@ -163,7 +159,7 @@ public class JMenuManager {
       resolved = JMenuEntry.resolvePath(menuPath);
     }
     if (resolved.isEmpty()) {
-      player.closeInventory();
+      PageArbiter.get().close(player, JMenuPage.KEY, null);
       return;
     }
 
@@ -180,43 +176,15 @@ public class JMenuManager {
   // Java 版：箱子 GUI
   // ──────────────────────────────────────────────
 
-  /** 为 Java 版玩家打开箱子 GUI 菜单 */
+  /**
+   * 为 Java 版玩家打开箱子 GUI 菜单
+   * <p>
+   * 交给页面仲裁器：菜单作为一页显示，排队、挂起、清理都不再由本类维护。
+   * 子菜单用 {@link PagePriority#REPLACE}——换页就是换页，ESC 不会退回上一级。
+   */
   private void openJavaMenu(JMenuEntry menuData, Player player) {
-    int lines = menuData.getLines();
-    String title = menuData.getTitle();
-    // 解析 PAPI 占位符（带玩家上下文，替换 %player_name% 等玩家相关占位符）
-    String papiTitle = i18n.getPHparsed(player, title);
-
-    Inventory inventory = Bukkit.createInventory(null, lines * 9,
-        LegacyComponentSerializer.legacySection().deserialize(MCColor.parse(papiTitle)));
-
-    // 放置按钮（权限不满足时优先画 else 回退按钮；逐玩家构建以解析 PAPI）
-    for (var btn : menuData.getJavaButtons()) {
-      int slot = btn.slot();
-      if (slot < 0 || slot >= inventory.getSize()) {
-        continue;
-      }
-      var effective = btn.effectiveFor(player);
-      if (effective != null) {
-        inventory.setItem(slot, effective.buildItem(player));
-      }
-    }
-
-    // 先打开物品栏（这会触发 InventoryCloseEvent，若玩家此前有 GUI 则会移除旧菜单记录）
-    player.openInventory(inventory);
-    // 再记录当前菜单（必须放在 openInventory 之后，避免被 InventoryCloseEvent 清掉）
-    ACTIVE_MENUS.put(player.getUniqueId(), menuData);
+    PageArbiter.get().open(player, new JMenuPage(menuData, this), PagePriority.REPLACE);
     player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_HIT, 0.5f, 1.0f);
-  }
-
-  /** 获取玩家当前打开的菜单，若没有则返回 null */
-  public JMenuEntry getActiveMenu(Player player) {
-    return ACTIVE_MENUS.get(player.getUniqueId());
-  }
-
-  /** 移除玩家的活跃菜单记录 */
-  public void removeActiveMenu(Player player) {
-    ACTIVE_MENUS.remove(player.getUniqueId());
   }
 
   // ──────────────────────────────────────────────

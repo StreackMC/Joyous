@@ -8,6 +8,7 @@ import org.bukkit.NamespacedKey;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.interact.PageArbiter;
 import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 import com.github.streackmc.StreackLib.utils.SFile;
 
@@ -88,9 +89,9 @@ public class JMenuMain extends JoyousModel {
 
   @Override
   public void onDisable() throws Exception {
-    // 清理所有玩家的活跃菜单
+    // 关闭所有玩家还开着的菜单页面（排队项由仲裁器统一清理）
+    PageArbiter.get().closeAll(JMenuPage.KEY, null);
     if (manager != null) {
-      manager.ACTIVE_MENUS.clear();
       manager.invalidateAllCache();
     }
     jlogger.info("JMenu 模块已禁用");

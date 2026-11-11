@@ -94,6 +94,7 @@ public final class PageArbiter implements Listener {
     }
     this.plugin = Objects.requireNonNull(plugin, "plugin");
     Bukkit.getPluginManager().registerEvents(this, plugin);
+    Bukkit.getPluginManager().registerEvents(new GuiRouter(this), plugin);
     long period = 20L * SWEEP_SECONDS;
     Bukkit.getScheduler().runTaskTimer(plugin, this::sweep, period, period);
     installed = true;
@@ -139,12 +140,39 @@ public final class PageArbiter implements Listener {
     return state == null ? 0 : state.closeAll(key, purpose);
   }
 
+  /**
+   * 结束所有玩家身上指定 key 的页面
+   * <p>
+   * 模块停用时用：只清自己那类页面，不打扰其它模块的页面与队列。
+   *
+   * @param purpose 指定目的可精确定位；null 表示该 key 的全部目的
+   * @return 结束的条目数量
+   */
+  public int closeAll(String key, @Nullable String purpose) {
+    int closed = 0;
+    for (PlayerPages state : states.values()) {
+      closed += state.closeAll(key, purpose);
+    }
+    return closed;
+  }
+
   /** 结束该玩家所有页面 */
   public void clear(Player player, DetachReason why) {
     PlayerPages state = states.remove(player.getUniqueId());
     if (state != null) {
       state.clear(why);
     }
+  }
+
+  /**
+   * 当前正在显示的页面
+   * <p>
+   * 供事件路由使用；页面终止或玩家没有页面时返回 null。
+   */
+  @Nullable
+  public PageContext visible(Player player) {
+    PlayerPages state = states.get(player.getUniqueId());
+    return state == null ? null : state.visibleEntry();
   }
 
   /** 诊断用：当前玩家的页面栈快照 */

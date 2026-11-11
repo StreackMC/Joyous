@@ -207,6 +207,12 @@ final class PlayerPages {
     }
   }
 
+  /** 当前显示的条目（没有则 null） */
+  @Nullable
+  PageEntry visibleEntry() {
+    return visible;
+  }
+
   /** 诊断用的一行描述 */
   String describe() {
     StringBuilder sb = new StringBuilder();

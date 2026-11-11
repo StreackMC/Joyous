@@ -4,13 +4,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import com.github.streackmc.Joyous.utils.jlogger;
@@ -19,14 +14,8 @@ import com.github.streackmc.StreackLib.utils.MCColor;
 /**
  * JMenu 事件监听器
  * <p>
- * 监听以下事件：
- * <ul>
- *   <li>{@link InventoryClickEvent} — Java 版箱子菜单的点击处理</li>
- *   <li>{@link InventoryDragEvent} — 禁止拖拽到菜单内</li>
- *   <li>{@link InventoryCloseEvent} — 清理活跃菜单记录</li>
- *   <li>{@link PlayerInteractEvent} — 使用菜单物品打开菜单</li>
- *   <li>{@link PlayerQuitEvent} — 清理玩家数据</li>
- * </ul>
+ * 只剩「用菜单物品打开菜单」这件事：箱子界面的点击、拖拽、关闭已经统一由
+ * {@code utils.interact.GuiRouter} 路由到 {@link JMenuPage}，玩家退出也由页面仲裁器清理。
  *
  * @author kdxiaoyi
  * @since 0.2.0
@@ -38,100 +27,6 @@ public class JMenuListener implements Listener {
   public JMenuListener(JMenuManager manager) {
     this.manager = manager;
   }
-
-  // ──────────────────────────────────────────────
-  // 箱子菜单点击
-  // ──────────────────────────────────────────────
-
-  /**
-   * 处理 Java 版箱子菜单的点击事件
-   * <p>
-   * 仅处理 JMenuManager 记录的活跃菜单中的点击。
-   * 取消所有点击事件，只对有效按钮执行对应动作。
-   */
-  @EventHandler(priority = EventPriority.HIGH)
-  public void onInventoryClick(InventoryClickEvent event) {
-    if (!(event.getWhoClicked() instanceof Player player)) return;
-    if (event.getClickedInventory() == null) return;
-
-    // 检查是否是我们打开的菜单
-    JMenuEntry menu = manager.getActiveMenu(player);
-    if (menu == null) return;
-
-    // 取消所有点击（禁止取走物品）
-    event.setCancelled(true);
-
-    // 只处理菜单内（上侧）的点击
-    if (event.getClickedInventory().equals(player.getOpenInventory().getTopInventory())) {
-      int slot = event.getRawSlot();
-
-      // 查找对应的按钮
-      for (var btn : menu.getJavaButtons()) {
-        if (slot != btn.slot()) {
-          continue;
-        }
-        // 权限不满足时执行的是 else 回退按钮的动作（与画面上看到的一致）
-        var effective = btn.effectiveFor(player);
-        if (effective == null) {
-          return; // 没权限也没回退：这一格本来就是空的
-        }
-        if (effective.isNoop()) {
-          return; // v2：动作不是已知项 → 点击无反应，连界面都不关
-        }
-
-        // 播放点击声音
-        player.playSound(player.getLocation(),
-            org.bukkit.Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
-
-        // 关闭菜单后再执行动作（避免 GUI 干扰）
-        player.closeInventory();
-
-        // 执行按钮动作
-        manager.executeAction(player, effective.action(), effective.param());
-        return;
-      }
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // 禁止拖拽
-  // ──────────────────────────────────────────────
-
-  /**
-   * 禁止向菜单内拖拽物品
-   */
-  @EventHandler(priority = EventPriority.HIGH)
-  public void onInventoryDrag(InventoryDragEvent event) {
-    if (!(event.getWhoClicked() instanceof Player player)) return;
-    JMenuEntry menu = manager.getActiveMenu(player);
-    if (menu == null) return;
-
-    // 检查拖拽的目标是否包含菜单的槽位
-    Inventory top = player.getOpenInventory().getTopInventory();
-    for (int slot : event.getRawSlots()) {
-      if (slot < top.getSize()) {
-        event.setCancelled(true);
-        return;
-      }
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // 关闭菜单清理
-  // ──────────────────────────────────────────────
-
-  /**
-   * 关闭菜单时清理活跃记录
-   */
-  @EventHandler(priority = EventPriority.MONITOR)
-  public void onInventoryClose(InventoryCloseEvent event) {
-    if (!(event.getPlayer() instanceof Player player)) return;
-    manager.removeActiveMenu(player);
-  }
-
-  // ──────────────────────────────────────────────
-  // 菜单物品交互
-  // ──────────────────────────────────────────────
 
   /**
    * 处理玩家右键使用菜单物品打开菜单
@@ -167,17 +62,5 @@ public class JMenuListener implements Listener {
       jlogger.warn("玩家 [%s] 通过物品打开菜单 [%s] 失败：%s",
           player.getName(), menuPath, e.getLocalizedMessage());
     }
-  }
-
-  // ──────────────────────────────────────────────
-  // 玩家退出清理
-  // ──────────────────────────────────────────────
-
-  /**
-   * 玩家退出时清理活跃菜单记录
-   */
-  @EventHandler()
-  public void onPlayerQuit(PlayerQuitEvent event) {
-    manager.removeActiveMenu(event.getPlayer());
   }
 }
