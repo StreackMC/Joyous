@@ -114,3 +114,14 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
 - ⚠️ 构建注意：VS Code Java 语言服务器会把 ECJ 的「带错误的 class」写进 `target/classes`，
   随后 `mvn package` 增量编译会跳过它 → 出现「`Unresolved compilation problems`」的运行时错误。
   **改完代码一律 `mvn clean package`**
+
+## 共享交互层（设计，未实施）
+- 触发：JMenu / JSell / JwardChest 三模块各自重复实现「容器 UI + 聊天输入」。**不放 StreackLib**——
+  它刻意零平台引用（核心不许出现 `org.bukkit`，平台代码只在 `@Internal` 叶子），UI 是 public 且 Paper 专属，
+  放进去等于破坏跨平台承诺；且发版节奏按月（0.5.2→0.6.2 跨 5 个月），UI 迭代按周。
+- 形态：`com.github.streackmc.Joyous.interact`，每玩家一个**交互栈**（不是纯事件总线）：
+  `ShowPolicy{REPLACE,PUSH,QUEUE}`；**视图关闭 ≠ 会话终止** → `onSuspend/onResume` vs `onDetach`（副作用恰好一次）。
+  `TextInteract` 派生 `ChatInteract`/`AnvilInteract`；容器类型表直接提升 `WardContainerType`（泛型 `T` 无收益）。
+- ⚠️ 铁砧输入只能用**真实 AnvilMenu**：`MenuType.ANVIL.builder().location(..).checkReachable(false).build(player)`；
+  `createInventory(holder, ANVIL)` 的假铁砧收不到打字（`handleRenameItem` 要求 `containerMenu instanceof AnvilMenu`，
+  而假铁砧是 `CraftContainer`）；`openAnvil` 自 1.21.4 弃用；读文本用 `AnvilView#getRenameText()`。
