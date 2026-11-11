@@ -89,6 +89,9 @@ public final class JMenuPage extends SimpleGuiPage {
 
   @Override
   public Verdict onClick(PageContext ctx, Click click) {
+    if (!click.top()) {
+      return Verdict.IGNORED; // 菜单整页独占：背包侧只由策略拦，这里不做语义处理
+    }
     Player player = click.player();
     for (var button : menu.getJavaButtons()) {
       if (button.slot() != click.slot()) {

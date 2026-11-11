@@ -17,12 +17,11 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.interact.Canvas;
 import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
  * GUI 基础设施
@@ -58,7 +57,7 @@ public final class WardGui {
   // 界面识别
   // ──────────────────────────────────────────────
 
-  /** 我们的界面类型 */
+  /** 我们的界面类型（运行时容器已迁到 {@code WardRuntimePage}，不在其中） */
   public enum Kind {
     /** 编辑界面主界面 */
     EDITOR,
@@ -69,11 +68,7 @@ public final class WardGui {
     /** 各品质最大抽出数量编辑 */
     MAX_DRAW,
     /** 数量分布编辑 */
-    DISTRIBUTION,
-    /** 运行时自定义容器 */
-    RUNTIME,
-    /** 预览 */
-    PREVIEW
+    DISTRIBUTION
   }
 
   /** 自定义 {@link InventoryHolder}，用于把界面与它的上下文绑在一起 */
@@ -433,39 +428,15 @@ public final class WardGui {
   /**
    * 把带颜色码的文本转成 Component（文字装饰按原版物品语义处理）
    * <p>
-   * <b>必须走这里而不是直接用 {@link LegacyComponentSerializer}</b>：物品的名称与 Lore
-   * 在原版的默认样式是<b>斜体</b>，而 {@code deserialize} 出来的组件其
-   * {@link TextDecoration} 一律是 {@link TextDecoration.State#NOT_SET}——
-   * 未显式设置的斜体就会被原版按「开启」渲染。{@link #ensureReset(Component)}
-   * 把「未显式设置」的装饰显式写成 {@code false}，于是文本与 JMenu 的按钮一样是正体。
-   * 显式写了 {@code §l} 之类的仍然保留（那些是显式状态，不会被改写）。
+   * 已收敛到共享层的 {@link Canvas#legacy(String)}：物品名与 Lore 在原版默认是斜体，
+   * 而 {@code deserialize} 出来的组件装饰都是 {@code NOT_SET}，必须显式写成 {@code false}。
    */
   public static Component legacy(String colorized) {
-    return ensureReset(
-        LegacyComponentSerializer.legacySection().deserialize(colorized == null ? "" : colorized));
-  }
-
-  /**
-   * 确保未显式设置的文字装饰被重置为 {@code false}
-   * <p>
-   * 与 {@code JMenuEntry.ensureReset} 同源：{@code §r} 只把装饰设成 {@code NOT_SET}，
-   * 而原版渲染物品名/悬浮文本时会把它当作「启用」，因此必须显式关掉。
-   * 由于 Adventure 的样式对未设置的子节点是继承父级的，设置根组件的风格即可覆盖整棵树。
-   */
-  private static Component ensureReset(Component component) {
-    var style = component.style();
-    return component.style(s -> {
-      for (TextDecoration dec : TextDecoration.values()) {
-        if (style.decoration(dec) == TextDecoration.State.NOT_SET) {
-          s.decoration(dec, false);
-        }
-      }
-    });
+    return Canvas.legacy(colorized);
   }
 
   /** 界面标题：支持 & 颜色码与 PAPI */
   public static Component title(org.bukkit.entity.Player player, String raw) {
-    String parsed = i18n.getPHparsed(player, raw == null ? "" : raw);
-    return legacy(MCColor.parse(parsed));
+    return Canvas.title(player, raw);
   }
 }

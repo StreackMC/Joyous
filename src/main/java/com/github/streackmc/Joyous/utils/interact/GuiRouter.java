@@ -67,16 +67,12 @@ final class GuiRouter implements Listener {
         return;
       }
     }
-    if (region != Click.Region.TOP) {
-      return;
-    }
-
     PageContext ctx = arbiter.visible(player);
     if (!(ctx instanceof PageEntry entry) || entry.page() != page) {
       return;
     }
     try {
-      page.onClick(ctx, new Click(player, event.getRawSlot(), event.getClick(), region,
+      page.onClick(ctx, new Click(player, event.getSlot(), event.getClick(), region,
           event.getCursor(), event));
     } catch (Exception e) {
       jlogger.warning("页面 %s 处理点击时出错：%s", page.key(), e.getLocalizedMessage(), e);

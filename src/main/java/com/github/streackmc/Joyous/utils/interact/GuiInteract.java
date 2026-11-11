@@ -47,7 +47,8 @@ public interface GuiInteract extends JoyousPage {
   /**
    * 点击
    * <p>
-   * 只会收到上半区（{@link Click.Region#TOP}）的点击；背包侧的点击由策略统一处理。
+   * 上半区与玩家背包的点击都会转过来，用 {@link Click#top()} 区分；界面之外的点击不会。
+   * 不关心背包侧就自己判 {@code click.top()}——不要假设只有上半区。
    */
   default Verdict onClick(PageContext ctx, Click click) {
     return Verdict.IGNORED;

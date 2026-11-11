@@ -14,7 +14,8 @@ import org.bukkit.inventory.ItemStack;
  * 直接读这里已经算好的字段即可。
  *
  * @param player 点击者
- * @param slot   原始槽位（配合 {@link #region()} 才有意义）
+ * @param slot   <b>相对于所点击容器</b>的槽位：上半区即界面槽位，背包侧即背包下标。
+ *               不是 rawSlot——背包侧的 rawSlot 带着上半区的偏移，直接拿去取物品会取错人
  * @param click  原版点击类型
  * @param region 点击发生的区域
  * @param cursor 点击时光标上的物品（可能为空气）

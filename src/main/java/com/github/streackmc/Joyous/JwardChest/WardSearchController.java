@@ -15,6 +15,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.interact.Canvas;
+import com.github.streackmc.Joyous.utils.interact.PageArbiter;
+import com.github.streackmc.Joyous.utils.interact.PagePriority;
 import com.github.streackmc.Joyous.utils.jlogger;
 
 import net.kyori.adventure.text.Component;
@@ -70,28 +73,10 @@ public final class WardSearchController {
       return;
     }
 
-    WardGui.Kind kind = session.preview() ? WardGui.Kind.PREVIEW : WardGui.Kind.RUNTIME;
-    WardGui.Holder holder = new WardGui.Holder(kind, profile.id(), session);
-    Inventory inventory = profile.container().create(holder, profile.rows(),
-        WardGui.title(player, profile.title()));
-    holder.attach(inventory);
-    // 不走动画的场合（编辑界面的 Shift 预览）直接把内容全摆出来
-    buildView(inventory, session, player.getUniqueId(), !animate);
-
-    player.openInventory(inventory);
-    session.bindViewer(player.getUniqueId(), inventory);
-
-    stop(player); // 清理可能残留的旧任务
-
-    if (!animate) {
-      return;
-    }
-    if (session.searchedAll(player.getUniqueId())) {
-      jlogger.debug("玩家 %s 重开容器 %s，能搜的都搜过了，不再启动搜索",
-          player.getName(), session.key());
-      return;
-    }
-    start(player, profile, session);
+    // 界面本身交给页面层：排队、挂起、恢复、关闭都由仲裁器统一处理
+    PageArbiter.get().open(player,
+        new WardRuntimePage(profile, session, this, module.sessions(), animate),
+        PagePriority.REPLACE);
   }
 
   /** 空内容时给出准确原因 */
@@ -153,16 +138,20 @@ public final class WardSearchController {
    *
    * @param showAll true 时无视揭开进度、把内容全部摆出来（只用于不走动画的预览）
    */
-  private static void buildView(Inventory inventory, WardSession session, UUID player,
-      boolean showAll) {
-    inventory.clear();
-    for (int slot = 0; slot < session.slotCount() && slot < inventory.getSize(); slot++) {
+  private static void buildView(Canvas canvas, WardSession session, UUID player, boolean showAll) {
+    canvas.clear();
+    for (int slot = 0; slot < session.slotCount() && slot < canvas.size(); slot++) {
       if (showAll) {
-        inventory.setItem(slot, session.itemAt(slot));
+        canvas.set(slot, session.itemAt(slot));
       } else {
-        renderSlot(inventory, session, player, slot);
+        renderSlot(canvas, session, player, slot);
       }
     }
+  }
+
+  /** 供给页面层：把容器按查看者的视角画进画布 */
+  public void renderInto(WardSession session, Player viewer, Canvas canvas, boolean showAll) {
+    buildView(canvas, session, viewer.getUniqueId(), showAll);
   }
 
   /**
@@ -171,17 +160,17 @@ public final class WardSearchController {
    * 三态只有一个判据：有东西且我揭开过 → 真物品；有东西但我没揭开 → 占位；没东西 → 空。
    * 「被别人取走了」自然落到「空」，不需要额外的状态位。
    */
-  private static void renderSlot(Inventory inventory, WardSession session, UUID player, int slot) {
-    if (inventory == null || slot < 0 || slot >= inventory.getSize()) {
+  private static void renderSlot(Canvas canvas, WardSession session, UUID player, int slot) {
+    if (slot < 0 || slot >= canvas.size()) {
       return;
     }
     ItemStack item = session.itemAt(slot);
     if (item == null) {
-      inventory.setItem(slot, null);
+      canvas.set(slot, null);
     } else if (session.revealedBy(player, slot)) {
-      inventory.setItem(slot, item);
+      canvas.set(slot, item);
     } else {
-      inventory.setItem(slot, WardGui.unsearchedPane());
+      canvas.set(slot, WardGui.unsearchedPane());
     }
   }
 
@@ -191,7 +180,7 @@ public final class WardSearchController {
       if (Bukkit.getPlayer(viewer.getKey()) == null) {
         continue;
       }
-      renderSlot(viewer.getValue(), session, viewer.getKey(), slot);
+      renderSlot(new Canvas(viewer.getValue()), session, viewer.getKey(), slot);
     }
   }
 
@@ -469,7 +458,7 @@ public final class WardSearchController {
       if (Bukkit.getPlayer(viewer.getKey()) == null) {
         continue;
       }
-      buildView(viewer.getValue(), session, viewer.getKey(), false);
+      buildView(new Canvas(viewer.getValue()), session, viewer.getKey(), false);
     }
   }
 
@@ -477,8 +466,12 @@ public final class WardSearchController {
   // 任务生命周期
   // ──────────────────────────────────────────────
 
-  private void start(Player player, WardProfile profile, WardSession session) {
-    Search s = new Search(session.key(), player.getUniqueId());
+  /** 供页面层调用：开始（或重启）搜索动画 */
+  public void startSearch(Player player, WardProfile profile, WardSession session) {
+    start(player, profile, session);
+  }
+
+  private void start(Player player, WardProfile profile, WardSession session) {    Search s = new Search(session.key(), player.getUniqueId());
     s.profile = profile;
     s.current = -1;
     s.prefilterDone = !profile.prefilterEnabled() || session.prefilted(player.getUniqueId());
@@ -531,9 +524,8 @@ public final class WardSearchController {
     }
 
     Inventory open = player.getOpenInventory().getTopInventory();
-    WardGui.Holder holder = WardGui.holderOf(open);
-    if (holder == null || !(holder.payload() instanceof WardSession session)
-        || !session.key().equals(s.sessionKey)) {
+    WardSession session = WardRuntimePage.sessionOf(open);
+    if (session == null || !session.key().equals(s.sessionKey)) {
       // 玩家已经切走界面：取消任务（倒计时随之重置），进度保留
       cancel(s);
       return;
@@ -574,7 +566,7 @@ public final class WardSearchController {
     session.prefilted(s.playerId, true);
     s.prefilterDone = true;
     s.forgetFrameCache();
-    buildView(open, session, s.playerId, false);
+    buildView(new Canvas(open), session, s.playerId, false);
   }
 
   /** 正常搜索：逐槽位倒计时，完成后揭开并显示该格当前内容 */
@@ -608,7 +600,7 @@ public final class WardSearchController {
     if (!session.hasItem(slot)) {
       // 倒计时途中被别人取走了：不必再等，直接揭过
       session.markSearched(s.playerId, slot);
-      renderSlot(open, session, s.playerId, slot);
+      renderSlot(new Canvas(open), session, s.playerId, slot);
       s.current = -1;
       return;
     }
@@ -624,7 +616,7 @@ public final class WardSearchController {
 
     // 完成：揭开这一格（内容仍在容器里，谁点谁拿走）
     session.markSearched(s.playerId, slot);
-    renderSlot(open, session, s.playerId, slot);
+    renderSlot(new Canvas(open), session, s.playerId, slot);
     rarity.playCompletion(player);
     s.current = -1;
 

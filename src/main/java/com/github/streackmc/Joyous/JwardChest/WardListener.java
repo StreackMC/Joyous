@@ -22,7 +22,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
@@ -153,58 +152,9 @@ public final class WardListener implements Listener {
           event.setCancelled(true);
         }
       }
-      case RUNTIME, PREVIEW -> handleRuntimeClick(event, player, holder);
       default -> {
       }
     }
-  }
-
-  /**
-   * 运行时容器的点击：只认「领取」与「放入」两件事
-   * <p>
-   * 上半区（容器）一律取消原版行为；下半区（玩家背包）只在会被原版搬到上半区的情况下才拦
-   * （Shift+点击、双击收拢），玩家整理自己背包是允许的。
-   */
-  private void handleRuntimeClick(InventoryClickEvent event, Player player, WardGui.Holder holder) {
-    if (!(holder.payload() instanceof WardSession session)) {
-      return;
-    }
-    Inventory top = player.getOpenInventory().getTopInventory();
-    Inventory clicked = event.getClickedInventory();
-    boolean inTop = clicked != null && clicked.equals(top);
-
-    if (!inTop) {
-      org.bukkit.event.inventory.ClickType type = event.getClick();
-      if (type.isShiftClick() && event.getSlot() >= 0) {
-        event.setCancelled(true);
-        search.placeFromInventory(player, session, event.getSlot());
-        return;
-      }
-      if (type == org.bukkit.event.inventory.ClickType.DOUBLE_CLICK) {
-        // 双击会把光标上的物品与「所有界面里的同类物品」合并，会碰到上半区
-        event.setCancelled(true);
-      }
-      return;
-    }
-
-    event.setCancelled(true);
-
-    int slot = event.getRawSlot();
-    if (slot < 0 || slot >= top.getSize()) {
-      return;
-    }
-
-    if (session.hasItem(slot)) {
-      search.claim(player, session, slot);
-      return;
-    }
-
-    ItemStack cursor = event.getCursor();
-    if (cursor == null || cursor.getType().isAir()) {
-      return;
-    }
-    int amount = event.isRightClick() ? 1 : cursor.getAmount();
-    search.placeFromCursor(player, session, slot, amount);
   }
 
   private void safeHandle(InventoryClickEvent event, WardGui.Holder holder) {
@@ -250,18 +200,6 @@ public final class WardListener implements Listener {
       return;
     }
     switch (holder.kind()) {
-      case RUNTIME, PREVIEW -> {
-        // 取消搜索任务：进行中的倒计时全部重置；已揭开的记录保留在会话里
-        search.stop(player);
-        if (holder.payload() instanceof WardSession session) {
-          session.unbindViewer(player.getUniqueId());
-          session.touch();
-          if (session.preview()) {
-            // 预览是临时演示：关闭即整个丢弃，重开时重新抽取
-            sessions.remove(session.key());
-          }
-        }
-      }
       case EDITOR, CONTAINER_PICKER, ITEM_EDITOR, MAX_DRAW, DISTRIBUTION -> {
         // 编辑类界面关闭时统一落盘：一次编辑只写一次文件
         store.flush();
