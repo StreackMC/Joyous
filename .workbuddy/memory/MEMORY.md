@@ -115,13 +115,16 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
   随后 `mvn package` 增量编译会跳过它 → 出现「`Unresolved compilation problems`」的运行时错误。
   **改完代码一律 `mvn clean package`**
 
-## 共享交互层（设计，未实施）
+## 共享交互层（排队内核已实现，界面层未接线）
 - 触发：JMenu / JSell / JwardChest 三模块各自重复实现「容器 UI + 聊天输入」。**不放 StreackLib**——
   它刻意零平台引用（核心不许出现 `org.bukkit`，平台代码只在 `@Internal` 叶子），UI 是 public 且 Paper 专属，
   放进去等于破坏跨平台承诺；且发版节奏按月（0.5.2→0.6.2 跨 5 个月），UI 迭代按周。
-- 形态：`com.github.streackmc.Joyous.interact`，每玩家一个**交互栈**（不是纯事件总线）：
-  `ShowPolicy{REPLACE,PUSH,QUEUE}`；**视图关闭 ≠ 会话终止** → `onSuspend/onResume` vs `onDetach`（副作用恰好一次）。
-  `TextInteract` 派生 `ChatInteract`/`AnvilInteract`；容器类型表直接提升 `WardContainerType`（泛型 `T` 无收益）。
+- 已落地 `utils/interact`（9 个类）：`PagePriority{INSTANT,REPLACE,NORMAL,INSERT}` + `JoyousPage.keepable()`
+  + 每玩家队列；**视图关闭 ≠ 会话终止** → `onSuspend/onResume` vs `onDetach`（副作用恰好一次）。
+  规则：当前页立即关闭、新页延后 1 tick；同帧立即类按 (submittedAt,seq) 依次应用；同 key+同 purpose 去重；
+  队列上限 8 / PENDING 过期 10 分钟 / 单轮最多 32 次转移。`PageArbiter.get().install(plugin)` 接入。
+- 待建：`TextInteract`（ChatInteract/AnvilInteract 两种 transport）、`GuiInteract` + Canvas；
+  容器类型表直接提升 `WardContainerType`（泛型 `T` 无收益）。
 - ⚠️ 铁砧输入只能用**真实 AnvilMenu**：`MenuType.ANVIL.builder().location(..).checkReachable(false).build(player)`；
   `createInventory(holder, ANVIL)` 的假铁砧收不到打字（`handleRenameItem` 要求 `containerMenu instanceof AnvilMenu`，
   而假铁砧是 `CraftContainer`）；`openAnvil` 自 1.21.4 弃用；读文本用 `AnvilView#getRenameText()`。
