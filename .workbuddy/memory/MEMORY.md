@@ -75,8 +75,11 @@ StreackLib 0.6.1 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
 - 命令 `/jsell`(`/sell`)：`gui`/`hand`/`inv`/`all`；`/jsellset`(`/sellset`)：编辑界面/`reload`/`pending`/`restore <tx>`
 - 权限 **`joyous.jsell.use`（默认 all，但必须有节点）**、`joyous.jsell.admin`
 - **可售列表**落 `models/JSell/items.yml`，但**不是分层 YAML**：一行一条整条 Base64
-  （`items: [ "<b64>" ]`）。⚠️ 原因：SConfig 的 `put("a.<uuid>.b")` 会把动态键写坏
-  （层级与字面键混在一起，读回来找不到）→ 模块内所有「动态键 + 复合路径」的存档都别用点号路径
+  （`items: [ "<b64>" ]`）。⚠️ 原因：StreackLib 的 `putNested` 把**第一个点**当成「最后一个点」
+  （`getIndexOfNormalDot` 命中即 `return i`），≥3 层的写入会把前缀重复进叶子键：
+  `putString("items.<uuid>.item", v)` → `items: { <uuid>: { "<uuid>.item": v } }`，读回来找不到。
+  **与 deprecated 的 `put()` 无关**（它是 `cache.put(key,value)`，连一层都不拆）。
+  → 写配置的规则：路径最多一个点；更深层级用 `putSection(path, Map)` 一次写；**读不限深度**
 - 匹配（`SellMatch`）：STRICT = `ItemStack#isSimilar`（忽略数量）；CONTAINS =
   ⚠️ **不能用 `ItemStack#serialize()`**（1.21.5+ 已从 `type/meta` 变成 `id/components`），
   改为「PDC 子集 + Lore 前缀 + 附魔等级 ≥ + 自定义名一致 + 其余**数据组件**逐项相等」；

@@ -27,9 +27,20 @@ import com.github.streackmc.StreackLib.types.SConfig;
  * <p>
  * <b>为什么整条编码成一行而不是分层写字？</b>
  * 一是「物品模板」必须原样保留 NBT，Base64 是最省事的容器；二是条目里有命令原文这种自由文本，
- * 塞进 YAML 结构里会牵扯转义与缩进；三是 SConfig 的点号路径在「动态键 + 复合路径」上并不可靠
- * （{@code items.<uuid>.item} 会被写成一个层级与字面键混在一起的怪东西，读回来就找不到）。
- * 所以这里只用一个扁平列表：一行一条、整条 Base64，读写都只经过 {@link #encode}/{@link #decode}。
+ * 塞进 YAML 结构里会牵扯转义与缩进；三是当前这版 StreackLib 的 {@code putNested} 把
+ * <b>第一个点</b>当成「最后一个点」（{@code getIndexOfNormalDot} 命中即 {@code return i}），
+ * 于是任何 ≥3 层的写入都会把前缀重复进叶子键：
+ * <pre>
+ *   putString("items.&lt;uuid&gt;.item", v)
+ *   → items: { &lt;uuid&gt;: { "&lt;uuid&gt;.item": v } }   // 读回来找不到
+ * </pre>
+ * 所以这里只用一个扁平列表：一行一条、整条 Base64，键 {@code items} 连一个点都没有。
+ * <p>
+ * <b>写配置的通用规则（当前 StreackLib 版本）</b>：路径最多一个点（如 {@code profiles.<uuid>}），
+ * 更深的层级请把子结构做成 Map 用 {@link SConfig#putSection(String, java.util.Map)} 一次写入；
+ * 读不受此限（{@code getNested} 是逐段拆的）。注意这与 {@code put(key, value)} 无关——
+ * 那个是 {@code cache.put(key, value)}，连一层都不拆，且已被标记 deprecated，不应使用。
+ * 本文只用到严格类型 API，唯一的写是单个 {@code putListOfString}。
  * <p>
  * 代价是文件不能手改（改坏了这条就会被跳过并记 WARN）——但可售列表本来就是给游戏内编辑界面用的。
  *
