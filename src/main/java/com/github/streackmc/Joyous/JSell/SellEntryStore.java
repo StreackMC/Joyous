@@ -142,6 +142,22 @@ public final class SellEntryStore {
    */
   @Nullable
   public synchronized SellEntry find(@Nullable ItemStack item) {
+    return locate(item, false);
+  }
+
+  /**
+   * 找出命中该物品的条目，<b>包含已从价值列表移除的</b>
+   * <p>
+   * 给「设置单价」这类管理动作使用：管理员对一个已经移除出列表的物品再设一次价，
+   * 期望的是「改这条」，而不是又建一条重复的。是否重新上架仍由移除标记决定。
+   */
+  @Nullable
+  public synchronized SellEntry findIncludingRemoved(@Nullable ItemStack item) {
+    return locate(item, true);
+  }
+
+  @Nullable
+  private SellEntry locate(@Nullable ItemStack item, boolean includeRemoved) {
     if (item == null || item.getType().isAir()) {
       return null;
     }
@@ -154,7 +170,7 @@ public final class SellEntryStore {
     }
     for (SellMatch mode : new SellMatch[] { SellMatch.STRICT, SellMatch.CONTAINS }) {
       for (SellEntry entry : candidates) {
-        if (entry.removed() || entry.match() != mode) {
+        if ((!includeRemoved && entry.removed()) || entry.match() != mode) {
           continue;
         }
         if (entry.matches(item)) {

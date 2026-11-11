@@ -335,8 +335,13 @@ jsell:
     unsellable_lore: "&7你可取出此物品。"
     value_line: "&7售出价值：&6%s &f%s"
     value_stack: "&7整组价值：&6%s &f%s&7（&f%s&7 件）"
-    limit_window: "&7限售：&f%s &7个 / &f%s &7秒"
-    limit_lifetime: "&7限售：&f%s &7个（长期）"
+    # 限售提示：站在玩家视角说话（「我还能卖几个、什么时候能再卖」）
+    # 时间一律到分钟为止、超过一天写「约 N 天」，不写秒 —— 秒数跳动只会让 Lore 看起来一直在变
+    limit_remaining: "&8还可卖出 &f%s &7个 &f%s"
+    limit_reset: "&8还可卖出 &f%s &7个 &f%s&8，限额将于 &f%s &8后重置"
+    limit_lifetime: "&8还可卖出 &f%s &7个 &f%s&8（长期，不重置）"
+    limit_empty_reset: "&8本期已达上限，限额将于 &f%s &8后重置"
+    limit_empty_lifetime: "&8已达上限（长期，不重置）"
     reject_unsellable: "&c此界面不接受不可售的物品。"
     full: "&c放不下了，请分开出售。"
     cancelled: "&7已取消出售，已退还&f%s &7组物品。"
@@ -353,6 +358,14 @@ jsell:
     overflow: "&e界面放不下，多出来的 &f%s &e组物品已先还给你。"
   storage:
     error: "&c[JSell] 存档异常（%s）：&f%s&c。物品仍保留在安全的位置，稍后会重试。"
+  # 时间显示（只到分钟，不写秒）
+  time:
+    days: "约 %s 天"
+    hours_minutes: "%s 小时 %s 分钟"
+    hours: "%s 小时"
+    minutes: "%s 分钟"
+    less_minute: "不足 1 分钟"
+    infinite: "无限"
   # 聊天栏输入
   input:
     prompt: "&e请在聊天栏输入 &f%s&e（输入 &fcancel &e取消）："
@@ -424,6 +437,7 @@ jsell:
     limit_zero: "&7填 0 表示不限量"
     limit_set: "&a最大数量已设为 &f%s&a。"
     window: "&e窗口时长：&f%s"
+    window_value: "&f%s&7 秒 &8(&f%s&8)"
     window_hint: "&7限购按这个时间窗口统计"
     window_zero: "&7填 0 表示无限时长（终身累计）"
     window_infinite: "无限"
@@ -466,3 +480,9 @@ jsell:
     restore_empty: "&e事务 &f%s &e里没有物品，已删除。"
     restored: "&a已把事务 &f%s &a的 &f%s &a件物品退还给 &f%s&a。"
     failed: "&c操作失败：&f%s"
+    # /sellset <单价> [物品ID]
+    value_set: "&a已把 &f%s&a 的单价设为 &f%s %s&a。"
+    value_added: "&a已新增 &f%s&a（单价 &f%s %s&a），可在此继续调整。"
+    value_no_item: "&c请手持物品，或用 &f/sellset <单价> <物品ID>&c 指定物品。"
+    value_bad_item: "&c未知的物品 ID：&f%s"
+    value_removed_hint: "&e这件物品当前处于「已移除」状态，点下面的「恢复到价值列表」才会重新上架。"

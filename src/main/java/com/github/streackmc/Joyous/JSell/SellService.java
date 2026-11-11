@@ -210,20 +210,100 @@ public final class SellService {
    * 宁可少卖一次，也不要在存档不可用时把限购打穿。
    */
   private int remainingQuota(UUID player, SellEntry entry) {
-    if (entry.limitCount() <= 0) {
-      return Integer.MAX_VALUE;
+    return quotaFor(player, entry).remaining();
+  }
+
+  // ──────────────────────────────────────────────
+  // 额度与时间
+  // ──────────────────────────────────────────────
+
+  /**
+   * 某个玩家在某个条目上的额度快照
+   * <p>
+   * 玩家真正关心的是「我还能卖几个、什么时候能再卖」，而不是「每条 N 秒」这种配置语言。
+   *
+   * @param limit         配置的上限（{@code <= 0} 表示不限）
+   * @param remaining     还能卖多少；不限量时为 {@link Integer#MAX_VALUE}
+   * @param unlimited     是否不限量
+   * @param resetInMillis 距离额度恢复满额还有多久（毫秒）。{@code 0} 表示不适用：
+   *                      不限量、终身累计（永不重置），或本期还没卖过（用满了才谈重置）
+   */
+  public record Quota(int limit, int remaining, boolean unlimited, long resetInMillis) {
+
+    /** 本期是否已经卖到上限 */
+    public boolean exhausted() {
+      return !unlimited && remaining <= 0;
     }
-    long since = entry.limitSeconds() > 0
-        ? System.currentTimeMillis() - entry.limitSeconds() * 1000L
-        : 0L;
+  }
+
+  public Quota quotaFor(Player player, SellEntry entry) {
+    return quotaFor(player.getUniqueId(), entry);
+  }
+
+  /**
+   * 读一次额度。会查数据库，界面绘制时请按条目缓存（同一批物品往往只有几条条目）。
+   */
+  public Quota quotaFor(UUID player, SellEntry entry) {
+    if (entry.limitCount() <= 0) {
+      return new Quota(0, Integer.MAX_VALUE, true, 0L);
+    }
+    long windowSeconds = entry.limitSeconds();
+    long now = System.currentTimeMillis();
+    long since = windowSeconds > 0 ? now - windowSeconds * 1000L : 0L;
     try {
-      long used = store.usageSum(player, entry.id(), since);
-      long remaining = entry.limitCount() - used;
-      return (int) Math.max(0L, Math.min(Integer.MAX_VALUE, remaining));
+      SellStore.Usage usage = store.usage(player, entry.id(), since);
+      int remaining =
+          (int) Math.max(0L, Math.min(Integer.MAX_VALUE, entry.limitCount() - usage.total()));
+      long reset = 0L;
+      if (windowSeconds > 0 && usage.total() > 0 && usage.latestSoldAt() > 0) {
+        // 窗口是滚动的：最后一批用量要等到「最后一次卖出 + 窗口长度」才全部过期
+        reset = Math.max(0L, usage.latestSoldAt() + windowSeconds * 1000L - now);
+      }
+      return new Quota(entry.limitCount(), remaining, false, reset);
     } catch (SellStore.SellStoreException e) {
       module.reportStorageError("查询限购额度", e);
-      return 0;
+      return new Quota(entry.limitCount(), 0, false, 0L);
     }
+  }
+
+  /**
+   * 把「还剩多久」写成给人看的样子
+   * <p>
+   * 刻意<b>不写秒</b>：这句话是画在物品 Lore 里的，秒级跳动既没有意义，也会让同一格物品
+   * 每次重绘都显得「变了」。规则：超过 24 小时 → 「约 N 天」；否则精确到分钟
+   * （N 小时 M 分钟 / M 分钟 / 不足 1 分钟）。
+   *
+   * @param millis 剩余毫秒
+   */
+  public static String formatRemaining(long millis) {
+    long value = Math.max(0L, millis);
+    if (value > 86_400_000L) {
+      long days = Math.max(1L, Math.round(value / 86_400_000.0));
+      return i18n.tr("jsell.time.days", days);
+    }
+    long minutes = value / 60_000L;
+    if (minutes < 1L) {
+      return i18n.tr("jsell.time.less_minute");
+    }
+    long hours = minutes / 60L;
+    long rest = minutes % 60L;
+    if (hours > 0L) {
+      return rest == 0L
+          ? i18n.tr("jsell.time.hours", hours)
+          : i18n.tr("jsell.time.hours_minutes", hours, rest);
+    }
+    return i18n.tr("jsell.time.minutes", rest);
+  }
+
+  /**
+   * 秒 → 人话（给管理员看配置值用）
+   *
+   * @param seconds 秒数；{@code <= 0} 表示无限
+   */
+  public static String formatDuration(long seconds) {
+    return seconds <= 0
+        ? i18n.tr("jsell.time.infinite")
+        : formatRemaining(seconds * 1000L);
   }
 
   // ──────────────────────────────────────────────

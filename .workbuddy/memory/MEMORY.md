@@ -100,6 +100,11 @@ StreackLib 0.6.1 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
 - 「钱」这个外部副作用无法事务化：停在 REFUNDED/PAID 的单子留给 `/jsellset pending` 人工核查
 - 限购：`jsell_usage` 流水 + `SUM(amount)`；`limitCount<=0` 不限、`limitSeconds<=0` 终身累计；
   查询失败时保守返回 0（宁可卖不掉，也不打穿限购）
+- 限售提示按**玩家视角**写（`SellService.quotaFor` + `formatRemaining`）：「还可卖出 N 个，
+  限额将于 23 小时 59 分钟后重置」；重置时刻取 **MAX(sold_at)+窗口**（滚动窗口要等最后一批过期）；
+  时间只到分钟、>24h 写「约 N 天」（不写秒，否则 Lore 每帧都像变了）；额度按条目缓存，一次绘制一份
+- `/sellset <单价> [物品ID]`（省略=主手，材质带补全）：没有条目就用该物品新建（主手连 NBT），
+  然后直接开详情；匹配用 `findIncludingRemoved`，避免对已移除条目重复建项
 - GUI：6×9，前 5 行放入区，45 关闭 / 49 结算预览 / 53 确认（**金额防抖刷新，`repaint` 只重画物品区**）
 - 展示物品永远是 `clone()`（追加 lore / 改名都在副本上）→ 「展示与实物互不影响」的落点
 - ⚠️ 取消事件里改光标必须 `runTask` 延后 `setItemOnCursor`，否则被服务端还原

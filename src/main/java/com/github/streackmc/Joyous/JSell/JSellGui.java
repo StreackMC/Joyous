@@ -2,6 +2,7 @@ package com.github.streackmc.Joyous.JSell;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -201,10 +202,12 @@ public final class JSellGui {
   private void paintItems(Player player, Inventory inv, SellSession session) {
     List<ItemStack> items = session.items();
     int depositSlots = JSellMain.CONF.maxSlots();
+    // 额度提示要查库：同一次绘制里同一件条目只查一次（一整包物品通常也就一两条条目）
+    Map<UUID, SellService.Quota> quotas = new HashMap<>();
 
     for (int i = 0; i < DEPOSIT_SLOTS; i++) {
       if (i < items.size() && i < depositSlots) {
-        inv.setItem(i, displayOf(player, items.get(i)));
+        inv.setItem(i, displayOf(player, items.get(i), quotas));
       } else if (i >= depositSlots) {
         inv.setItem(i, filler());
       } else if (inv.getItem(i) != null) {
@@ -269,7 +272,7 @@ public final class JSellGui {
    * 一定是 {@code clone()}：追加 Lore、给不可售物品改名都只发生在这份副本上。
    * 这是「展示物品与实际放入物品互不影响」的落点。
    */
-  private ItemStack displayOf(Player player, ItemStack real) {
+  private ItemStack displayOf(Player player, ItemStack real, Map<UUID, SellService.Quota> quotas) {
     ItemStack display = real.clone();
     SellEntry entry = entries.find(real);
     ItemMeta meta = display.getItemMeta();
@@ -300,15 +303,57 @@ public final class JSellGui {
         lore.add(legacy(i18n.tr("jsell.gui.value_stack",
             real.getAmount(), SellService.display(stackValue), unit)));
       }
-      if (entry.limitCount() > 0) {
-        lore.add(legacy(entry.limitSeconds() > 0
-            ? i18n.tr("jsell.gui.limit_window", entry.limitCount(), entry.limitSeconds(), unit)
-            : i18n.tr("jsell.gui.limit_lifetime", entry.limitCount(), unit)));
+      String limit = limitLine(player, entry, quotas);
+      if (limit != null) {
+        lore.add(legacy(limit));
       }
     }
     meta.lore(lore);
     display.setItemMeta(meta);
     return display;
+  }
+
+  /**
+   * 玩家视角的限购提示
+   * <p>
+   * 配置里的「每 86400 秒最多 64 个」对玩家毫无意义，他真正想知道的是
+   * 「我现在还能卖多少、什么时候能再卖」。所以这里换算成：
+   * <ul>
+   *   <li>还能卖 → 「还可卖出 12 个，限额将于 23 小时 59 分钟后重置」</li>
+   *   <li>已经卖满 → 「本期已达上限，限额将于 …后重置」</li>
+   *   <li>终身累计 → 不出现「重置」字样（永远不会重置）</li>
+   *   <li>不限量 → 连这一行都不出现</li>
+   * </ul>
+   * 时间到分钟为止、超过一天写「约 N 天」，避免秒数跳动让 Lore 看起来一直在变。
+   *
+   * @param quotas 本次绘制的额度缓存（按条目）
+   * @return 要追加的 Lore 行；不需要提示时返回 null
+   */
+  @Nullable
+  private String limitLine(Player player, SellEntry entry, Map<UUID, SellService.Quota> quotas) {
+    if (entry.limitCount() <= 0) {
+      return null;
+    }
+    SellService.Quota quota = quotas.computeIfAbsent(entry.id(),
+        ignored -> service.quotaFor(player.getUniqueId(), entry));
+    String unit = JSellMain.CONF.unitName();
+    boolean lifetime = entry.limitSeconds() <= 0;
+    long reset = quota.resetInMillis();
+
+    if (quota.exhausted()) {
+      if (lifetime || reset <= 0L) {
+        return i18n.tr("jsell.gui.limit_empty_lifetime");
+      }
+      return i18n.tr("jsell.gui.limit_empty_reset", SellService.formatRemaining(reset));
+    }
+    if (lifetime) {
+      return i18n.tr("jsell.gui.limit_lifetime", quota.remaining(), unit);
+    }
+    if (reset > 0L) {
+      return i18n.tr("jsell.gui.limit_reset",
+          quota.remaining(), unit, SellService.formatRemaining(reset));
+    }
+    return i18n.tr("jsell.gui.limit_remaining", quota.remaining(), unit);
   }
 
   // ──────────────────────────────────────────────

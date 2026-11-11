@@ -2,9 +2,14 @@ package com.github.streackmc.Joyous.JSell;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -12,8 +17,11 @@ import org.bukkit.inventory.ItemStack;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.i18n;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -76,6 +84,12 @@ public final class JSellCommand {
             .then(Commands.literal("restore")
                 .then(Commands.argument("tx", StringArgumentType.string())
                     .executes(this::cmdRestore)))
+            // 快捷设价：/sellset <单价> [物品ID]（省略物品 = 主手）
+            .then(Commands.argument("value", DoubleArgumentType.doubleArg(0.0))
+                .executes(this::cmdSetHandValue)
+                .then(Commands.argument("item", StringArgumentType.word())
+                    .suggests(this::suggestItems)
+                    .executes(this::cmdSetItemValue)))
             .build(),
         "编辑可售物品列表",
         JSellMain.ADMIN_ALIASES);
@@ -137,6 +151,111 @@ public final class JSellCommand {
     }
     editor.open(player);
     return 1;
+  }
+
+  /**
+   * {@code /sellset <单价>} —— 给主手物品定价
+   * <p>
+   * 面向「手上拿着一个东西，想直接给它定个收购价」的场景，比先进列表翻条目快得多。
+   */
+  private int cmdSetHandValue(CommandContext<CommandSourceStack> ctx) {
+    return setValue(ctx, DoubleArgumentType.getDouble(ctx, "value"), null);
+  }
+
+  /** {@code /sellset <单价> <物品ID>} —— 给指定物品定价 */
+  private int cmdSetItemValue(CommandContext<CommandSourceStack> ctx) {
+    return setValue(ctx, DoubleArgumentType.getDouble(ctx, "value"),
+        StringArgumentType.getString(ctx, "item"));
+  }
+
+  /**
+   * 给某件物品设单个收购价，随后直接打开它的编辑页
+   * <p>
+   * 列表里还没有这件物品时就用它登记一条——主手物品会连 NBT 一起带进去，
+   * 所以带附魔/自定义名的东西也能被准确匹配。
+   *
+   * @param itemArg 物品 ID（可以是 {@code hand}）；null 等同 {@code hand}
+   */
+  private int setValue(CommandContext<CommandSourceStack> ctx, double value,
+      @Nullable String itemArg) {
+    Player player = playerOf(ctx);
+    if (player == null) {
+      return 0;
+    }
+    String key = itemArg == null ? "hand" : itemArg.trim().toLowerCase(Locale.ROOT);
+
+    ItemStack target;
+    if (key.isEmpty() || key.equals("hand") || key.equals("mainhand") || key.equals("this")) {
+      target = player.getInventory().getItemInMainHand();
+      if (target == null || target.getType().isAir()) {
+        player.sendMessage(i18n.tr("jsell.command.value_no_item"));
+        return 0;
+      }
+    } else {
+      Material material = Material.matchMaterial(key);
+      if (material == null || material.isAir() || !material.isItem()) {
+        player.sendMessage(i18n.tr("jsell.command.value_bad_item", itemArg));
+        return 0;
+      }
+      // 同一材质可能已经登记过带 NBT 的条目：优先改那一条，别再建一条「白板」重复项
+      SellEntry known = entries.findIncludingRemoved(new ItemStack(material));
+      if (known == null) {
+        for (SellEntry candidate : entries.all()) {
+          if (candidate.template().getType() == material) {
+            known = candidate;
+            break;
+          }
+        }
+      }
+      target = known == null ? new ItemStack(material) : known.template();
+    }
+
+    SellEntry entry = entries.findIncludingRemoved(target);
+    boolean created = entry == null;
+    if (created) {
+      entry = new SellEntry(UUID.randomUUID(), target, value, System.currentTimeMillis());
+    } else {
+      entry.unitValue(value);
+    }
+    entries.save(entry);
+    entries.flush();
+
+    String name = JSellGui.prettyName(target);
+    player.sendMessage(i18n.tr(created ? "jsell.command.value_added" : "jsell.command.value_set",
+        name, SellService.display(entry.unitValue()), JSellMain.CONF.unitName()));
+    if (entry.removed()) {
+      player.sendMessage(i18n.tr("jsell.command.value_removed_hint"));
+    }
+    editor.openDetail(player, entry.id());
+    return 1;
+  }
+
+  /**
+   * 物品 ID 补全
+   * <p>
+   * 除了 {@code hand}，还会列出现有材质的键名；最多 64 条，避免一次推上千个候选把客户端压住。
+   */
+  private CompletableFuture<Suggestions> suggestItems(CommandContext<CommandSourceStack> ctx,
+      SuggestionsBuilder builder) {
+    String prefix = builder.getRemainingLowerCase();
+    if ("hand".startsWith(prefix)) {
+      builder.suggest("hand");
+    }
+    int count = 0;
+    for (Material material : Material.values()) {
+      if (material.isAir() || !material.isItem()) {
+        continue;
+      }
+      String id = material.getKey().getKey();
+      if (!id.startsWith(prefix)) {
+        continue;
+      }
+      builder.suggest(id);
+      if (++count >= 64) {
+        break;
+      }
+    }
+    return builder.buildFuture();
   }
 
   private int cmdReload(CommandContext<CommandSourceStack> ctx) {

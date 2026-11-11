@@ -323,24 +323,48 @@ public final class SellStore {
   // ──────────────────────────────────────────────
 
   /**
-   * 某玩家在某个条目上的累计销量
+   * 一次销量查询的结果
+   *
+   * @param total        窗口内的累计销量
+   * @param latestSoldAt 窗口内<b>最近一次</b>销量记录的时间戳（毫秒）；没有记录时为 0
+   */
+  public record Usage(long total, long latestSoldAt) {
+  }
+
+  /**
+   * 查某玩家在某个条目上的累计销量与最近一次销量的时间
+   * <p>
+   * 后者用来算「限额什么时候重置」：窗口是<b>滚动</b>的（只看最近 N 秒的流水），
+   * 所以当前这批用量要等到「最后一次卖出 + 窗口长度」才全部过期，
+   * 那一刻才是额度恢复满额的时间。
    *
    * @param sinceMillis 只统计该时间点之后的流水；{@code <= 0} 表示不限时间（终身累计）
    */
-  public long usageSum(UUID player, UUID entry, long sinceMillis) throws SellStoreException {
+  public Usage usage(UUID player, UUID entry, long sinceMillis) throws SellStoreException {
     if (db == null) {
-      return 0L;
+      return new Usage(0L, 0L);
     }
-    String sql = "SELECT COALESCE(SUM(`amount`),0) AS `total` FROM " + quote(usageTable)
+    String sql = "SELECT COALESCE(SUM(`amount`),0) AS `total`, "
+        + "COALESCE(MAX(`sold_at`),0) AS `latest` FROM " + quote(usageTable)
         + " WHERE `player_id`=" + quoteValue(player.toString())
         + " AND `entry_id`=" + quoteValue(entry.toString())
         + (sinceMillis > 0 ? " AND `sold_at`>=" + sinceMillis : "");
     List<SConfig> rows = query(sql);
     if (rows.isEmpty()) {
-      return 0L;
+      return new Usage(0L, 0L);
     }
-    // SUM 在不同驱动上可能是 DECIMAL / BIGINT / DOUBLE，getLong 都能吃下去
-    return rows.get(0).getLong("total", 0L);
+    // SUM / MAX 在不同驱动上可能是 DECIMAL / BIGINT / DOUBLE，getLong 都能吃下去
+    SConfig row = rows.get(0);
+    return new Usage(row.getLong("total", 0L), row.getLong("latest", 0L));
+  }
+
+  /**
+   * 某玩家在某个条目上的累计销量
+   *
+   * @param sinceMillis 只统计该时间点之后的流水；{@code <= 0} 表示不限时间（终身累计）
+   */
+  public long usageSum(UUID player, UUID entry, long sinceMillis) throws SellStoreException {
+    return usage(player, entry, sinceMillis).total();
   }
 
   public void addUsage(UUID player, UUID entry, int amount, long at) throws SellStoreException {

@@ -276,10 +276,12 @@ public final class JSellEditorGui {
             i18n.tr("jsell.detail.limit_hint"),
             i18n.tr("jsell.detail.limit_zero"))));
 
+    String windowText = entry.limitSeconds() <= 0
+        ? i18n.tr("jsell.detail.window_infinite")
+        : i18n.tr("jsell.detail.window_value", entry.limitSeconds(),
+            SellService.formatDuration(entry.limitSeconds()));
     inv.setItem(DETAIL_WINDOW, JSellGui.button(Material.CLOCK,
-        i18n.tr("jsell.detail.window",
-            entry.limitSeconds() <= 0 ? i18n.tr("jsell.detail.window_infinite")
-                : String.valueOf(entry.limitSeconds())),
+        i18n.tr("jsell.detail.window", windowText),
         List.of(
             i18n.tr("jsell.detail.window_hint"),
             i18n.tr("jsell.detail.window_zero"))));
