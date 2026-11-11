@@ -17,6 +17,7 @@ import org.bukkit.plugin.Plugin;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.interact.chestui.GuiRouter;
+import com.github.streackmc.Joyous.utils.interact.input.ChatInput;
 import com.github.streackmc.Joyous.utils.jlogger;
 
 /**
@@ -96,6 +97,7 @@ public final class PageArbiter implements Listener {
     this.plugin = Objects.requireNonNull(plugin, "plugin");
     Bukkit.getPluginManager().registerEvents(this, plugin);
     Bukkit.getPluginManager().registerEvents(new GuiRouter(this), plugin);
+    Bukkit.getPluginManager().registerEvents(new ChatInput(this), plugin);
     long period = 20L * SWEEP_SECONDS;
     Bukkit.getScheduler().runTaskTimer(plugin, this::sweep, period, period);
     installed = true;

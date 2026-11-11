@@ -25,6 +25,15 @@ system:
     target_loss: "&c找不到指定的目标"
     failed: "&c无法执行命令：\n&r&c&n%s &r&c&o<- [HERE]"
     unexpected: "&c执行命令时发生意外：\n&r&c&n%s &r&c&o<- [HERE]\n&r&c%s"
+# 共享交互层（容器界面 / 文本输入）的通用文案
+# 各模块只提供「字段名」与额外提示行，框架文案统一在这里
+ui:
+  input:
+    prompt: "&e请输入 &f%s&e，或输入 &fcancel &e取消"
+    paste_hint: "&7[点击粘贴旧值]"
+    cancel_hint: "&7输入 &fcancel &7取消"
+    cancelled: "&e已取消输入"
+    expired: "&e输入等待超时，已取消"
 envexport:
   command:
     set: "&f已将 %s 的值更新为 %s"

@@ -10,27 +10,21 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.github.streackmc.Joyous.utils.i18n;
-import com.github.streackmc.StreackLib.utils.MCColor;
+import com.github.streackmc.Joyous.utils.interact.Text;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
  * 渲染画布
  * <p>
- * 包住一个 {@link Inventory}，只允许「往格子里放东西」这类安全操作，
- * 并把三处重复过的文本处理收成一份：
+ * 包住一个 {@link Inventory}，只允许「往格子里放东西」这类安全操作。
+ * 文本处理一律走 {@link Text}（容器界面与聊天输入共用同一套「显式关掉斜体」的规则），
+ * 这里只保留「按钮」这一件容器专属的事：
  * <ul>
- *   <li>{@link #legacy(String)} —— 颜色码 + 显式关掉斜体</li>
- *   <li>{@link #title(Player, String)} —— 颜色码 + PAPI</li>
+ *   <li>{@link #legacy(String)} —— 颜色码 + 显式关掉斜体（转发 {@link Text}）</li>
+ *   <li>{@link #title(Player, String)} —— 颜色码 + PAPI（转发 {@link Text}）</li>
  *   <li>{@link #button(Material, String, List)} —— 带名字与 Lore 的按钮</li>
  * </ul>
- * <p>
- * <b>为什么必须显式关掉斜体</b>：{@code §r} 只把装饰设成 {@code NOT_SET}，而原版渲染物品名/悬浮文本时
- * 会把「未设置」按「启用」处理，于是所有名字都变斜体。这里把未显式设置的装饰一律写成 {@code false}，
- * 显式写了 {@code §l} 之类的仍保留。
  *
  * @author Neonai
  * @since 0.7.0
@@ -95,8 +89,7 @@ public final class Canvas {
    * @param colorized 原始文本，可为 null
    */
   public static Component legacy(@Nullable String colorized) {
-    return ensureReset(
-        LegacyComponentSerializer.legacySection().deserialize(colorized == null ? "" : colorized));
+    return Text.legacy(colorized);
   }
 
   /**
@@ -106,7 +99,7 @@ public final class Canvas {
    * @param raw    原始标题
    */
   public static Component title(@Nullable Player player, @Nullable String raw) {
-    return legacy(MCColor.parse(i18n.getPHparsed(player, raw == null ? "" : raw)));
+    return Text.title(player, raw);
   }
 
   /**
@@ -128,17 +121,5 @@ public final class Canvas {
     }
     item.setItemMeta(meta);
     return item;
-  }
-
-  /** 确保未显式设置的文字装饰为 false，避免被原版渲染成斜体 */
-  private static Component ensureReset(Component component) {
-    var style = component.style();
-    return component.style(s -> {
-      for (TextDecoration dec : TextDecoration.values()) {
-        if (style.decoration(dec) == TextDecoration.State.NOT_SET) {
-          s.decoration(dec, false);
-        }
-      }
-    });
   }
 }
