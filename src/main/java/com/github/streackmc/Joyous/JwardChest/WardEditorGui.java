@@ -125,48 +125,7 @@ public final class WardEditorGui {
   // 容器类型子菜单
   // ──────────────────────────────────────────────
 
-  void openContainerPicker(Player player, UUID profileId, Location block) {
-    WardProfile profile = store.effective(profileId);
-    WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.CONTAINER_PICKER, profileId, block);
-    Inventory inv = Bukkit.createInventory(holder, 27,
-        WardGui.title(player, i18n.tr("jwardchest.picker.title")));
-    holder.attach(inv);
-
-    int slot = 0;
-    for (WardContainerType type : WardContainerType.values()) {
-      if (slot >= inv.getSize()) {
-        break;
-      }
-      boolean current = type == profile.container();
-      List<String> lore = new ArrayList<>();
-      lore.add(i18n.tr("jwardchest.picker.size", type.slots(profile.rows())));
-      lore.add(current ? i18n.tr("jwardchest.picker.current") : i18n.tr("jwardchest.editor.click"));
-      inv.setItem(slot++, button(type.icon(), type.displayName(), lore, current));
-    }
-    player.openInventory(inv);
-  }
-
   /** 箱子行数选择 */
-  void openRowsPicker(Player player, UUID profileId, Location block) {
-    WardProfile profile = store.effective(profileId);
-    WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.CONTAINER_PICKER, profileId, block);
-    Inventory inv = Bukkit.createInventory(holder, 9,
-        WardGui.title(player, i18n.tr("jwardchest.rows.title")));
-    holder.attach(inv);
-
-    for (int rows = 1; rows <= 6; rows++) {
-      ItemStack item = button(Material.RED_STAINED_GLASS_PANE,
-          i18n.tr("jwardchest.rows.entry", rows, rows * 9),
-          List.of(rows == profile.rows()
-              ? i18n.tr("jwardchest.picker.current")
-              : i18n.tr("jwardchest.editor.click")),
-          rows == profile.rows());
-      item.setAmount(rows);
-      inv.setItem(rows - 1, item);
-    }
-    player.openInventory(inv);
-  }
-
   // ──────────────────────────────────────────────
   // 各品质最大抽出数量
   // ──────────────────────────────────────────────
@@ -177,27 +136,12 @@ public final class WardEditorGui {
    * 两行：上排「最小」（地毯）＝保底，下排「最大」（羊毛）＝上限。
    * 上限只是上限——设 3 不等于一定抽 3 条，实际条数由权重分摊与总条数决定。
    */
-  void openMaxDraw(Player player, UUID profileId, Location block) {
-    WardProfile profile = store.effective(profileId);
-    WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.MAX_DRAW, profileId, block);
-    Inventory inv = Bukkit.createInventory(holder, MAX_DRAW_SIZE,
-        WardGui.title(player, i18n.tr("jwardchest.maxdraw.title")));
-    holder.attach(inv);
-
-    for (WardRarity r : WardRarity.list()) {
-      int slot = maxDrawSlot(r.index(), false);
-      inv.setItem(slot, drawButton(profile, r, true));
-      inv.setItem(maxDrawSlot(r.index(), true), drawButton(profile, r, false));
-    }
-    player.openInventory(inv);
-  }
-
   /**
    * 上/下限的编辑按钮
    *
    * @param floorRow true = 上排（最小 / 保底，用地毯区分），false = 下排（最大 / 上限，用羊毛）
    */
-  private ItemStack drawButton(WardProfile profile, WardRarity r, boolean floorRow) {
+  static ItemStack drawButton(WardProfile profile, WardRarity r, boolean floorRow) {
     List<String> lore = new ArrayList<>();
     lore.add(i18n.tr("jwardchest.maxdraw.range", profile.minDraw(r), profile.maxDraw(r)));
     lore.add(i18n.tr(floorRow
@@ -215,12 +159,9 @@ public final class WardEditorGui {
   }
 
   /** 每 9 档占一行，上下两排（最小 / 最大）共 {@code 2 × 行数} 行 */
-  private static int maxDrawRows() {
+  static int maxDrawRows() {
     return Math.max(1, (WardRarity.size() + 8) / 9);
   }
-
-  /** 上/下限界面的容量 */
-  private static final int MAX_DRAW_SIZE = maxDrawRows() * 18;
 
   /**
    * 上/下限界面里某档的槽位
@@ -231,7 +172,7 @@ public final class WardEditorGui {
    * @param index    档位下标（声明顺序）
    * @param ceiling  true = 下排（上限）
    */
-  private static int maxDrawSlot(int index, boolean ceiling) {
+  static int maxDrawSlot(int index, boolean ceiling) {
     int rows = maxDrawRows();
     int row = index / 9;
     int col = index % 9;
@@ -248,21 +189,7 @@ public final class WardEditorGui {
    * 左端两格管「结果组总条数」，右端两格管「单条结果的物品数量」；
    * 每对分别是「分布」与「曲线指数」。分布与曲线都属于<b>容器设置</b>，随容器/预设组落盘。
    */
-  void openDistribution(Player player, UUID profileId, Location block) {
-    WardProfile profile = store.effective(profileId);
-    WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.DISTRIBUTION, profileId, block);
-    Inventory inv = Bukkit.createInventory(holder, 9,
-        WardGui.title(player, i18n.tr("jwardchest.dist.title")));
-    holder.attach(inv);
-
-    inv.setItem(0, distributionButton(profile, true));
-    inv.setItem(1, curveButton(profile, true));
-    inv.setItem(7, distributionButton(profile, false));
-    inv.setItem(8, curveButton(profile, false));
-    player.openInventory(inv);
-  }
-
-  private ItemStack distributionButton(WardProfile profile, boolean forCount) {
+  static ItemStack distributionButton(WardProfile profile, boolean forCount) {
     WardDistribution distribution =
         forCount ? profile.countDistribution() : profile.amountDistribution();
     double curve = forCount ? profile.countCurve() : profile.amountCurve();
@@ -276,7 +203,7 @@ public final class WardEditorGui {
         lore);
   }
 
-  private ItemStack curveButton(WardProfile profile, boolean forCount) {
+  static ItemStack curveButton(WardProfile profile, boolean forCount) {
     WardDistribution distribution =
         forCount ? profile.countDistribution() : profile.amountDistribution();
     double curve = forCount ? profile.countCurve() : profile.amountCurve();
@@ -320,104 +247,12 @@ public final class WardEditorGui {
     return sb.toString();
   }
 
-  private static String formatCurve(double curve) {
+  static String formatCurve(double curve) {
     return String.format(java.util.Locale.ROOT, "%.1f", curve);
   }
 
-  private boolean handleDistributionClick(InventoryClickEvent event, Player player,
-      WardGui.Holder holder) {
-    if (event.getClickedInventory() == null
-        || !event.getClickedInventory().equals(player.getOpenInventory().getTopInventory())) {
-      return true;
-    }
-    boolean forCount;
-    boolean isCurve;
-    switch (event.getRawSlot()) {
-      case 0 -> {
-        forCount = true;
-        isCurve = false;
-      }
-      case 1 -> {
-        forCount = true;
-        isCurve = true;
-      }
-      case 7 -> {
-        forCount = false;
-        isCurve = false;
-      }
-      case 8 -> {
-        forCount = false;
-        isCurve = true;
-      }
-      default -> {
-        return true;
-      }
-    }
-
-    UUID id = holder.profileId();
-    Location block = holder.payload() instanceof Location l ? l : null;
-    WardProfile profile = store.effective(id);
-    String name = i18n.tr(forCount ? "jwardchest.dist.count_name" : "jwardchest.dist.amount_name");
-
-    if (event.isShiftClick()) {
-      if (isCurve) {
-        double current = forCount ? profile.countCurve() : profile.amountCurve();
-        module.chatInput().request(player, WardChatInput.TYPE_CURVE, formatCurve(current), value -> {
-          WardProfile updated = store.effective(id);
-          double fallback = forCount ? updated.countCurve() : updated.amountCurve();
-          double parsed = parseDoubleOrDefault(value, fallback);
-          double clamped = WardProfile.clampCurve(parsed);
-          if (Math.abs(parsed - clamped) > 1e-9) {
-            player.sendMessage(i18n.tr("jwardchest.dist.curve_range",
-                formatCurve(WardProfile.MIN_CURVE), formatCurve(WardProfile.MAX_CURVE)));
-          }
-          applyCurve(updated, forCount, clamped);
-          store.save(updated);
-          player.sendMessage(i18n.tr("jwardchest.dist.curve_updated", name, formatCurve(clamped)));
-        }, () -> reopenLater(player, () -> openDistribution(player, id, block)));
-      } else {
-        WardDistribution current =
-            forCount ? profile.countDistribution() : profile.amountDistribution();
-        module.chatInput().request(player, WardChatInput.TYPE_DIST, current.id(), value -> {
-          WardDistribution parsed = WardDistribution.parse(value);
-          if (parsed == null) {
-            player.sendMessage(i18n.tr("jwardchest.dist.invalid", value, WardDistribution.ids()));
-            return;
-          }
-          WardProfile updated = store.effective(id);
-          if (forCount) {
-            updated.countDistribution(parsed);
-          } else {
-            updated.amountDistribution(parsed);
-          }
-          store.save(updated);
-          player.sendMessage(i18n.tr("jwardchest.dist.updated", name, parsed.id()));
-        }, () -> reopenLater(player, () -> openDistribution(player, id, block)));
-      }
-      return true;
-    }
-
-    if (isCurve) {
-      double step = event.isRightClick() ? -0.5 : 0.5;
-      double current = forCount ? profile.countCurve() : profile.amountCurve();
-      applyCurve(profile, forCount, current + step);
-    } else {
-      WardDistribution current =
-          forCount ? profile.countDistribution() : profile.amountDistribution();
-      WardDistribution next = event.isRightClick() ? current.previous() : current.next();
-      if (forCount) {
-        profile.countDistribution(next);
-      } else {
-        profile.amountDistribution(next);
-      }
-    }
-    store.save(profile);
-    reopenLater(player, () -> openDistribution(player, id, block));
-    return true;
-  }
-
   /** 写入总条数 / 物品数量那一条的曲线指数 */
-  private static void applyCurve(WardProfile profile, boolean forCount, double curve) {
+  static void applyCurve(WardProfile profile, boolean forCount, double curve) {
     if (forCount) {
       profile.countCurve(curve);
     } else {
@@ -670,7 +505,9 @@ public final class WardEditorGui {
   // ──────────────────────────────────────────────
 
   /**
-   * 处理我们界面里的点击
+   * 处理待选物品界面的点击
+   * <p>
+   * 其余子界面都已迁到页面层（{@link WardSubPage} 及其子类），这里只留还没迁的那一个。
    *
    * @return true 表示已被处理（调用方不必再处理）
    */
@@ -678,112 +515,14 @@ public final class WardEditorGui {
     if (!(event.getWhoClicked() instanceof Player player)) {
       return false;
     }
-    switch (holder.kind()) {
-      case CONTAINER_PICKER -> {
-        return handlePickerClick(event, player, holder);
-      }
-      case MAX_DRAW -> {
-        return handleMaxDrawClick(event, player, holder);
-      }
-      case DISTRIBUTION -> {
-        return handleDistributionClick(event, player, holder);
-      }
-      case ITEM_EDITOR -> {
-        return handleItemEditorClick(event, player, holder);
-      }
-      default -> {
-        return false;
-      }
+    if (holder.kind() != WardGui.Kind.ITEM_EDITOR) {
+      return false;
     }
-  }
-
-  private boolean handlePickerClick(InventoryClickEvent event, Player player, WardGui.Holder holder) {
-    if (event.getClickedInventory() == null
-        || !event.getClickedInventory().equals(player.getOpenInventory().getTopInventory())) {
-      return true;
-    }
-    UUID id = holder.profileId();
-    Location block = holder.payload() instanceof Location l ? l : null;
-    int slot = event.getRawSlot();
-
-    // 行数选择界面（9 格）与类型选择界面（27 格）共用这一种 Holder，用格子数区分
-    if (player.getOpenInventory().getTopInventory().getSize() == 9) {
-      if (slot < 1 || slot > 6) {
-        return true;
-      }
-      WardProfile profile = store.effective(id);
-      profile.rows(slot);
-      store.save(profile);
-      player.sendMessage(i18n.tr("jwardchest.rows.updated", profile.rows()));
-      reopenLater(player, () -> openEditor(player, id, block));
-      return true;
-    }
-
-    WardContainerType[] types = WardContainerType.values();
-    if (slot < 0 || slot >= types.length) {
-      return true;
-    }
-    WardContainerType picked = types[slot];
-    WardProfile profile = store.effective(id);
-    profile.container(picked);
-    store.save(profile);
-
-    if (picked.variableRows()) {
-      openRowsPicker(player, id, block);
-    } else {
-      player.sendMessage(i18n.tr("jwardchest.picker.updated", picked.displayName()));
-      reopenLater(player, () -> openEditor(player, id, block));
-    }
-    return true;
-  }
-
-  private boolean handleMaxDrawClick(InventoryClickEvent event, Player player, WardGui.Holder holder) {
-    if (event.getClickedInventory() == null
-        || !event.getClickedInventory().equals(player.getOpenInventory().getTopInventory())) {
-      return true;
-    }
-    int slot = event.getRawSlot();
-    boolean floorRow;
-    int index;
-    int blockSize = maxDrawRows() * 9;
-    if (slot >= 0 && slot < blockSize) {
-      floorRow = true;
-      index = slot;
-    } else if (slot >= blockSize && slot < blockSize * 2) {
-      floorRow = false;
-      index = slot - blockSize;
-    } else {
-      return true;
-    }
-
-    WardRarity rarity = WardRarity.byIndex(index);
-    if (rarity == null) {
-      return true;
-    }
-    UUID id = holder.profileId();
-    Location block = holder.payload() instanceof Location l ? l : null;
-    WardProfile profile = store.effective(id);
-    int current = floorRow ? profile.minDraw(rarity) : profile.maxDraw(rarity);
-
-    if (event.isShiftClick()) {
-      module.chatInput().request(player, WardChatInput.TYPE_WEIGHT, String.valueOf(current), value -> {
-        WardProfile updated = store.effective(id);
-        int fallback = floorRow ? updated.minDraw(rarity) : updated.maxDraw(rarity);
-        applyDraw(updated, rarity, floorRow, parseIntOrDefault(value, fallback));
-        store.save(updated);
-      }, () -> reopenLater(player, () -> openMaxDraw(player, id, block)));
-      return true;
-    }
-
-    int delta = event.isRightClick() ? -1 : 1;
-    applyDraw(profile, rarity, floorRow, current + delta);
-    store.save(profile);
-    reopenLater(player, () -> openMaxDraw(player, id, block));
-    return true;
+    return handleItemEditorClick(event, player, holder);
   }
 
   /** 写入上排（保底）或下排（上限）的值；两者的联动由 {@link WardProfile} 内部保证 */
-  private static void applyDraw(WardProfile profile, WardRarity rarity, boolean floorRow, int value) {
+  static void applyDraw(WardProfile profile, WardRarity rarity, boolean floorRow, int value) {
     if (floorRow) {
       profile.minDraw(rarity, value);
     } else {

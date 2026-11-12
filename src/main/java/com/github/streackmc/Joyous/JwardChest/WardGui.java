@@ -57,16 +57,10 @@ public final class WardGui {
   // 界面识别
   // ──────────────────────────────────────────────
 
-  /** 我们的界面类型（运行时容器已迁到 {@code WardRuntimePage}，不在其中） */
+  /** 我们的界面类型（其余子界面已迁到页面层，只剩待选物品这一个还在用 Holder） */
   public enum Kind {
-    /** 容器类型选择子菜单 */
-    CONTAINER_PICKER,
     /** 待选物品编辑子菜单 */
-    ITEM_EDITOR,
-    /** 各品质最大抽出数量编辑 */
-    MAX_DRAW,
-    /** 数量分布编辑 */
-    DISTRIBUTION
+    ITEM_EDITOR
   }
 
   /** 自定义 {@link InventoryHolder}，用于把界面与它的上下文绑在一起 */

@@ -133,11 +133,14 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
   ⚠️ 关闭事件只有 `state()==VISIBLE` 才算玩家主动退出——切页/挂起/终止都会触发 close，必须按状态过滤。
 - 已迁移：JMenu（`JMenuPage`，key=`jmenu`、purpose=菜单路径、keepable=true、子菜单用 REPLACE，
   `ACTIVE_MENUS` 与四个事件处理器已删）；JWardChest **运行时容器**（`WardRuntimePage`，purpose=会话 key、
-  keepable=非预览；`render` 从会话现算，`tick` 用 `sessionOf(inventory)` 反查；广播仍由 controller 直写各 viewer 的界面）。
-  **待迁移**：Ward 编辑界面 5 个子界面（仍用 `WardGui.Holder` + `WardChatInput`）、JSell 全部。
+  keepable=非预览；`render` 从会话现算，`tick` 用 `sessionOf(inventory)` 反查；广播仍由 controller 直写各 viewer 的界面）；
+  JWardChest **编辑主界面 + 四个纯按钮子界面**（`WardEditorPage`、`WardSubPage` 派生：
+  `WardContainerPickerPage`/`WardRowsPage`/`WardMaxDrawPage`/`WardDistributionPage`）。
+  **待迁移**：Ward 待选物品界面（`WardGui.Holder` 唯一剩余使用者）+ `WardChatInput`、JSell 全部。
 - 文本输入层（`input`）：`ITextInteract`（初值 + onInput + onCancel）、`IChatInteract`（多一个 `ChatPrompt`）、
-  `ChatPrompt`（label/oldValue/extraHints）、`AbstractChatPage`（发提示 + 超时收掉）、`ChatInput`（截获聊天 + 回主线程）。
-  文案键统一在 `ui.input.*`，模块只提供字段名与额外提示行。
+  `ChatPrompt`（label/oldValue/extraHints）、`AbstractChatPage`（只剩 `keepable=false`）、`ChatInput`（transport）。
+  **提示的唯一出口是 `ChatInput`**：`IPageObserver.onPageShown` 触发发提示 + 起超时，`onPageHidden` 撤计时器；
+  消费端只给「问什么 / 旧值 / 额外提示」，不调 `sendMessage`。文案键统一在 `ui.input.*`。
   **输入页用 INSTANT 压在被挂起的界面之上，结束后自动恢复**——旧实现的 `onFinish`（把界面开回来）
   与 `isWaiting`（防误判退出）都不再需要。铁砧 transport 仍未实现。
 - ⚠️ `Click.slot` 是**相对所点击容器**的槽位（`event.getSlot()`），不是 rawSlot：背包侧 rawSlot 带上半区偏移，

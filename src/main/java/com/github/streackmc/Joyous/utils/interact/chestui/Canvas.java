@@ -110,6 +110,19 @@ public final class Canvas {
    * @param lore     Lore 行（支持颜色码），可为 null
    */
   public static ItemStack button(Material material, String name, @Nullable List<String> lore) {
+    return button(material, name, lore, false);
+  }
+
+  /**
+   * 构造一个按钮物品，可要求附魔光效
+   * <p>
+   * 光效用来标记「当前选中项」，比在 Lore 里写一行「当前」更直观。
+   *
+   * @param glow true 时加附魔光效（不影响功能，仅是视觉效果）
+   */
+  @SuppressWarnings("deprecation")
+  public static ItemStack button(Material material, String name, @Nullable List<String> lore,
+      boolean glow) {
     ItemStack item = new ItemStack(material);
     ItemMeta meta = item.getItemMeta();
     if (meta == null) {
@@ -118,6 +131,9 @@ public final class Canvas {
     meta.displayName(legacy(name));
     if (lore != null && !lore.isEmpty()) {
       meta.lore(lore.stream().map(Canvas::legacy).toList());
+    }
+    if (glow) {
+      meta.setEnchantmentGlintOverride(true);
     }
     item.setItemMeta(meta);
     return item;

@@ -1,7 +1,5 @@
 package com.github.streackmc.Joyous.JwardChest;
 
-import java.util.EnumSet;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -124,35 +122,26 @@ public final class WardListener implements Listener {
       return;
     }
 
-    switch (holder.kind()) {
-      case CONTAINER_PICKER, MAX_DRAW, DISTRIBUTION -> {
-        // 纯按钮界面：全部取消原版行为
+    if (holder.kind() == WardGui.Kind.ITEM_EDITOR) {
+      // 待选物品界面：只拦截上半部分（我们的界面），
+      // 下半部分必须放行——编辑者要从自己背包里把物品拿起来才能放进物品格
+      Inventory top = player.getOpenInventory().getTopInventory();
+      boolean inTop = event.getClickedInventory() != null && event.getClickedInventory().equals(top);
+      if (inTop) {
         event.setCancelled(true);
         safeHandle(event, holder);
+        return;
       }
-      case ITEM_EDITOR -> {
-        // 待选物品界面：只拦截上半部分（我们的界面），
-        // 下半部分必须放行——编辑者要从自己背包里把物品拿起来才能放进物品格
-        Inventory top = player.getOpenInventory().getTopInventory();
-        boolean inTop = event.getClickedInventory() != null && event.getClickedInventory().equals(top);
-        if (inTop) {
-          event.setCancelled(true);
-          safeHandle(event, holder);
-          return;
-        }
-        // 背包侧的 Shift+左键 = 把这个物品登记成一条待选条目（不消耗原物品）
-        if (event.getClick() == org.bukkit.event.inventory.ClickType.SHIFT_LEFT) {
-          event.setCancelled(true);
-          editor.appendEntry(player, holder, event.getCurrentItem());
-          return;
-        }
-        // 其余「快捷移动 / 双击收拢」仍可能碰上半区，一律挡掉
-        if (event.getClick().isShiftClick()
-            || event.getClick() == org.bukkit.event.inventory.ClickType.DOUBLE_CLICK) {
-          event.setCancelled(true);
-        }
+      // 背包侧的 Shift+左键 = 把这个物品登记成一条待选条目（不消耗原物品）
+      if (event.getClick() == org.bukkit.event.inventory.ClickType.SHIFT_LEFT) {
+        event.setCancelled(true);
+        editor.appendEntry(player, holder, event.getCurrentItem());
+        return;
       }
-      default -> {
+      // 其余「快捷移动 / 双击收拢」仍可能碰上半区，一律挡掉
+      if (event.getClick().isShiftClick()
+          || event.getClick() == org.bukkit.event.inventory.ClickType.DOUBLE_CLICK) {
+        event.setCancelled(true);
       }
     }
   }
@@ -199,38 +188,25 @@ public final class WardListener implements Listener {
     if (holder == null) {
       return;
     }
-    switch (holder.kind()) {
-      case CONTAINER_PICKER, ITEM_EDITOR, MAX_DRAW, DISTRIBUTION -> {
-        // 子界面关闭时统一落盘：一次编辑只写一次文件
-        store.flush();
-        // 正在等待聊天栏输入时（是我们自己关掉界面让他打字的），什么提示都别发
-        if (chatInput.isWaiting(player)) {
-          break;
-        }
-        backToEditor(player, holder.profileId(),
-            holder.payload() instanceof Location l ? l : null, holder.kind());
+    if (holder.kind() == WardGui.Kind.ITEM_EDITOR) {
+      // 子界面关闭时统一落盘：一次编辑只写一次文件
+      store.flush();
+      // 正在等待聊天栏输入时（是我们自己关掉界面让他打字的），什么提示都别发
+      if (chatInput.isWaiting(player)) {
+        return;
       }
-      default -> {
-      }
+      backToEditor(player, holder.profileId(),
+          holder.payload() instanceof Location l ? l : null);
     }
   }
 
-  /** 需要「关掉后自动回到主界面」的子界面 */
-  private static final Set<WardGui.Kind> SUBMENUS = EnumSet.of(
-      WardGui.Kind.CONTAINER_PICKER, WardGui.Kind.ITEM_EDITOR,
-      WardGui.Kind.MAX_DRAW, WardGui.Kind.DISTRIBUTION);
-
   /**
-   * 子界面被 Esc / E 关掉后回到主编辑界面
+   * 待选物品界面被 Esc / E 关掉后回到主编辑界面
    * <p>
-   * 延迟一刻再判断「此刻玩家是否还开着我们自己的界面」——因为子界面之间的跳转、以及
-   * 「选完就直接开主界面」这类动作本身也会触发关闭事件，那时不该再叠一次开界面。
+   * 延迟一刻再判断「此刻玩家是否还开着我们自己的界面」——因为「保存/取消后主动回主界面」
+   * 这类动作本身也会触发关闭事件，那时不该再叠一次开界面。
    */
-  private void backToEditor(Player player, UUID profileId, @Nullable Location block,
-      WardGui.Kind from) {
-    if (!SUBMENUS.contains(from)) {
-      return;
-    }
+  private void backToEditor(Player player, UUID profileId, @Nullable Location block) {
     Bukkit.getScheduler().runTask(Joyous.plugin, () -> {
       if (!player.isOnline()) {
         return;
@@ -239,9 +215,7 @@ public final class WardListener implements Listener {
         // 已经在我们自己的界面里了（多半是动作本身跳过去的），不必再回主界面
         return;
       }
-      if (from == WardGui.Kind.ITEM_EDITOR) {
-        player.sendMessage(i18n.tr("jwardchest.editor.items_unsaved"));
-      }
+      player.sendMessage(i18n.tr("jwardchest.editor.items_unsaved"));
       editor.openEditor(player, profileId, block);
     });
   }

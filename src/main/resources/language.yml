@@ -252,6 +252,8 @@ jwardchest:
       title: "容器标题"
       min: "最小数量"
       max: "最大数量"
+      min_draw: "%s 的最少抽出数量"
+      max_draw: "%s 的最多抽出数量"
       weight: "权重"
       prefilter: "粗筛时长（秒，0 表示关闭粗筛）"
       dist: "数量分布（uniform / low / high / normal）"

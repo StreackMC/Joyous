@@ -151,10 +151,7 @@ final class WardEditorPage extends AbstractGuiPage {
     WardProfile profile = store.effective(profileId);
 
     switch (click.slot()) {
-      case 10 -> {
-        ctx.close();
-        editor.openContainerPicker(player, profileId, block);
-      }
+      case 10 -> open(player, new WardContainerPickerPage(editor, store, profileId, block));
       case 11 -> {
         String old = profile.inPreset() ? profile.presetCode() : WardProfile.UNSET_CODE;
         openChat(ctx, "code",
@@ -170,10 +167,7 @@ final class WardEditorPage extends AbstractGuiPage {
         ctx.close();
         editor.openItemEditor(player, profileId, block);
       }
-      case 13 -> {
-        ctx.close();
-        editor.openMaxDraw(player, profileId, block);
-      }
+      case 13 -> open(player, new WardMaxDrawPage(editor, store, profileId, block));
       case 14 -> openChat(ctx, "title",
           ChatPrompt.of(i18n.tr("jwardchest.input.field.title"), profile.title()),
           value -> {
@@ -195,10 +189,7 @@ final class WardEditorPage extends AbstractGuiPage {
             store.flush();
           });
       case 16 -> editor.openPreview(player, profileId, block, click.shift());
-      case 17 -> {
-        ctx.close();
-        editor.openDistribution(player, profileId, block);
-      }
+      case 17 -> open(player, new WardDistributionPage(editor, store, profileId, block));
       default -> {
         return Verdict.IGNORED;
       }
@@ -213,6 +204,11 @@ final class WardEditorPage extends AbstractGuiPage {
     if (why == DetachReasonEnum.CLOSED) {
       notifyLeft(ctx.player());
     }
+  }
+
+  /** 换到子界面：主界面与子界面是「换一页」，被换掉的这一页直接终止 */
+  private static void open(Player player, WardSubPage page) {
+    PageArbiter.get().open(player, page, PagePriorityEnum.REPLACE);
   }
 
   /** 发起一次文本输入：以 INSTANT 压在编辑界面之上，结束后自动回到这里 */
