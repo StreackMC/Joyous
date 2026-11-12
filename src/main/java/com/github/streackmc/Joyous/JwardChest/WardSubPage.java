@@ -75,7 +75,7 @@ abstract class WardSubPage extends AbstractGuiPage {
 
   /** 换到另一个子界面 */
   protected void open(Player player, WardSubPage page) {
-    PageArbiter.get().open(player, page, PagePriorityEnum.REPLACE);
+    PageArbiter.get().open(player, page, PagePriorityEnum.INSTANT);
   }
 
   /**
