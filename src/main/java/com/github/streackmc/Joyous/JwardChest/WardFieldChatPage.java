@@ -46,6 +46,12 @@ final class WardFieldChatPage extends AbstractChatPage {
     return prompt;
   }
 
+  /** 沿用模块配置的超时（{@code jwardchest.session.chat-input-timeout}） */
+  @Override
+  public int timeoutSeconds() {
+    return JwardChestMain.CONF.chatInputTimeoutSeconds();
+  }
+
   @Override
   public void onInput(IPageContext ctx, String text) {
     accept.accept(text);

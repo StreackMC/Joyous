@@ -96,15 +96,7 @@ public final class WardSessionManager {
     return sessions.get(previewKey(world, x, y, z, viewer));
   }
 
-  /** 按玩家当前打开的界面定位会话 */
-  public WardSession of(org.bukkit.entity.Player player) {
-    WardGui.Holder holder = WardGui.holderOf(player.getOpenInventory().getTopInventory());
-    if (holder != null && holder.payload() instanceof WardSession session) {
-      return session;
-    }
-    return null;
-  }
-
+  /** 按会话 key 取 */
   public WardSession get(String key) {
     return sessions.get(key);
   }

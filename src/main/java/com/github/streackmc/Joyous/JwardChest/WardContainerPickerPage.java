@@ -94,7 +94,7 @@ final class WardContainerPickerPage extends WardSubPage {
       return Verdict.HANDLED;
     }
     tell(player, "jwardchest.picker.updated", picked.displayName());
-    backToEditor(player);
+    backToEditor(ctx);
     return Verdict.HANDLED;
   }
 }

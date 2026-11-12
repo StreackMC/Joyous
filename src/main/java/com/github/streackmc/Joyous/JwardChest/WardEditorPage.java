@@ -163,10 +163,7 @@ final class WardEditorPage extends AbstractGuiPage {
               store.flush();
             });
       }
-      case 12 -> {
-        ctx.close();
-        editor.openItemEditor(player, profileId, block);
-      }
+      case 12 -> open(player, new WardItemEditorPage(editor, store, profileId, block));
       case 13 -> open(player, new WardMaxDrawPage(editor, store, profileId, block));
       case 14 -> openChat(ctx, "title",
           ChatPrompt.of(i18n.tr("jwardchest.input.field.title"), profile.title()),
@@ -206,9 +203,15 @@ final class WardEditorPage extends AbstractGuiPage {
     }
   }
 
-  /** 换到子界面：主界面与子界面是「换一页」，被换掉的这一页直接终止 */
+  /**
+   * 进子界面
+   * <p>
+   * 用 {@link PagePriorityEnum#INSTANT}：主界面被<b>挂起</b>而不是终止，于是子界面按 ESC / E
+   * 关闭时仲裁器会自动把主界面恢复回来——这就是「返回上一级」。
+   * 反过来用 {@code REPLACE} 会把主界面终结掉，二级页面一关就什么都不剩了。
+   */
   private static void open(Player player, WardSubPage page) {
-    PageArbiter.get().open(player, page, PagePriorityEnum.REPLACE);
+    PageArbiter.get().open(player, page, PagePriorityEnum.INSTANT);
   }
 
   /** 发起一次文本输入：以 INSTANT 压在编辑界面之上，结束后自动回到这里 */
@@ -226,7 +229,9 @@ final class WardEditorPage extends AbstractGuiPage {
   /**
    * 真退出编辑时给一句反馈
    * <p>
-   * 跳子界面、去输入、开预览都会让本页终止，所以延后一刻判断「此时玩家是否真的什么都不看了」。
+   * 子界面用 {@code INSTANT} 进入（本页被挂起而不是终止），所以真正退干净的路径只有两种：
+   * 玩家在本页按 ESC，或者子界面被 {@code REPLACE} 掉且没有可恢复的下层。
+   * 两种都会让本页收到 {@code CLOSED}，此时延迟一刻确认队列里确实没有我们自己的页面。
    */
   private static void notifyLeft(@Nullable Player player) {
     if (player == null) {
@@ -237,9 +242,6 @@ final class WardEditorPage extends AbstractGuiPage {
         return;
       }
       if (PageArbiter.get().visible(player) != null) {
-        return;
-      }
-      if (WardGui.holderOf(player.getOpenInventory().getTopInventory()) != null) {
         return;
       }
       player.sendMessage(i18n.tr("jwardchest.editor.closed"));

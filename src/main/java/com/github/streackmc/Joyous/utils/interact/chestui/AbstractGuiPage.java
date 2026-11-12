@@ -8,6 +8,7 @@ import org.bukkit.inventory.Inventory;
 
 import com.github.streackmc.Joyous.utils.interact.DetachReasonEnum;
 import com.github.streackmc.Joyous.utils.interact.IPageContext;
+import com.github.streackmc.Joyous.utils.interact.PageStateEnum;
 
 /**
  * 容器界面的通用基类
@@ -57,8 +58,14 @@ public abstract class AbstractGuiPage implements IGuiInteract {
    * 原地重绘（内容变化时用）
    * <p>
    * 不会重开界面，也不会触发任何生命周期钩子。
+   * <p>
+   * 只在页面<b>正在显示</b>时真的去画：被挂起时界面已关闭，这时写进去没有意义，
+   * 而恢复时 {@link #onResume} 会重开并重画一遍。
    */
   protected final void repaint(IPageContext ctx) {
+    if (ctx.state() != PageStateEnum.VISIBLE) {
+      return;
+    }
     Inventory view = inventory;
     if (view != null) {
       render(ctx, new Canvas(view));

@@ -2,9 +2,6 @@ package com.github.streackmc.Joyous.JwardChest;
 
 import java.util.UUID;
 
-import javax.annotation.Nullable;
-
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -13,55 +10,41 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.Inventory;
 
-import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
-import com.github.streackmc.Joyous.utils.jlogger;
 
-import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 /**
  * JwardChest 事件监听
  * <p>
- * 运行时容器的交互只有两条路（其余一律取消）：
- * <ul>
- *   <li><b>点击有东西的格子 = 领取</b>（点击即领取，不再有「拿起再放回」这种中间态）；</li>
- *   <li><b>把东西放进空格子</b>：手持物品点空格、Shift+左键背包物品、或直接拖到空格上。</li>
- * </ul>
- * 其余点击（拿起、快速移动、数字键交换、丢出、双击收拢）全部拦掉——容器的内容由插件独占管理，
- * 原版的搬运语义在这里只会造成「物品被吞」或「同一件被两个人拿走」。
+ * 只负责「方块侧」的三件事：右键打开（或潜行右键进编辑）、阻止直接破坏、玩家退出时收尾。
+ * <p>
+ * <b>界面内的点击 / 拖拽 / 关闭一律不在这里处理</b>——它们已经由 {@code utils.interact} 的
+ * {@code GuiRouter} 统一路由到对应页面，取消策略由页面声明。这个类因此不再认识任何
+ * {@code InventoryHolder}，也不再订阅聊天事件。
  *
  * @author kdxiaoyi
  * @since 0.7.0
  */
 public final class WardListener implements Listener {
 
-  private final JwardChestMain module;
   private final WardProfileStore store;
   private final WardSessionManager sessions;
   private final WardSearchController search;
   private final WardEditorGui editor;
-  private final WardChatInput chatInput;
 
-  public WardListener(JwardChestMain module, WardProfileStore store, WardSessionManager sessions,
-      WardSearchController search, WardEditorGui editor, WardChatInput chatInput) {
-    this.module = module;
+  public WardListener(WardProfileStore store, WardSessionManager sessions,
+      WardSearchController search, WardEditorGui editor) {
     this.store = store;
     this.sessions = sessions;
     this.search = search;
     this.editor = editor;
-    this.chatInput = chatInput;
   }
 
   // ──────────────────────────────────────────────
@@ -109,118 +92,6 @@ public final class WardListener implements Listener {
   }
 
   // ──────────────────────────────────────────────
-  // 点击
-  // ──────────────────────────────────────────────
-
-  @EventHandler(priority = EventPriority.HIGH)
-  public void onClick(InventoryClickEvent event) {
-    if (!(event.getWhoClicked() instanceof Player player)) {
-      return;
-    }
-    WardGui.Holder holder = WardGui.holderOf(player.getOpenInventory().getTopInventory());
-    if (holder == null) {
-      return;
-    }
-
-    if (holder.kind() == WardGui.Kind.ITEM_EDITOR) {
-      // 待选物品界面：只拦截上半部分（我们的界面），
-      // 下半部分必须放行——编辑者要从自己背包里把物品拿起来才能放进物品格
-      Inventory top = player.getOpenInventory().getTopInventory();
-      boolean inTop = event.getClickedInventory() != null && event.getClickedInventory().equals(top);
-      if (inTop) {
-        event.setCancelled(true);
-        safeHandle(event, holder);
-        return;
-      }
-      // 背包侧的 Shift+左键 = 把这个物品登记成一条待选条目（不消耗原物品）
-      if (event.getClick() == org.bukkit.event.inventory.ClickType.SHIFT_LEFT) {
-        event.setCancelled(true);
-        editor.appendEntry(player, holder, event.getCurrentItem());
-        return;
-      }
-      // 其余「快捷移动 / 双击收拢」仍可能碰上半区，一律挡掉
-      if (event.getClick().isShiftClick()
-          || event.getClick() == org.bukkit.event.inventory.ClickType.DOUBLE_CLICK) {
-        event.setCancelled(true);
-      }
-    }
-  }
-
-  private void safeHandle(InventoryClickEvent event, WardGui.Holder holder) {
-    try {
-      editor.handleClick(event, holder);
-    } catch (Exception e) {
-      jlogger.warn("JwardChest 编辑界面处理点击时出错：%s", e.getLocalizedMessage(), e);
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // 拖拽
-  // ──────────────────────────────────────────────
-
-  /**
-   * 拖拽一律取消
-   * <p>
-   * 拖拽会一次性碰多个槽位，与「一次一格事务」的原子模型冲突（部分成功最难处理），
-   * 所以这里统一拒绝；放入请用「点击空格」或「Shift+左键」。
-   */
-  @EventHandler(priority = EventPriority.HIGH)
-  public void onDrag(InventoryDragEvent event) {
-    if (!(event.getWhoClicked() instanceof Player player)) {
-      return;
-    }
-    WardGui.Holder holder = WardGui.holderOf(player.getOpenInventory().getTopInventory());
-    if (holder != null) {
-      event.setCancelled(true);
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // 关闭 / 退出
-  // ──────────────────────────────────────────────
-
-  @EventHandler(priority = EventPriority.MONITOR)
-  public void onClose(InventoryCloseEvent event) {
-    if (!(event.getPlayer() instanceof Player player)) {
-      return;
-    }
-    WardGui.Holder holder = WardGui.holderOf(event.getInventory());
-    if (holder == null) {
-      return;
-    }
-    if (holder.kind() == WardGui.Kind.ITEM_EDITOR) {
-      // 子界面关闭时统一落盘：一次编辑只写一次文件
-      store.flush();
-      // 正在等待聊天栏输入时（是我们自己关掉界面让他打字的），什么提示都别发
-      if (chatInput.isWaiting(player)) {
-        return;
-      }
-      backToEditor(player, holder.profileId(),
-          holder.payload() instanceof Location l ? l : null);
-    }
-  }
-
-  /**
-   * 待选物品界面被 Esc / E 关掉后回到主编辑界面
-   * <p>
-   * 延迟一刻再判断「此刻玩家是否还开着我们自己的界面」——因为「保存/取消后主动回主界面」
-   * 这类动作本身也会触发关闭事件，那时不该再叠一次开界面。
-   */
-  private void backToEditor(Player player, UUID profileId, @Nullable Location block) {
-    Bukkit.getScheduler().runTask(Joyous.plugin, () -> {
-      if (!player.isOnline()) {
-        return;
-      }
-      if (WardGui.holderOf(player.getOpenInventory().getTopInventory()) != null) {
-        // 已经在我们自己的界面里了（多半是动作本身跳过去的），不必再回主界面
-        return;
-      }
-      player.sendMessage(i18n.tr("jwardchest.editor.items_unsaved"));
-      editor.openEditor(player, profileId, block);
-    });
-  }
-
-  // ──────────────────────────────────────────────
   // 破坏保护
   // ──────────────────────────────────────────────
 
@@ -246,40 +117,29 @@ public final class WardListener implements Listener {
 
     String command = "/" + JwardChestMain.COMMAND + " break "
         + block.getX() + " " + block.getY() + " " + block.getZ();
-    Component tip = WardGui.legacy(i18n.tr("jwardchest.protect.tip"))
+    Component tip = com.github.streackmc.Joyous.utils.interact.Text
+        .legacy(i18n.tr("jwardchest.protect.tip"))
         .clickEvent(ClickEvent.runCommand(command))
-        .hoverEvent(HoverEvent.showText(WardGui.legacy(i18n.tr("jwardchest.protect.tip_hover"))));
+        .hoverEvent(HoverEvent.showText(com.github.streackmc.Joyous.utils.interact.Text
+            .legacy(i18n.tr("jwardchest.protect.tip_hover"))));
     player.sendMessage(tip);
   }
+
+  // ──────────────────────────────────────────────
+  // 退出
+  // ──────────────────────────────────────────────
 
   @EventHandler
   public void onQuit(PlayerQuitEvent event) {
     Player player = event.getPlayer();
     search.stop(player);
-    chatInput.clear(player);
-    editor.clearWorking(player);
+    WardItemEditorPage.clearWorking(player);
     // 从他的视角把所有容器登记摘掉，避免"正在被查看"判定把过期会话一直续命
     for (WardSession session : sessions.all()) {
       session.unbindViewer(player.getUniqueId());
     }
     // 编辑到一半直接退出/掉线，别把改动丢掉
     store.flush();
-  }
-
-  // ──────────────────────────────────────────────
-  // 聊天栏输入
-  // ──────────────────────────────────────────────
-
-  @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-  public void onChat(AsyncChatEvent event) {
-    Player player = event.getPlayer();
-    if (!chatInput.hasPending(player)) {
-      return;
-    }
-    String message = PlainTextComponentSerializer.plainText().serialize(event.message());
-    // 先截获，避免玩家的输入被当作普通聊天发出去
-    event.setCancelled(true);
-    chatInput.submit(player, message);
   }
 
   /** 权限节点 */

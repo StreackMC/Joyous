@@ -1,29 +1,21 @@
 package com.github.streackmc.Joyous.JwardChest;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.interact.PageArbiter;
 import com.github.streackmc.Joyous.utils.interact.PagePriorityEnum;
 
-import net.kyori.adventure.text.Component;
 
 /**
  * 编辑界面
@@ -38,18 +30,10 @@ import net.kyori.adventure.text.Component;
  */
 public final class WardEditorGui {
 
-  /** 待选物品子菜单每页可编辑的条目数（5 行 × 每行 2 块） */
-  private static final int PAGE_SIZE = 10;
-  /** 待选物品子菜单行数 */
-  private static final int ITEM_EDITOR_ROWS = 6;
-
   private final JwardChestMain module;
   private final WardProfileStore store;
   private final WardSessionManager sessions;
   private final WardSearchController search;
-
-  /** 待选物品子菜单的工作副本：玩家 → 状态 */
-  private final Map<UUID, ItemEditorState> itemWork = new HashMap<>();
 
   public WardEditorGui(JwardChestMain module, WardProfileStore store, WardSessionManager sessions,
       WardSearchController search) {
@@ -60,19 +44,6 @@ public final class WardEditorGui {
   }
 
   /** 待选物品子菜单的工作状态（显式保存/取消） */
-  private static final class ItemEditorState {
-    final UUID profileId;
-    final List<WardItemEntry> entries = new ArrayList<>();
-    int page;
-
-    ItemEditorState(UUID profileId, WardProfile profile) {
-      this.profileId = profileId;
-      for (WardItemEntry e : profile.entries()) {
-        entries.add(e);
-      }
-    }
-  }
-
   // ──────────────────────────────────────────────
   // 主编辑界面
   // ──────────────────────────────────────────────
@@ -88,6 +59,15 @@ public final class WardEditorGui {
     // 界面本体在 WardEditorPage 里；这里只负责把页面交给仲裁器
     PageArbiter.get().open(player, new WardEditorPage(this, store, profileId, block),
         PagePriorityEnum.REPLACE);
+  }
+
+  /**
+   * 让某个容器已生成的内容作废
+   * <p>
+   * 改了待选物品就必须调用：否则下次打开还是旧结果（会话默认空闲一小时才回收）。
+   */
+  void invalidate(UUID profileId) {
+    module.invalidate(profileId);
   }
 
   /** 主界面「最大抽出数量」那段 Lore（页面与命令共用） */
@@ -261,226 +241,6 @@ public final class WardEditorGui {
   }
 
   // ──────────────────────────────────────────────
-  // 待选物品子菜单
-  // ──────────────────────────────────────────────
-
-  void openItemEditor(Player player, UUID profileId, Location block) {
-    ItemEditorState state = itemWork.get(player.getUniqueId());
-    if (state == null || !state.profileId.equals(profileId)) {
-      state = new ItemEditorState(profileId, store.effective(profileId));
-      state.page = 0;
-      itemWork.put(player.getUniqueId(), state);
-    }
-    renderItemEditor(player, state, block);
-  }
-
-  private void renderItemEditor(Player player, ItemEditorState state, Location block) {
-    WardGui.Holder holder = new WardGui.Holder(WardGui.Kind.ITEM_EDITOR, state.profileId, state);
-    Inventory inv = Bukkit.createInventory(holder, ITEM_EDITOR_ROWS * 9,
-        WardGui.title(player, i18n.tr("jwardchest.items.title")));
-    holder.attach(inv);
-    paintItemEditor(inv, state);
-    player.openInventory(inv);
-  }
-
-  /**
-   * 原地重绘
-   * <p>
-   * <b>不重开界面</b>：直接往玩家当前开着的那个 Inventory 里刷内容。
-   * 这样有两个好处——不会闪屏，也不会因为"带着光标物品重开容器"而丢失玩家手上正拿着的那摞东西
-   * （重开窗口时客户端的光标物品是有丢失风险的，而这里从头到尾没碰过光标）。
-   * 界面不是我们的时候（例如玩家已经关掉）才退回重开。
-   */
-  private void repaint(Player player, ItemEditorState state) {
-    Inventory open = player.getOpenInventory().getTopInventory();
-    WardGui.Holder holder = WardGui.holderOf(open);
-    if (holder != null && holder.kind() == WardGui.Kind.ITEM_EDITOR
-        && holder.payload() == state) {
-      paintItemEditor(open, state);
-      player.updateInventory();
-      return;
-    }
-    renderItemEditor(player, state, null);
-  }
-
-  /**
-   * Shift+左键背包里的物品：直接登记成一条新的待选条目
-   * <p>
-   * 与「把物品拿到光标上再点物品格」等价，只是省一步；同样<b>不消耗</b>原物品
-   * （{@link WardItemEntry#of} 只取模板副本），数量照常继承。
-   *
-   * @param fromInventory 玩家背包里被 Shift+左键点到的物品
-   */
-  public void appendEntry(Player player, WardGui.Holder holder, @Nullable ItemStack fromInventory) {
-    if (!(holder.payload() instanceof ItemEditorState state)) {
-      return;
-    }
-    if (fromInventory == null || fromInventory.getType().isAir()) {
-      return;
-    }
-    state.entries.add(WardItemEntry.of(fromInventory));
-    compact(state);
-    repaint(player, state);
-  }
-
-  /** 把当前页画进给定界面（每次画之前先紧凑化：条目从左上角依次排开 = 自动排序） */
-  private void paintItemEditor(Inventory inv, ItemEditorState state) {
-    compact(state);
-    inv.clear();
-
-    int totalWeight = 0;
-    for (WardItemEntry e : state.entries) {
-      if (e != null) {
-        totalWeight += Math.max(0, e.weight());
-      }
-    }
-
-    int start = state.page * PAGE_SIZE;
-    for (int i = 0; i < PAGE_SIZE; i++) {
-      int index = start + i;
-      int[] slots = blockSlots(i);
-      if (index >= state.entries.size()) {
-        // 空块：用「结构空位」明示可放置的位置（否则操作者不知道该往哪放物品）
-        inv.setItem(slots[0], emptyItemSlot());
-        inv.setItem(slots[1], fillerSlot());
-        inv.setItem(slots[2], fillerSlot());
-        continue;
-      }
-      WardItemEntry entry = entryAt(state, index);
-      if (entry == null) {
-        inv.setItem(slots[0], emptyItemSlot());
-        inv.setItem(slots[1], fillerSlot());
-        inv.setItem(slots[2], fillerSlot());
-        continue;
-      }
-      inv.setItem(slots[0], itemSlot(entry, index, totalWeight));
-      inv.setItem(slots[1], weightSlot(entry, totalWeight));
-      inv.setItem(slots[2], raritySlot(entry));
-    }
-
-    // 底行：分页 / 取消 / 保存（其余格子也铺满，避免快捷移动把物品塞进无主的空槽）
-    int pages = pageCount(state);
-    inv.setItem(45, button(Material.ARROW, i18n.tr("jwardchest.items.prev"),
-        List.of(i18n.tr("jwardchest.items.page", state.page + 1, pages))));
-    inv.setItem(49, button(Material.BARRIER, i18n.tr("jwardchest.items.cancel"),
-        List.of(i18n.tr("jwardchest.items.cancel_hint"))));
-    inv.setItem(51, button(Material.EMERALD, i18n.tr("jwardchest.items.save"),
-        List.of(i18n.tr("jwardchest.items.save_hint"))));
-    inv.setItem(53, button(Material.ARROW, i18n.tr("jwardchest.items.next"),
-        List.of(i18n.tr("jwardchest.items.page", state.page + 1, pages))));
-    for (int slot : new int[] { 46, 47, 48, 50, 52 }) {
-      inv.setItem(slot, fillerSlot());
-    }
-  }
-
-  /**
-   * 去掉列表里的 {@code null} 空洞，让条目紧凑排列
-   * <p>
-   * 放入/移除后调用，因此「自动排序」的含义是：条目始终从第 1 格开始依次占位，
-   * 不会因为中间被删掉一条而留下空格。页码也在这里夹回合法范围。
-   */
-  private static void compact(ItemEditorState state) {
-    List<WardItemEntry> packed = new ArrayList<>(state.entries.size());
-    for (WardItemEntry e : state.entries) {
-      if (e != null) {
-        packed.add(e);
-      }
-    }
-    if (packed.size() != state.entries.size()) {
-      state.entries.clear();
-      state.entries.addAll(packed);
-    }
-    state.page = Math.max(0, Math.min(state.page, Math.max(0, pageCount(state) - 1)));
-  }
-
-  /**
-   * 取第 {@code index} 条条目
-   * <p>
-   * 列表理论上可能存在 {@code null} 空洞（历史遗留写法），因此取值一律走这里而不是直接 get。
-   * 正常流程下每次绘制前都会 {@link #compact(ItemEditorState)}，不会有空洞。
-   *
-   * @return 条目；该位置为空返回 null
-   */
-  @Nullable
-  private static WardItemEntry entryAt(ItemEditorState state, int index) {
-    return (index >= 0 && index < state.entries.size()) ? state.entries.get(index) : null;
-  }
-
-  /**
-   * 把条目放到指定块（不足处补 null 空洞）
-   * <p>
-   * 随后立刻会 {@code compact()}，所以「放在第几块」不影响最终顺序——条目总是排到队尾。
-   */
-  private static void setEntryAt(ItemEditorState state, int index, @Nullable WardItemEntry entry) {
-    while (state.entries.size() <= index) {
-      state.entries.add(null);
-    }
-    state.entries.set(index, entry);
-  }
-
-  /** 空块里的「结构空位」：提醒操作者把背包里的物品放到这里 */
-  private static ItemStack emptyItemSlot() {
-    return button(Material.STRUCTURE_VOID,
-        i18n.tr("jwardchest.items.empty_slot"),
-        List.of(
-            i18n.tr("jwardchest.items.empty_slot_hint"),
-            i18n.tr("jwardchest.items.slot.help")));
-  }
-
-  /** 空块里另外两格的弱占位，让「一格三件」的结构看得清 */
-  private static ItemStack fillerSlot() {
-    return button(Material.GRAY_STAINED_GLASS_PANE,
-        i18n.tr("jwardchest.items.empty_filler"), List.of());
-  }
-
-  /** 第 i 个块的三个槽位（物品格 / 概率格 / 珍惜度格） */
-  private static int[] blockSlots(int i) {
-    int row = i / 2;
-    int block = i % 2;
-    int startCol = block == 0 ? 1 : 5;
-    int base = row * 9 + startCol;
-    return new int[] { base, base + 1, base + 2 };
-  }
-
-  /** 总页数：末页永远保留空块以便新增（列表允许 null 空洞，空洞也占位置） */
-  private static int pageCount(ItemEditorState state) {
-    return Math.max(1, (state.entries.size() / PAGE_SIZE) + 1);
-  }
-
-  private ItemStack itemSlot(WardItemEntry entry, int index, int totalWeight) {
-    ItemStack item = entry.display(entry.maxAmount());
-    ItemMeta meta = item.getItemMeta();
-    if (meta != null) {
-      List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
-      lore.add(WardGui.legacy(i18n.tr("jwardchest.items.slot.index", index + 1)));
-      lore.add(WardGui.legacy(i18n.tr("jwardchest.items.slot.amount",
-          entry.minAmount(), entry.maxAmount(), entry.maxStackSize())));
-      lore.add(WardGui.legacy(i18n.tr("jwardchest.items.slot.weight",
-          entry.weight(), totalWeight,
-          String.format("%.2f", WardRoller.share(entry, totalWeight) * 100.0))));
-      lore.add(WardGui.legacy(i18n.tr("jwardchest.items.slot.help")));
-      meta.lore(lore);
-      item.setItemMeta(meta);
-    }
-    return item;
-  }
-
-  private ItemStack weightSlot(WardItemEntry entry, int totalWeight) {
-    return button(Material.REDSTONE,
-        i18n.tr("jwardchest.items.weight", entry.weight(), totalWeight),
-        List.of(
-            i18n.tr("jwardchest.items.weight_share",
-                String.format("%.2f", WardRoller.share(entry, totalWeight) * 100.0)),
-            i18n.tr("jwardchest.items.weight_help")));
-  }
-
-  private ItemStack raritySlot(WardItemEntry entry) {
-    return button(entry.rarity().wool(),
-        entry.rarity().color() + entry.rarity().displayName(),
-        List.of(i18n.tr("jwardchest.items.rarity_help")));
-  }
-
-  // ──────────────────────────────────────────────
   // 预览
   // ──────────────────────────────────────────────
 
@@ -504,23 +264,6 @@ public final class WardEditorGui {
   // 点击处理
   // ──────────────────────────────────────────────
 
-  /**
-   * 处理待选物品界面的点击
-   * <p>
-   * 其余子界面都已迁到页面层（{@link WardSubPage} 及其子类），这里只留还没迁的那一个。
-   *
-   * @return true 表示已被处理（调用方不必再处理）
-   */
-  public boolean handleClick(InventoryClickEvent event, WardGui.Holder holder) {
-    if (!(event.getWhoClicked() instanceof Player player)) {
-      return false;
-    }
-    if (holder.kind() != WardGui.Kind.ITEM_EDITOR) {
-      return false;
-    }
-    return handleItemEditorClick(event, player, holder);
-  }
-
   /** 写入上排（保底）或下排（上限）的值；两者的联动由 {@link WardProfile} 内部保证 */
   static void applyDraw(WardProfile profile, WardRarity rarity, boolean floorRow, int value) {
     if (floorRow) {
@@ -530,189 +273,18 @@ public final class WardEditorGui {
     }
   }
 
-  private boolean handleItemEditorClick(InventoryClickEvent event, Player player,
-      WardGui.Holder holder) {
-    if (!(holder.payload() instanceof ItemEditorState state)) {
-      return false;
-    }
-    Location block = null;
-    if (event.getClickedInventory() == null) {
-      return true;
-    }
-    boolean top = event.getClickedInventory().equals(player.getOpenInventory().getTopInventory());
-
-    // 底行：分页 / 取消 / 保存
-    if (top && event.getRawSlot() >= 45) {
-      switch (event.getRawSlot()) {
-        case 45 -> {
-          state.page = Math.max(0, state.page - 1);
-          repaint(player, state);
-        }
-        case 53 -> {
-          state.page = Math.min(pageCount(state) - 1, state.page + 1);
-          repaint(player, state);
-        }
-        case 49 -> {
-          itemWork.remove(player.getUniqueId());
-          player.sendMessage(i18n.tr("jwardchest.items.discarded"));
-          reopenLater(player, () -> openEditor(player, state.profileId, block));
-        }
-        case 51 -> {
-          WardProfile profile = store.effective(state.profileId);
-          profile.entries().clear();
-          int kept = 0;
-          for (WardItemEntry e : state.entries) {
-            if (e != null) {
-              profile.entries().add(e);
-              kept++;
-            }
-          }
-          store.save(profile);
-          // 待选物品变了 → 已生成的内容作废，下次打开重新抽取（否则改了表还是旧结果）
-          module.invalidate(state.profileId);
-          itemWork.remove(player.getUniqueId());
-          player.sendMessage(i18n.tr("jwardchest.items.saved", kept));
-          reopenLater(player, () -> openEditor(player, state.profileId, block));
-        }
-        default -> {
-          return true;
-        }
-      }
-      return true;
-    }
-
-    if (!top) {
-      return false;
-    }
-
-    int[] kind = locateSlot(event.getRawSlot());
-    if (kind == null) {
-      return true;
-    }
-    int blockIndex = kind[0];
-    int part = kind[1];
-    int index = state.page * PAGE_SIZE + blockIndex;
-
-    switch (part) {
-      case 0 -> handleItemSlot(event, player, state, index, block);
-      case 1 -> handleWeightSlot(event, player, state, index, block);
-      case 2 -> handleRaritySlot(player, state, index, event.isRightClick(), block);
-      default -> {
-        return true;
-      }
-    }
-    return true;
-  }
-
   /**
    * 定位点击的槽位属于哪个块的第几个部件
    *
    * @return {页内块序号 0-9, 部件}，部件 0=物品格 1=概率格 2=珍惜度格；不在任何块内返回 null
    */
   @Nullable
-  private static int[] locateSlot(int rawSlot) {
-    if (rawSlot < 0 || rawSlot >= 45) {
-      return null;
-    }
-    int row = rawSlot / 9;
-    int col = rawSlot % 9;
-    int part;
-    if (col >= 1 && col <= 3) {
-      part = col - 1;
-    } else if (col >= 5 && col <= 7) {
-      part = col - 5;
-    } else {
-      return null;
-    }
-    int which = col <= 3 ? 0 : 1;
-    return new int[] { row * 2 + which, part };
-  }
-
-  private void handleItemSlot(InventoryClickEvent event, Player player, ItemEditorState state,
-      int index, Location block) {
-    ItemStack cursor = event.getCursor();
-    boolean drop = event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP;
-    WardItemEntry existing = entryAt(state, index);
-
-    if (drop) {
-      if (existing != null) {
-        setEntryAt(state, index, null);
-        repaint(player, state);
-      }
-      return;
-    }
-
-    if (cursor != null && !cursor.getType().isAir()) {
-      // 登记模板：数量随物品堆叠继承（由 WardItemEntry.of 负责）。
-      // **不消耗**玩家手上的物品——这里是「登记」而不是「投入」，光标原样不动，
-      // 玩家把手上那摞放回哪里由他自己决定。
-      setEntryAt(state, index, WardItemEntry.of(cursor));
-      repaint(player, state);
-      return;
-    }
-
-    // 空位左键/右键：没有条目就什么都不做
-    WardItemEntry entry = existing;
-    if (entry == null) {
-      return;
-    }
-    if (event.isRightClick()) {
-      module.chatInput().request(player, WardChatInput.TYPE_MAX,
-          String.valueOf(entry.maxAmount()), value -> {
-            entry.setMax(parseIntOrDefault(value, entry.maxAmount()));
-          }, () -> repaint(player, state));
-    } else {
-      module.chatInput().request(player, WardChatInput.TYPE_MIN,
-          String.valueOf(entry.minAmount()), value -> {
-            entry.setMin(parseIntOrDefault(value, entry.minAmount()));
-          }, () -> repaint(player, state));
-    }
-  }
-
-
-  private void handleWeightSlot(InventoryClickEvent event, Player player, ItemEditorState state,
-      int index, Location block) {
-    WardItemEntry entry = entryAt(state, index);
-    if (entry == null) {
-      return;
-    }
-
-    if (event.isShiftClick()) {
-      module.chatInput().request(player, WardChatInput.TYPE_WEIGHT,
-          String.valueOf(entry.weight()), value -> {
-            entry.weight(parseIntOrDefault(value, entry.weight()));
-          }, () -> repaint(player, state));
-      return;
-    }
-
-    int step = event.isRightClick() ? -1 : 1;
-    entry.weight(entry.weight() + step);
-    repaint(player, state);
-  }
-
-  private void handleRaritySlot(Player player, ItemEditorState state, int index, boolean right,
-      Location block) {
-    WardItemEntry entry = entryAt(state, index);
-    if (entry == null) {
-      return;
-    }
-    List<WardRarity> all = WardRarity.list();
-    int current = WardRarity.indexOf(entry.rarity());
-    entry.rarity(all.get(Math.floorMod(current + (right ? -1 : 1), all.size())));
-    repaint(player, state);
-  }
-
   // ──────────────────────────────────────────────
   // 工具
   // ─────────────────────────────────────────────
 
   /** 构造一个按钮物品 */
   private static ItemStack button(Material material, String name, List<String> lore) {
-    return button(material, name, lore, false);
-  }
-
-  @SuppressWarnings("deprecation")
-  private static ItemStack button(Material material, String name, List<String> lore, boolean glow) {
     ItemStack item = new ItemStack(material);
     ItemMeta meta = item.getItemMeta();
     if (meta != null) {
@@ -720,20 +292,9 @@ public final class WardEditorGui {
       if (lore != null && !lore.isEmpty()) {
         meta.lore(lore.stream().map(WardGui::legacy).toList());
       }
-      if (glow) {
-        meta.setEnchantmentGlintOverride(true);
-      }
       item.setItemMeta(meta);
     }
     return item;
-  }
-
-  private static double parseDoubleOrDefault(String value, double def) {
-    try {
-      return Double.parseDouble(value.trim());
-    } catch (Exception e) {
-      return def;
-    }
   }
 
   static int parseIntOrDefault(String value, int def) {
@@ -742,15 +303,5 @@ public final class WardEditorGui {
     } catch (Exception e) {
       return def;
     }
-  }
-
-  /** 下一 tick 再执行（避免在点击事件里重开界面导致客户端标题不刷新） */
-  private void reopenLater(Player player, Runnable action) {
-    Bukkit.getScheduler().runTask(Joyous.plugin, action);
-  }
-
-  /** 玩家退出时清理工作副本 */
-  public void clearWorking(Player player) {
-    itemWork.remove(player.getUniqueId());
   }
 }

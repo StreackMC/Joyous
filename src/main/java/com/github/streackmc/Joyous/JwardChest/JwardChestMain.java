@@ -40,7 +40,6 @@ public class JwardChestMain extends JoyousModel {
   private WardSessionManager sessions;
   private WardSearchController search;
   private WardEditorGui editor;
-  private WardChatInput chatInput;
   private WardListener listener;
   private JwardChestCommand command;
   private int cleanupTaskId = -1;
@@ -67,8 +66,7 @@ public class JwardChestMain extends JoyousModel {
     sessions.setEvictionListener(this::onSessionEvicted);
     search = new WardSearchController(this);
     editor = new WardEditorGui(this, store, sessions, search);
-    chatInput = new WardChatInput(store, editor);
-    listener = new WardListener(this, store, sessions, search, editor, chatInput);
+    listener = new WardListener(store, sessions, search, editor);
     command = new JwardChestCommand(this, store, sessions, editor);
 
     contents = new WardStore(Joyous.database, CONF.storageTable());
@@ -153,10 +151,6 @@ public class JwardChestMain extends JoyousModel {
 
   public WardEditorGui editor() {
     return editor;
-  }
-
-  public WardChatInput chatInput() {
-    return chatInput;
   }
 
   // ──────────────────────────────────────────────

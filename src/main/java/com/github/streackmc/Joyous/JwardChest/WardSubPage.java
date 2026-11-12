@@ -5,9 +5,11 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.interact.IPageContext;
 import com.github.streackmc.Joyous.utils.interact.PageArbiter;
@@ -67,10 +69,29 @@ abstract class WardSubPage extends AbstractGuiPage {
     store.flush();
   }
 
-  /** 换回主编辑界面 */
-  protected void backToEditor(Player player) {
-    PageArbiter.get().open(player,
-        new WardEditorPage(editor, store, profileId, block), PagePriorityEnum.REPLACE);
+  /**
+   * 返回上级（主编辑界面）
+   * <p>
+   * <b>不是再打开一个主界面，而是关掉自己。</b>主界面本来就是被 {@code INSTANT} 挂起在队列里的，
+   * 关掉本页后仲裁器会把它恢复回来。
+   * <p>
+   * 反过来「再 open 一个主界面」会撞上同 {@code key} + 同 {@code purpose} 的去重：
+   * 命中那个挂起中的旧实例后直接返回、不产生任何转移，界面就停在子页面上不动了
+   * （这正是「选完容器类型回不到主界面」的原因）。 
+   */
+  protected void backToEditor(IPageContext ctx) {
+    Player player = ctx.player();
+    ctx.close();
+    if (player == null) {
+      return;
+    }
+    // 兜底：本页不是从主界面 INSTANT 进来的（例如将来被命令直达），关掉后没有可恢复的页面
+    Bukkit.getScheduler().runTask(Joyous.plugin, () -> {
+      if (player.isOnline() && PageArbiter.get().visible(player) == null) {
+        PageArbiter.get().open(player,
+            new WardEditorPage(editor, store, profileId, block), PagePriorityEnum.REPLACE);
+      }
+    });
   }
 
   /** 换到另一个子界面 */

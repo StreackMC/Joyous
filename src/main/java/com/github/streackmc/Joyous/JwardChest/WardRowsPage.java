@@ -86,7 +86,7 @@ final class WardRowsPage extends WardSubPage {
     profile.rows(slot + 1);
     save(profile);
     tell(player, "jwardchest.rows.updated", profile.rows());
-    backToEditor(player);
+    backToEditor(ctx);
     return Verdict.HANDLED;
   }
 }

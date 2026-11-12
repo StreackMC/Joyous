@@ -2,14 +2,11 @@ package com.github.streackmc.Joyous.JwardChest;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import javax.annotation.Nullable;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
@@ -26,8 +23,7 @@ import net.kyori.adventure.text.Component;
 /**
  * GUI 基础设施
  * <p>
- * 提供三样东西：区分「我们的界面」的 {@link Holder}、黑/白玻璃板占位物品的构造，
- * 以及标题与物品文本的统一处理。占位物品带一个 PDC 标记，
+ * 提供两样东西：黑/白玻璃板占位物品的构造，以及物品文本的统一处理。占位物品带一个 PDC 标记，
  * 用于在点击/拖拽时把它们和我们自己的真实结果区分开。
  *
  * @author kdxiaoyi
@@ -51,62 +47,6 @@ public final class WardGui {
   private static final String[] STATES = { STATE_UNSEARCHED, STATE_SEARCHING };
 
   private WardGui() {
-  }
-
-  // ──────────────────────────────────────────────
-  // 界面识别
-  // ──────────────────────────────────────────────
-
-  /** 我们的界面类型（其余子界面已迁到页面层，只剩待选物品这一个还在用 Holder） */
-  public enum Kind {
-    /** 待选物品编辑子菜单 */
-    ITEM_EDITOR
-  }
-
-  /** 自定义 {@link InventoryHolder}，用于把界面与它的上下文绑在一起 */
-  public static final class Holder implements InventoryHolder {
-    private final Kind kind;
-    private final UUID profileId;
-    private final Object payload;
-    private Inventory inventory;
-
-    public Holder(Kind kind, UUID profileId, @Nullable Object payload) {
-      this.kind = kind;
-      this.profileId = profileId;
-      this.payload = payload;
-    }
-
-    public Kind kind() {
-      return kind;
-    }
-
-    public UUID profileId() {
-      return profileId;
-    }
-
-    /** 附加上下文（如页码、会话引用），可为 null */
-    @Nullable
-    public Object payload() {
-      return payload;
-    }
-
-    public void attach(Inventory inventory) {
-      this.inventory = inventory;
-    }
-
-    @Override
-    public Inventory getInventory() {
-      return inventory;
-    }
-  }
-
-  /** 是否为我们的界面；不是则返回 null */
-  @Nullable
-  public static Holder holderOf(@Nullable Inventory inventory) {
-    if (inventory == null)
-      return null;
-    InventoryHolder holder = inventory.getHolder();
-    return (holder instanceof Holder h) ? h : null;
   }
 
   // ──────────────────────────────────────────────
