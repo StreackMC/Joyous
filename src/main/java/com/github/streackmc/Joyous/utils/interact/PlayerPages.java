@@ -49,6 +49,29 @@ final class PlayerPages {
     void schedule(Runnable task);
   }
 
+  /**
+   * 页面显示状态变化的旁路通知
+   * <p>
+   * 与 {@link IJoyousPage} 的钩子分开：钩子属于页面自己，通知属于「要跟着页面一起工作的外部组件」
+   * （聊天栏输入就是靠它知道该发提示了）。
+   */
+  interface Events {
+    void shown(PageEntry entry);
+
+    void hidden(PageEntry entry);
+
+    /** 什么都不做的实现，给纯 JVM 自检用 */
+    Events NONE = new Events() {
+      @Override
+      public void shown(PageEntry entry) {
+      }
+
+      @Override
+      public void hidden(PageEntry entry) {
+      }
+    };
+  }
+
   private record Pending(PageEntry entry, PagePriorityEnum priority) {
   }
 
@@ -56,6 +79,7 @@ final class PlayerPages {
   private final Player player;
   private final Ticker ticker;
   private final BooleanSupplier primaryThread;
+  private final Events events;
 
   private final Deque<PageEntry> queue = new ArrayDeque<>();
   private final Deque<Pending> requests = new ArrayDeque<>();
@@ -66,10 +90,11 @@ final class PlayerPages {
   private boolean draining;
   private boolean scheduled;
 
-  PlayerPages(@Nullable Player player, Ticker ticker, BooleanSupplier primaryThread) {
+  PlayerPages(@Nullable Player player, Ticker ticker, BooleanSupplier primaryThread, Events events) {
     this.player = player;
     this.ticker = ticker;
     this.primaryThread = primaryThread;
+    this.events = events == null ? Events.NONE : events;
   }
 
   // ──────────────────────────────────────────────
@@ -317,6 +342,7 @@ final class PlayerPages {
       current.state(PageStateEnum.SUSPENDED);
       queue.addFirst(current);
       invokeSuspend(current);
+      notifyHidden(current);
       return;
     }
     if (priority == PagePriorityEnum.INSTANT) {
@@ -354,6 +380,10 @@ final class PlayerPages {
     } else {
       invokeAttach(entry);
     }
+    // 页面可能在自己的 onAttach 里就把自己关掉了，那时不必再通知「已显示」
+    if (entry.state() == PageStateEnum.VISIBLE && visible == entry) {
+      notifyShown(entry);
+    }
   }
 
   private void enqueueHead(PageEntry entry) {
@@ -389,6 +419,23 @@ final class PlayerPages {
       entry.page().onDetach(entry, why);
     } catch (Exception e) {
       jlogger.warning("页面 onDetach 出错（%s）：%s", why, entry.describe(), e);
+    }
+    notifyHidden(entry);
+  }
+
+  private void notifyShown(PageEntry entry) {
+    try {
+      events.shown(entry);
+    } catch (Exception e) {
+      jlogger.warning("页面显示通知出错：%s", entry.describe(), e);
+    }
+  }
+
+  private void notifyHidden(PageEntry entry) {
+    try {
+      events.hidden(entry);
+    } catch (Exception e) {
+      jlogger.warning("页面隐藏通知出错：%s", entry.describe(), e);
     }
   }
 

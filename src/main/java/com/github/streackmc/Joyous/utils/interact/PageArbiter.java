@@ -1,9 +1,11 @@
 package com.github.streackmc.Joyous.utils.interact;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.Nullable;
 
@@ -70,6 +72,36 @@ public final class PageArbiter implements Listener {
 
   private final Map<UUID, PlayerPages> states = new ConcurrentHashMap<>();
 
+  /** 页面显示/隐藏的旁路观察者（聊天栏输入靠它发提示） */
+  private final List<IPageObserver> observers = new CopyOnWriteArrayList<>();
+
+  /** 交给 {@link PlayerPages} 的事件出口；所有玩家的状态机共用这一份 */
+  private final PlayerPages.Events events = new PlayerPages.Events() {
+    @Override
+    public void shown(PageEntry entry) {
+      for (IPageObserver observer : observers) {
+        try {
+          observer.onPageShown(entry);
+        } catch (Exception e) {
+          jlogger.warning("页面观察者 %s 处理显示通知时出错：%s",
+              observer.getClass().getSimpleName(), entry.describe(), e);
+        }
+      }
+    }
+
+    @Override
+    public void hidden(PageEntry entry) {
+      for (IPageObserver observer : observers) {
+        try {
+          observer.onPageHidden(entry);
+        } catch (Exception e) {
+          jlogger.warning("页面观察者 %s 处理隐藏通知时出错：%s",
+              observer.getClass().getSimpleName(), entry.describe(), e);
+        }
+      }
+    }
+  };
+
   @Nullable
   private volatile Plugin plugin;
   private volatile boolean installed;
@@ -97,7 +129,9 @@ public final class PageArbiter implements Listener {
     this.plugin = Objects.requireNonNull(plugin, "plugin");
     Bukkit.getPluginManager().registerEvents(this, plugin);
     Bukkit.getPluginManager().registerEvents(new GuiRouter(this), plugin);
-    Bukkit.getPluginManager().registerEvents(new ChatInput(this), plugin);
+    ChatInput chatInput = new ChatInput(this);
+    Bukkit.getPluginManager().registerEvents(chatInput, plugin);
+    addObserver(chatInput);
     long period = 20L * SWEEP_SECONDS;
     Bukkit.getScheduler().runTaskTimer(plugin, this::sweep, period, period);
     installed = true;
@@ -194,13 +228,32 @@ public final class PageArbiter implements Listener {
     plugin = null;
   }
 
+  /**
+   * 注册一个页面观察者
+   * <p>
+   * 用于「需要在页面显示时做点什么」的旁路组件（聊天栏输入靠它发提示）。
+   * 重复注册同一实例不会重复回调。
+   *
+   * @param observer 观察者
+   */
+  public void addObserver(IPageObserver observer) {
+    if (observer != null && !observers.contains(observer)) {
+      observers.add(observer);
+    }
+  }
+
+  /** 注销观察者 */
+  public void removeObserver(IPageObserver observer) {
+    observers.remove(observer);
+  }
+
   // ──────────────────────────────────────────────
   // 内部
   // ──────────────────────────────────────────────
 
   private PlayerPages stateOf(Player player) {
     return states.computeIfAbsent(player.getUniqueId(),
-        id -> new PlayerPages(player, this::schedule, Bukkit::isPrimaryThread));
+        id -> new PlayerPages(player, this::schedule, Bukkit::isPrimaryThread, events));
   }
 
   private void schedule(Runnable task) {
