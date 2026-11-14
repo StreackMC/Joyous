@@ -84,7 +84,7 @@ public class JSellMain extends JoyousModel {
     gui = new JSellGui(this, entryStore, sessions, service);
     editor = new JSellEditorGui(this, entryStore, chatInput);
     chatInput.bind(editor);
-    listener = new JSellListener(this, sessions, gui, editor, chatInput);
+    listener = new JSellListener(this, sessions, editor, chatInput);
     command = new JSellCommand(this, entryStore, sessions, gui, editor, store);
 
     Joyous.pluginManager.registerEvents(listener, Joyous.plugin);
@@ -108,9 +108,6 @@ public class JSellMain extends JoyousModel {
     if (sweepTaskId != -1) {
       Bukkit.getScheduler().cancelTask(sweepTaskId);
       sweepTaskId = -1;
-    }
-    if (gui != null) {
-      gui.cancelPendingUpdates();
     }
     if (entryStore != null) {
       entryStore.flush();

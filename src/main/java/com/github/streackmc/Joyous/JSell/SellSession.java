@@ -16,8 +16,9 @@ import org.bukkit.inventory.ItemStack;
  * 界面上画的是它的<b>副本</b>再加上「售出价值」之类的说明行。所以
  * 「在界面里改 Lore / 改名字」不可能影响真正被卖掉的东西，反过来也一样。
  * <p>
- * 玩家关掉界面（Esc / E）＝取消，{@link JSellGui} 会把 {@link #items()} 原样还给他；
- * 点「确认出售」时才会进入 {@link SellService} 的结算流程。
+ * 玩家关掉界面（Esc / E）＝取消，{@link JSellSellPage} 在终止时会把 {@link #items()} 原样还给他；
+ * 点「确认出售」时才会进入 {@link SellService} 的结算流程（结算成功后 {@link #settled()} 为真，
+ * 终止时不再退款）。
  *
  * @author kdxiaoyi
  * @since 0.8.0
@@ -28,8 +29,6 @@ public final class SellSession {
   /** 托管内容（权威）：只存非空气物品，顺序即界面从左到右的顺序 */
   private final List<ItemStack> items = new ArrayList<>();
 
-  /** 界面是被本模块关掉的（结算完成 / 等待输入），关闭事件里不该当作「取消」 */
-  private volatile boolean closingByPlugin;
   /** 已经结算过，防止重复点击确认 */
   private volatile boolean settled;
 
@@ -131,14 +130,6 @@ public final class SellSession {
     for (ItemStack item : replacement) {
       add(item);
     }
-  }
-
-  public boolean closingByPlugin() {
-    return closingByPlugin;
-  }
-
-  public void closingByPlugin(boolean value) {
-    this.closingByPlugin = value;
   }
 
   public boolean settled() {

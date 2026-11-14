@@ -135,8 +135,11 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
   `ACTIVE_MENUS` 与四个事件处理器已删）；JWardChest **运行时容器**（`WardRuntimePage`，purpose=会话 key、
   keepable=非预览；`render` 从会话现算，`tick` 用 `sessionOf(inventory)` 反查；广播仍由 controller 直写各 viewer 的界面）；
   JWardChest **编辑界面全部**（`WardEditorPage` + `WardSubPage` 派生：`WardContainerPickerPage`/`WardRowsPage`/
-  `WardMaxDrawPage`/`WardDistributionPage`/`WardItemEditorPage`；`WardGui.Holder`/`Kind`/`WardChatInput` 已删）。
-  **待迁移**：JSell 全部。
+  `WardMaxDrawPage`/`WardDistributionPage`/`WardItemEditorPage`；`WardGui.Holder`/`Kind`/`WardChatInput` 已删）；
+  JSell **出售界面**（`JSellSellPage`，keepable=false——关闭即退款；`closingByPlugin` 已退役）。
+  **待迁移**：JSell 管理员列表/详情（仍用 `JSellGui.Holder` + `JSellChatInput`）。
+- ⚠️ **`keepable=false` 的页面别在 `onDetach` 里无差别退款**：JSell 只在 `CLOSED`/`REPLACED` 退，
+  `QUIT`/`SHUTDOWN` 交给托管表（`jsell_escrow`）与上线交付——关服阶段往背包塞东西会和玩家数据保存抢时序。
 - ⚠️ **上级/下级页面用 INSTANT，不要用 REPLACE**：下级页 ESC/E 关闭后要能回到上级，靠的是上级被**挂起**在队列里。
   返回上级也**不要 open 一个新实例**——同 `(key,purpose)` 去重会命中挂起中的旧实例并直接返回、不产生转移，
   界面就停在子页面上；正确做法是 `ctx.close()`，让仲裁器恢复下层。
