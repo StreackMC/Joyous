@@ -218,12 +218,18 @@ public final class PageArbiter implements Listener {
     return state == null ? "（无页面）" : state.describe();
   }
 
-  /** 停服：清空所有玩家并停止清扫 */
+  /**
+   * 停服：清空所有玩家并停止清扫
+   * <p>
+   * 观察者也要一并摘掉：它持有 {@code ChatInput} 实例（内含超时任务表），
+   * 若插件被禁用后重新启用，旧的观察者会继续收到通知，与新实例一起重复发提示。
+   */
   public synchronized void shutdown() {
     for (PlayerPages state : states.values()) {
       state.clear(DetachReasonEnum.SHUTDOWN);
     }
     states.clear();
+    observers.clear();
     installed = false;
     plugin = null;
   }
