@@ -155,7 +155,8 @@ final class WardEditorPage extends AbstractGuiPage {
       case 11 -> {
         String old = profile.inPreset() ? profile.presetCode() : WardProfile.UNSET_CODE;
         openChat(ctx, "code",
-            ChatPrompt.of(i18n.tr("jwardchest.input.field.code"), old),
+            ChatPrompt.of(i18n.tr("jwardchest.input.field.code"), old)
+                .hint(i18n.tr("ui.input.unset_hint")),
             value -> {
               String resolved = value.equalsIgnoreCase("unset") ? WardProfile.UNSET_CODE : value;
               store.setPresetCode(profileId, resolved);

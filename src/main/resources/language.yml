@@ -34,6 +34,7 @@ ui:
     cancel_hint: "&7输入 &fcancel &7取消"
     cancelled: "&e已取消输入"
     expired: "&e输入等待超时，已取消"
+    unset_hint: "&7输入 &funset &7改回默认"
 envexport:
   command:
     set: "&f已将 %s 的值更新为 %s"
@@ -246,7 +247,7 @@ jwardchest:
     weight_help: "&e左键 +1 &7/ &e右键 -1 &7/ &eShift+点击 输入精确值"
     rarity_help: "&e左键 下一档 &7/ &e右键 上一档"
   input:
-    prompt: "&e请输入 &f%s&e，或输入 &fcancel &e取消"
+    # 只有字段名由本模块提供；提示、粘贴旧值、取消/超时文案统一在 ui.input.*
     field:
       code: "预设代号"
       title: "容器标题"
@@ -258,12 +259,6 @@ jwardchest:
       prefilter: "粗筛时长（秒，0 表示关闭粗筛）"
       dist: "数量分布（uniform / low / high / normal）"
       curve: "曲线指数（≥1，越大越集中）"
-    paste_hint: "&7[点击粘贴旧值]"
-    cancel_hint: "&7输入 &fcancel &7取消"
-    unset_hint: "&7输入 &funset &7改回默认"
-    cancelled: "&e已取消输入"
-    expired: "&e输入等待超时，已取消"
-    code_unset: "&a预设代号已改回默认"
   command:
     need_world: "&c无法确定维度。"
     new:
@@ -378,17 +373,11 @@ jsell:
     minutes: "%s 分钟"
     less_minute: "不足 1 分钟"
     infinite: "无限"
-  # 聊天栏输入
+  # 聊天栏输入的附加提示（提示本体与取消/超时文案在 ui.input.*）
   input:
-    prompt: "&e请在聊天栏输入 &f%s&e（输入 &fcancel &e取消）："
-    paste_hint: "&7点击这里填入旧值"
-    cancel_hint: "&7输入 &fcancel &7取消。"
     multi_hint: "&7多条命令用 &f| &7分隔；输入 &fclear &7清空。"
     window_hint: "&7单位是秒，可写 &f30s/10m/2h/7d&7；&f0 &7表示无限时长。"
     delete_hint: "&c输入 &fyes &c确认删除（其它任何内容都会取消）。"
-    expired: "&c输入超时了，请重试。"
-    cancelled: "&7已取消输入。"
-    failed: "&c处理输入时出错：&f%s"
     field:
       page: "页码"
       search: "搜索关键词"

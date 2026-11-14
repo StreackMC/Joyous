@@ -194,17 +194,6 @@ public final class WardProfile {
     return sum;
   }
 
-  /**
-   * 结果组总条数 = 各珍惜度最大抽出数量之和
-   * <p>
-   * 为 0 且 {@link #totalMinDraw()} 也为 0 时表示「不限量」，按容器容量抽满。
-   *
-   * @see #totalMaxDraw()
-   */
-  public int totalDrawCount() {
-    return totalMaxDraw();
-  }
-
   /** 条目数（编辑界面分页用） */
   public int entryCount() {
     return entries.size();
@@ -445,8 +434,4 @@ public final class WardProfile {
     return def;
   }
 
-  /** 便捷方法：把一组物品包成默认条目 */
-  public void addEntry(ItemStack template) {
-    entries.add(WardItemEntry.of(template));
-  }
 }

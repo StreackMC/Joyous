@@ -91,37 +91,12 @@ public final class WardSessionManager {
     return sessions.get(blockKey(world, x, y, z));
   }
 
-  /** 按方块取预览会话 */
-  public WardSession preview(World world, int x, int y, int z, UUID viewer) {
-    return sessions.get(previewKey(world, x, y, z, viewer));
-  }
-
-  /** 按会话 key 取 */
-  public WardSession get(String key) {
-    return sessions.get(key);
-  }
-
   /** 移除单个会话（视为「刷新」） */
   public void remove(String key) {
     WardSession removed = sessions.remove(key);
     if (removed != null) {
       notifyEvicted(removed);
     }
-  }
-
-  /** 移除全部方块级会话（不看预览） */
-  public int removeBlockSessions() {
-    int count = 0;
-    for (String key : new ArrayList<>(sessions.keySet())) {
-      if (!key.contains("#preview:")) {
-        WardSession removed = sessions.remove(key);
-        if (removed != null) {
-          notifyEvicted(removed);
-          count++;
-        }
-      }
-    }
-    return count;
   }
 
   /** 按容器移除（解除绑定、重置预设组时用） */
