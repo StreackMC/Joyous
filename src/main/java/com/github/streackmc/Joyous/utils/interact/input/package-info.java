@@ -6,8 +6,9 @@
  *   <li>{@link com.github.streackmc.Joyous.utils.interact.input.ITextInteract}——「给个初值 → 收到文本 / 被取消」的公共契约；</li>
  *   <li>{@link com.github.streackmc.Joyous.utils.interact.input.IChatInteract}——聊天栏版本，多一条「给玩家看的提示」；</li>
  *   <li>{@link com.github.streackmc.Joyous.utils.interact.input.ChatPrompt}——提示内容（字段名 / 旧值 / 额外提示行）；</li>
- *   <li>{@link com.github.streackmc.Joyous.utils.interact.input.AbstractChatPage}——发提示、超时自动收掉；</li>
- *   <li>{@link com.github.streackmc.Joyous.utils.interact.input.ChatInput}——截获聊天事件、判 {@code cancel}、回主线程。</li>
+ *   <li>{@link com.github.streackmc.Joyous.utils.interact.input.AbstractChatPage}——便捷基类，只声明「不可保留」；</li>
+ *   <li>{@link com.github.streackmc.Joyous.utils.interact.input.ChatInput}——截获聊天事件、判 {@code cancel}、回主线程，
+ *       并作为 {@code IPageObserver} <b>统一发送提示与超时计时</b>（消费端不写任何 {@code sendMessage}）。</li>
  * </ul>
  *
  * <h2>与容器界面的配合</h2>
