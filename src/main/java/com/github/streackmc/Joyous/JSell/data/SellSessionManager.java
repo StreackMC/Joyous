@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.JSell;
+package com.github.streackmc.Joyous.JSell.data;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +11,7 @@ import javax.annotation.Nullable;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import com.github.streackmc.Joyous.JSell.JSellMain;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.jlogger;
 

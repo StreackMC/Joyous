@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.JSell;
+package com.github.streackmc.Joyous.JSell.data;
 
 import java.util.ArrayList;
 import java.util.List;

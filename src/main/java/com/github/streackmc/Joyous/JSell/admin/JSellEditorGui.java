@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.JSell;
+package com.github.streackmc.Joyous.JSell.admin;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -15,6 +15,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import com.github.streackmc.Joyous.JSell.JSellMain;
+import com.github.streackmc.Joyous.JSell.data.SellEntry;
+import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellService;
+import com.github.streackmc.Joyous.JSell.user.JSellGui;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.interact.PageArbiter;
 import com.github.streackmc.Joyous.utils.interact.PagePriorityEnum;

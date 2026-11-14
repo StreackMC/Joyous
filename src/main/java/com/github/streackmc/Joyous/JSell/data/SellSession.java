@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.JSell;
+package com.github.streackmc.Joyous.JSell.data;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,6 +8,8 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import org.bukkit.inventory.ItemStack;
+
+import com.github.streackmc.Joyous.JSell.user.JSellSellPage;
 
 /**
  * 一次「出售界面」的托管状态

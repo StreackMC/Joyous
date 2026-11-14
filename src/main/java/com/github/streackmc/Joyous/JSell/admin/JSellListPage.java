@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.JSell;
+package com.github.streackmc.Joyous.JSell.admin;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -6,6 +6,8 @@ import java.util.function.Consumer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 
+import com.github.streackmc.Joyous.JSell.data.SellEntry;
+import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.interact.DetachReasonEnum;
 import com.github.streackmc.Joyous.utils.interact.IPageContext;

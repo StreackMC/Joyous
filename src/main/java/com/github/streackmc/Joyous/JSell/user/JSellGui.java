@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.JSell;
+package com.github.streackmc.Joyous.JSell.user;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +11,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import com.github.streackmc.Joyous.JSell.JSellMain;
+import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellService;
+import com.github.streackmc.Joyous.JSell.data.SellSession;
+import com.github.streackmc.Joyous.JSell.data.SellSessionManager;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.interact.IPageContext;
 import com.github.streackmc.Joyous.utils.interact.PageArbiter;
@@ -122,7 +127,7 @@ public final class JSellGui {
   }
 
   /** 物品原名（没有自定义名时用类型名的可读形式） */
-  static String prettyName(ItemStack item) {
+  public static String prettyName(ItemStack item) {
     String name = item.getType().name().toLowerCase(Locale.ROOT).replace('_', ' ');
     return name;
   }

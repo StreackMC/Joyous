@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.JSell;
+package com.github.streackmc.Joyous.JSell.data;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

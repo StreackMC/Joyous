@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.JSell;
+package com.github.streackmc.Joyous.JSell.user;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,6 +17,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.JSell.JSellMain;
+import com.github.streackmc.Joyous.JSell.data.SellEntry;
+import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellService;
+import com.github.streackmc.Joyous.JSell.data.SellSession;
+import com.github.streackmc.Joyous.JSell.data.SellSessionManager;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.interact.DetachReasonEnum;
 import com.github.streackmc.Joyous.utils.interact.IPageContext;
@@ -54,7 +60,7 @@ import net.kyori.adventure.text.Component;
  * @author Neonai
  * @since 0.8.0
  */
-final class JSellSellPage extends AbstractGuiPage {
+public final class JSellSellPage extends AbstractGuiPage {
 
   static final String KEY = "jsell.sell";
 

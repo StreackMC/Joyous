@@ -1,9 +1,10 @@
-package com.github.streackmc.Joyous.JSell;
+package com.github.streackmc.Joyous.JSell.admin;
 
 import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
 
+import com.github.streackmc.Joyous.JSell.JSellMain;
 import com.github.streackmc.Joyous.utils.interact.IPageContext;
 import com.github.streackmc.Joyous.utils.interact.input.AbstractChatPage;
 import com.github.streackmc.Joyous.utils.interact.input.ChatPrompt;
