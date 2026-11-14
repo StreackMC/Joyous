@@ -470,6 +470,14 @@ JwardChest:
 ## JSell 模块
 # 出售系统：玩家把物品放进界面（或直接 hand/inv/all）按可售列表计价，确认后一次性结算。
 # 可售列表由管理员在游戏内编辑：/jsellset
+# 以下是可用的 Placeholder API
+#   %joyous_jsell_hand%          手持物品的<b>单个</b>价值
+#   %joyous_jsell_hand_total%    手持物品的<b>总</b>价值（单价 × 数量）
+#   %joyous_jsell_hand_amount%   手持物品的数量
+#   %joyous_jsell_hand_display%  单个价值的展示格式（带千分位）
+#   %joyous_jsell_hand_total_display%  总价值的展示格式（带千分位）
+#   %joyous_jsell_unit%          货币单位名（配置项）
+#   %joyous_jsell_entries%       可售物品条目数
 JSell:
   ## 是否启用
   enabled: true
@@ -540,5 +548,5 @@ JSell:
 dbprofile: 'profile_mysql'
 
 ## 配置文件版本
-version: 000300
+version: 000400
 # 如无必要请勿修改
