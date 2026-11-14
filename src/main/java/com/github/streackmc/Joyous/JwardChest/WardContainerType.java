@@ -24,13 +24,11 @@ import net.kyori.adventure.text.Component;
  * @since 0.7.0
  */
 public enum WardContainerType {
+  // 不完全继承 InteractContainerEnum，因为有些枚举值在最终效果上是一样的
   CHEST("chest", "箱子", Material.CHEST, InventoryType.CHEST, true),
   DISPENSER("dispenser", "发射器", Material.DISPENSER, InventoryType.DISPENSER, false),
-  DROPPER("dropper", "投掷器", Material.DROPPER, InventoryType.DROPPER, false),
   HOPPER("hopper", "漏斗", Material.HOPPER, InventoryType.HOPPER, false),
   FURNACE("furnace", "熔炉", Material.FURNACE, InventoryType.FURNACE, false),
-  BLAST_FURNACE("blast_furnace", "高炉", Material.BLAST_FURNACE, InventoryType.BLAST_FURNACE, false),
-  SMOKER("smoker", "烟熏炉", Material.SMOKER, InventoryType.SMOKER, false),
   BREWING("brewing", "酿造台", Material.BREWING_STAND, InventoryType.BREWING, false),
   CRAFTER("crafter", "合成器", Material.CRAFTER, InventoryType.CRAFTER, false);
 

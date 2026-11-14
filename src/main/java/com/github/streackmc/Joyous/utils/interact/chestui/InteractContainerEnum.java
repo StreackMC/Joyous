@@ -23,14 +23,23 @@ import net.kyori.adventure.text.Component;
  */
 public enum InteractContainerEnum {
 
+  /** 箱子，支持选行 */
   CHEST("chest", InventoryType.CHEST, true),
+  /** 发射器 */
   DISPENSER("dispenser", InventoryType.DISPENSER, false),
+  /** 投掷器 */
   DROPPER("dropper", InventoryType.DROPPER, false),
+  /** 漏斗 */
   HOPPER("hopper", InventoryType.HOPPER, false),
+  /** 熔炉 */
   FURNACE("furnace", InventoryType.FURNACE, false),
+  /** 高炉 */
   BLAST_FURNACE("blast_furnace", InventoryType.BLAST_FURNACE, false),
+  /** 烟熏炉 */
   SMOKER("smoker", InventoryType.SMOKER, false),
+  /** 酿造台 */
   BREWING("brewing", InventoryType.BREWING, false),
+  /** 合成器 */
   CRAFTER("crafter", InventoryType.CRAFTER, false);
 
   private final String id;
