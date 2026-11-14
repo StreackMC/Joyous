@@ -131,6 +131,9 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
   `InteractContainerEnum`（容器外形表）+ `Click`/`ClickPolicy`（取消策略与语义分离）+ `GuiRouter`（点击/拖拽/关闭路由）。
   `IPageHandle.page()` 让路由不必依赖包内可见的 `PageEntry`。
   ⚠️ 关闭事件只有 `state()==VISIBLE` 才算玩家主动退出——切页/挂起/终止都会触发 close，必须按状态过滤。
+  ⚠️ **`repaint` 写完 Inventory 必须 `player.updateInventory()`**：我们常在被自己取消掉的点击里改内容，
+  客户端不会自行把某格刷成空（症状：取走的物品还留在格子里）。`AbstractGuiPage.repaint` 已内置这一句；
+  绕过 `repaint` 直接写 `inventory()` 的地方（如 JSell 防抖总价）也要自己补。
 - 已迁移：JMenu（`JMenuPage`，key=`jmenu`、purpose=菜单路径、keepable=true、子菜单用 REPLACE，
   `ACTIVE_MENUS` 与四个事件处理器已删）；JWardChest **运行时容器**（`WardRuntimePage`，purpose=会话 key、
   keepable=非预览；`render` 从会话现算，`tick` 用 `sessionOf(inventory)` 反查；广播仍由 controller 直写各 viewer 的界面）；
