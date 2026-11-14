@@ -61,14 +61,23 @@ public abstract class AbstractGuiPage implements IGuiInteract {
    * <p>
    * 只在页面<b>正在显示</b>时真的去画：被挂起时界面已关闭，这时写进去没有意义，
    * 而恢复时 {@link #onResume} 会重开并重画一遍。
+   * <p>
+   * <b>画完必须 {@code updateInventory()}</b>：我们改的是服务端那份 Inventory，
+   * 若这次改动发生在一个「被我们自己取消掉的点击」里，客户端不会自行把该格刷成空，
+   * 于是玩家会看到「取走的物品还留在格子里」。这一句就是让客户端重收一遍内容。
    */
   protected final void repaint(IPageContext ctx) {
     if (ctx.state() != PageStateEnum.VISIBLE) {
       return;
     }
     Inventory view = inventory;
-    if (view != null) {
-      render(ctx, new Canvas(view));
+    if (view == null) {
+      return;
+    }
+    render(ctx, new Canvas(view));
+    Player player = ctx.player();
+    if (player != null) {
+      player.updateInventory();
     }
   }
 

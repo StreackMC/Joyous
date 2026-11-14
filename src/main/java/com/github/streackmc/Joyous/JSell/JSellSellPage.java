@@ -479,6 +479,8 @@ final class JSellSellPage extends AbstractGuiPage {
         return;
       }
       paintSummary(player, new Canvas(view), session);
+      // 只改了服务端那份 Inventory：必须让客户端重收一遍，否则按钮会停在旧总价上
+      player.updateInventory();
     }, delay).getTaskId();
   }
 
