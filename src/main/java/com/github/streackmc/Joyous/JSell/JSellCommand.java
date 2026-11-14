@@ -19,6 +19,7 @@ import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.JSell.admin.JSellEditorGui;
 import com.github.streackmc.Joyous.JSell.data.SellEntry;
 import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellGroups;
 import com.github.streackmc.Joyous.JSell.data.SellService;
 import com.github.streackmc.Joyous.JSell.data.SellSession;
 import com.github.streackmc.Joyous.JSell.data.SellSessionManager;
@@ -35,12 +36,13 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 
 /**
- * JSell 的两个命令
+ * JSell 的三个命令
  * <ul>
  *   <li>{@code /jsell}（别名 {@code /sell}）：{@code gui} / {@code hand} / {@code inv} / {@code all}</li>
- *   <li>{@code /jsellset}（别名 {@code /sellset}）：打开编辑界面、重载、核查未完成事务</li>
+ *   <li>{@code /jsellworth}（别名 {@code /jworth}、{@code /worth}）：玩家总览，可按分组筛选</li>
+ *   <li>{@code /jsellset}（别名 {@code /sellset}）：打开编辑界面（可带分组）、设价、重载、核查事务</li>
  * </ul>
- * 出售是面向玩家的功能，但同样挂了权限节点（{@link JSellListener.Perm#USE}）：
+ * 出售是面向玩家的功能，但同样挂了权限节点（{@link JSellListener.Perm}）：
  * 有些服务器要按身份或世界整块关掉这套系统，用权限比改配置重启省事。
  *
  * @author kdxiaoyi
@@ -68,39 +70,96 @@ public final class JSellCommand {
   /** 注册命令与权限 */
   public void register() {
     Joyous.addPermissions(
-        PermDef.all(JSellListener.Perm.USE, "使用出售系统"),
-        PermDef.op(JSellListener.Perm.ADMIN, "编辑可售列表与核查出售事务"));
+        PermDef.all(JSellListener.Perm.SELL_GUI, "打开出售界面"),
+        PermDef.all(JSellListener.Perm.SELL_HAND, "出售主手物品"),
+        PermDef.all(JSellListener.Perm.SELL_INV, "出售背包物品"),
+        PermDef.all(JSellListener.Perm.SELL_ALL, "出售全部物品"),
+        PermDef.all(JSellListener.Perm.WORTH, "查看可售物品总览"),
+        PermDef.op(JSellListener.Perm.ADMIN, "打开可售列表编辑界面"),
+        PermDef.op(JSellListener.Perm.ADMIN_RELOAD, "重新读取可售列表"),
+        PermDef.op(JSellListener.Perm.ADMIN_PENDING, "列出未完成的出售事务"),
+        PermDef.op(JSellListener.Perm.ADMIN_RESTORE, "补发未完成事务里的物品"),
+        PermDef.op(JSellListener.Perm.ADMIN_VALUE, "为物品设置收购单价"),
+        PermDef.op(JSellListener.Perm.ADMIN_GROUP, "按分组打开编辑界面"),
+        PermDef.op(JSellListener.Perm.ADMIN_NOTICE, "接收 JSell 的管理提示"));
 
     Joyous.registerCommand(
         Commands.literal(JSellMain.COMMAND)
-            .requires(ctx -> ctx.getSender().hasPermission(JSellListener.Perm.USE))
+            .requires(ctx -> anyOf(ctx, JSellListener.Perm.SELL_GUI, JSellListener.Perm.SELL_HAND,
+                JSellListener.Perm.SELL_INV, JSellListener.Perm.SELL_ALL))
             .executes(this::cmdGui)
-            .then(Commands.literal("gui").executes(this::cmdGui))
-            .then(Commands.literal("hand").executes(this::cmdHand))
-            .then(Commands.literal("inv").executes(this::cmdInv))
-            .then(Commands.literal("all").executes(this::cmdAll))
+            .then(Commands.literal("gui")
+                .requires(ctx -> has(ctx, JSellListener.Perm.SELL_GUI))
+                .executes(this::cmdGui))
+            .then(Commands.literal("hand")
+                .requires(ctx -> has(ctx, JSellListener.Perm.SELL_HAND))
+                .executes(this::cmdHand))
+            .then(Commands.literal("inv")
+                .requires(ctx -> has(ctx, JSellListener.Perm.SELL_INV))
+                .executes(this::cmdInv))
+            .then(Commands.literal("all")
+                .requires(ctx -> has(ctx, JSellListener.Perm.SELL_ALL))
+                .executes(this::cmdAll))
             .build(),
         "出售物品",
         JSellMain.ALIASES);
 
     Joyous.registerCommand(
+        Commands.literal(JSellMain.WORTH_COMMAND)
+            .requires(ctx -> has(ctx, JSellListener.Perm.WORTH))
+            .executes(ctx -> worth(ctx, null))
+            .then(Commands.argument("group", StringArgumentType.word())
+                .suggests(this::suggestGroups)
+                .executes(ctx -> worth(ctx, StringArgumentType.getString(ctx, "group"))))
+            .build(),
+        "查看可售物品总览",
+        JSellMain.WORTH_ALIASES);
+
+    Joyous.registerCommand(
         Commands.literal(JSellMain.ADMIN_COMMAND)
-            .requires(ctx -> ctx.getSender().hasPermission(JSellListener.Perm.ADMIN))
+            .requires(ctx -> anyOf(ctx, JSellListener.Perm.ADMIN,
+                JSellListener.Perm.ADMIN_GROUP))
             .executes(this::cmdEditor)
-            .then(Commands.literal("reload").executes(this::cmdReload))
-            .then(Commands.literal("pending").executes(this::cmdPending))
+            .then(Commands.literal("reload")
+                .requires(ctx -> has(ctx, JSellListener.Perm.ADMIN_RELOAD))
+                .executes(this::cmdReload))
+            .then(Commands.literal("pending")
+                .requires(ctx -> has(ctx, JSellListener.Perm.ADMIN_PENDING))
+                .executes(this::cmdPending))
             .then(Commands.literal("restore")
+                .requires(ctx -> has(ctx, JSellListener.Perm.ADMIN_RESTORE))
                 .then(Commands.argument("tx", StringArgumentType.string())
                     .executes(this::cmdRestore)))
             // 快捷设价：/sellset <单价> [物品ID]（省略物品 = 主手）
             .then(Commands.argument("value", DoubleArgumentType.doubleArg(0.0))
+                .requires(ctx -> has(ctx, JSellListener.Perm.ADMIN_VALUE))
                 .executes(this::cmdSetHandValue)
                 .then(Commands.argument("item", StringArgumentType.word())
                     .suggests(this::suggestItems)
                     .executes(this::cmdSetItemValue)))
+            // 分组筛选：/sellset <组名>（缺省 all）。数字优先命中上面的单价分支
+            .then(Commands.argument("group", StringArgumentType.word())
+                .requires(ctx -> has(ctx, JSellListener.Perm.ADMIN_GROUP))
+                .suggests(this::suggestGroups)
+                .executes(this::cmdSetGroup))
             .build(),
         "编辑可售物品列表",
         JSellMain.ADMIN_ALIASES);
+  }
+
+  /** 发送者是否持有该权限（{@code requires} 拿到的是命令源，不是上下文） */
+  private static boolean has(CommandSourceStack source, String node) {
+    return source.getSender().hasPermission(node);
+  }
+
+  /** 持有其中任意一个即可 */
+  private static boolean anyOf(CommandSourceStack source, String... nodes) {
+    for (String node : nodes) {
+      if (source.getSender().hasPermission(node)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // ──────────────────────────────────────────────
@@ -151,6 +210,51 @@ public final class JSellCommand {
   // ──────────────────────────────────────────────
   // 管理员命令
   // ──────────────────────────────────────────────
+
+  /**
+   * {@code /jsellworth [组名]} —— 玩家总览
+   * <p>
+   * 只读界面：列出当前服务器收什么、分别值多少。能看到的组由分组权限决定，
+   * 所以同一个命令在不同玩家那里列出来的内容可以不同。
+   */
+  private int worth(CommandContext<CommandSourceStack> ctx, @Nullable String group) {
+    Player player = playerOf(ctx);
+    if (player == null) {
+      return 0;
+    }
+    gui.openWorth(player, group);
+    return 1;
+  }
+
+  /** {@code /sellset <组名>} —— 按分组打开编辑界面（缺省 all） */
+  private int cmdSetGroup(CommandContext<CommandSourceStack> ctx) {
+    Player player = playerOf(ctx);
+    if (player == null) {
+      return 0;
+    }
+    String raw = StringArgumentType.getString(ctx, "group");
+    if (raw.equalsIgnoreCase(SellGroups.ALL)) {
+      editor.open(player, SellGroups.ALL);
+      return 1;
+    }
+    String target = SellGroups.normalize(raw);
+    if (!entries.groups().contains(target)) {
+      player.sendMessage(i18n.tr("jsell.command.group_missing", raw));
+      return 0;
+    }
+    editor.open(player, target);
+    return 1;
+  }
+
+  /** 分组名补全：{@code all} + 现有分组 */
+  private CompletableFuture<Suggestions> suggestGroups(CommandContext<CommandSourceStack> ctx,
+      SuggestionsBuilder builder) {
+    builder.suggest(SellGroups.ALL);
+    for (String group : entries.groups()) {
+      builder.suggest(group);
+    }
+    return builder.buildFuture();
+  }
 
   private int cmdEditor(CommandContext<CommandSourceStack> ctx) {
     Player player = playerOf(ctx);

@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.JSell.admin.JSellEditorGui;
 import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellGroups;
 import com.github.streackmc.Joyous.JSell.data.SellService;
 import com.github.streackmc.Joyous.JSell.data.SellSessionManager;
 import com.github.streackmc.Joyous.JSell.data.SellStore;
@@ -23,14 +24,20 @@ import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
  * 「出售」：玩家把物品放进一个 6×9 的界面里，按可售列表逐件计价，确认后一次性结算。
  * <ul>
  *   <li>玩家命令 {@code /jsell}（别名 {@code /sell}）：{@code gui} / {@code hand} / {@code inv} / {@code all}</li>
- *   <li>管理员命令 {@code /jsellset}（别名 {@code /sellset}）：编辑可售列表、核查未完成事务</li>
+ *   <li>玩家总览 {@code /jsellworth}（别名 {@code /jworth}、{@code /worth}）：只读价目表，可按分组筛选</li>
+ *   <li>管理员命令 {@code /jsellset}（别名 {@code /sellset}）：编辑可售列表（可带分组）、设价、核查事务</li>
  * </ul>
  *
  * <h3>数据放在哪</h3>
  * <ul>
- *   <li><b>可售列表</b>（配置性质、含命令原文）→ {@code models/JSell/items.yml}，见 {@link SellEntryStore}</li>
+ *   <li><b>可售列表</b>（配置性质、含命令原文）→ {@code models/JSell/items.yml}，逐字段的明文 YAML，
+ *       见 {@link SellEntryStore}；旧版「一行一条 Base64」会在首次载入时自动迁移</li>
  *   <li><b>运行时状态</b>（托管物品、事务日志、销量）→ 数据库，见 {@link SellStore}</li>
  * </ul>
+ *
+ * <h3>分组</h3>
+ * 分组只是条目上的标签（组由条目派生），每组带 {@code sellable} / {@code viewable} 两个权限，
+ * 见 {@link SellGroups}。
  *
  * @author kdxiaoyi
  * @since 0.8.0
@@ -47,6 +54,10 @@ public class JSellMain extends JoyousModel {
   public static final String ADMIN_COMMAND = "jsellset";
   /** 管理员命令别名 */
   public static final List<String> ADMIN_ALIASES = List.of("sellset");
+  /** 玩家总览命令根名 */
+  public static final String WORTH_COMMAND = "jsellworth";
+  /** 玩家总览命令别名 */
+  public static final List<String> WORTH_ALIASES = List.of("jworth", "worth");
 
   private static volatile JSellMain instance;
 
@@ -204,7 +215,7 @@ public class JSellMain extends JoyousModel {
 
     String message = i18n.tr("jsell.storage.error", action, detail);
     for (Player player : Bukkit.getOnlinePlayers()) {
-      if (player.hasPermission(JSellListener.Perm.ADMIN)) {
+      if (player.hasPermission(JSellListener.Perm.ADMIN_NOTICE)) {
         player.sendMessage(message);
       }
     }

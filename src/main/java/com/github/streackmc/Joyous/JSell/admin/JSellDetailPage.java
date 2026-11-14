@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import com.github.streackmc.Joyous.JSell.JSellMain;
 import com.github.streackmc.Joyous.JSell.data.SellEntry;
 import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellGroups;
 import com.github.streackmc.Joyous.JSell.data.SellService;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.interact.DetachReasonEnum;
@@ -122,6 +123,29 @@ final class JSellDetailPage extends AbstractGuiPage {
     }
 
     switch (click.slot()) {
+      case JSellEditorGui.DETAIL_GROUP -> openChat(ctx, "group",
+          ChatPrompt.of(i18n.tr("jsell.input.field.group"), entry.group())
+              .hint(i18n.tr("jsell.input.group_hint")),
+          value -> {
+            if (!SellGroups.isValid(value)) {
+              tell(player, "jsell.detail.group_invalid", value);
+              return;
+            }
+            String target = SellGroups.normalize(value);
+            entry.group(target);
+            editor.save(entry);
+            tell(player, "jsell.detail.group_set", target);
+          });
+      case JSellEditorGui.DETAIL_DURABILITY -> {
+        if (!entry.hasDurability()) {
+          return Verdict.HANDLED;
+        }
+        entry.durabilityLoss(!entry.durabilityLoss());
+        editor.save(entry);
+        tell(player, entry.durabilityLoss()
+            ? "jsell.detail.durability_on_set" : "jsell.detail.durability_off_set");
+        repaint(ctx);
+      }
       case JSellEditorGui.DETAIL_VALUE -> openChat(ctx, "value",
           ChatPrompt.of(i18n.tr("jsell.input.field.value"),
               SellService.amountText(entry.unitValue())),

@@ -178,11 +178,11 @@ public final class JSellSellPage extends AbstractGuiPage {
    * 只有这两格会随总价变化，所以防抖刷新只碰它们——放入/取出时的重绘成本几乎为零。
    */
   private void paintSummary(Player player, Canvas canvas, SellSession session) {
-    double total = service.totalValue(session.items());
+    double total = service.totalValue(player, session.items());
     int units = 0;
     int sellableStacks = 0;
     for (ItemStack item : session.items()) {
-      if (service.entryOf(item) != null) {
+      if (service.entryOf(player, item) != null) {
         units += item.getAmount();
         sellableStacks++;
       }
@@ -217,7 +217,7 @@ public final class JSellSellPage extends AbstractGuiPage {
    */
   private ItemStack displayOf(Player player, ItemStack real, Map<UUID, SellService.Quota> quotas) {
     ItemStack display = real.clone();
-    SellEntry entry = entries.find(real);
+    SellEntry entry = entries.find(player, real);
     ItemMeta meta = display.getItemMeta();
     if (meta == null) {
       return display;
@@ -236,12 +236,17 @@ public final class JSellSellPage extends AbstractGuiPage {
         lore.add(JSellGui.legacy(line));
       }
     } else if (JSellMain.CONF.appendLore()) {
-      double unitValue = entry.unitValue();
+      // 单价取「实际单价」：开启耐久折损时它已经按剩余耐久折算过
+      double unitValue = SellService.effectiveUnit(real, entry);
       double stackValue = SellService.round(unitValue * real.getAmount());
       String unit = JSellMain.CONF.unitName();
       lore.add(Component.empty());
       lore.add(JSellGui.legacy(i18n.tr("jsell.gui.value_line",
           SellService.display(unitValue), unit)));
+      if (entry.durabilityLoss()) {
+        lore.add(JSellGui.legacy(i18n.tr("jsell.gui.value_durability",
+            SellService.durabilityPercent(real))));
+      }
       if (real.getAmount() > 1) {
         lore.add(JSellGui.legacy(i18n.tr("jsell.gui.value_stack",
             real.getAmount(), SellService.display(stackValue), unit)));
@@ -342,7 +347,7 @@ public final class JSellSellPage extends AbstractGuiPage {
     if (cursor == null || cursor.getType().isAir()) {
       return;
     }
-    SellEntry entry = entries.find(cursor);
+    SellEntry entry = entries.find(player, cursor);
     if (entry == null && !JSellMain.CONF.allowUnsellableInGui()) {
       player.sendMessage(i18n.tr("jsell.gui.reject_unsellable"));
       return;
@@ -376,7 +381,7 @@ public final class JSellSellPage extends AbstractGuiPage {
     if (stack == null || stack.getType().isAir()) {
       return;
     }
-    SellEntry entry = entries.find(stack);
+    SellEntry entry = entries.find(player, stack);
     if (entry == null && !JSellMain.CONF.allowUnsellableInGui()) {
       player.sendMessage(i18n.tr("jsell.gui.reject_unsellable"));
       return;
@@ -428,14 +433,14 @@ public final class JSellSellPage extends AbstractGuiPage {
    * </ol>
    */
   private void afterChange(IPageContext ctx, Player player) {
-    tidy();
+    tidy(player);
     sessions.persist(session);
     repaint(ctx);
     scheduleSummaryRefresh(ctx, player);
   }
 
   /** 整理：合并同种可堆叠物品，然后按「价值高 → 数量多 → 名称」排序 */
-  private void tidy() {
+  private void tidy(Player player) {
     List<ItemStack> sorted = new ArrayList<>(session.items());
     // 合并：同类型 + 可堆叠 + 模板命中结果相同（避免把「可售」和「不可售」的同类物品糊在一起）
     List<ItemStack> merged = new ArrayList<>();
@@ -457,7 +462,7 @@ public final class JSellSellPage extends AbstractGuiPage {
       merged.add(item);
     }
     merged.sort(Comparator
-        .comparingDouble((ItemStack item) -> -service.stackValue(item))
+        .comparingDouble((ItemStack item) -> -service.stackValue(player, item))
         .thenComparing(item -> item.getType().name())
         .thenComparingInt(ItemStack::getAmount));
 

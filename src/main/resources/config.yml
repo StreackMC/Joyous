@@ -469,9 +469,20 @@ JwardChest:
 
 ## JSell 模块
 # 出售系统：玩家把物品放进界面（或直接 hand/inv/all）按可售列表计价，确认后一次性结算。
-# 可售列表由管理员在游戏内编辑：/jsellset
+# 可售列表由管理员在游戏内编辑：/jsellset [组名]（缺省 all）
+# 玩家可以查看收购价目表：/jsellworth [组名]（别名 /jworth、/worth）
+#
+# 权限（0.9.0 起统一命名：命令 joyous.commands.<模型>.<命令>，其它 joyous.<模型>.<子动作>）：
+#   joyous.commands.jsell.gui / hand / inv / all                     出售
+#   joyous.commands.jsellworth                                       查看价目表
+#   joyous.commands.jsellset[.reload|pending|restore|value|group]     管理
+#   joyous.jsell.admin                                               接收管理提示
+#   joyous.jsell.group.<组名>.sellable                                能否卖出该组（默认 true）
+#   joyous.jsell.group.<组名>.viewable                                能否在价目表里看到该组（默认 true）
+#   组名由条目派生：给物品填一个没见过的组名就等于新建分组，权限节点会自动注册。
+#
 # 以下是可用的 Placeholder API
-#   %joyous_jsell_hand%          手持物品的<b>单个</b>价值
+#   %joyous_jsell_hand%          手持物品的<b>单个</b>价值（已含耐久折算）
 #   %joyous_jsell_hand_total%    手持物品的<b>总</b>价值（单价 × 数量）
 #   %joyous_jsell_hand_amount%   手持物品的数量
 #   %joyous_jsell_hand_display%  单个价值的展示格式（带千分位）

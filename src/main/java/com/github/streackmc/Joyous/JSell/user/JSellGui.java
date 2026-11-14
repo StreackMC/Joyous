@@ -13,6 +13,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.github.streackmc.Joyous.JSell.JSellMain;
 import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellGroups;
 import com.github.streackmc.Joyous.JSell.data.SellService;
 import com.github.streackmc.Joyous.JSell.data.SellSession;
 import com.github.streackmc.Joyous.JSell.data.SellSessionManager;
@@ -90,6 +91,27 @@ public final class JSellGui {
 
     PageArbiter.get().open(player,
         new JSellSellPage(entries, sessions, service, session),
+        PagePriorityEnum.REPLACE);
+  }
+
+  /**
+   * 打开「玩家总览」（{@code /jsellworth}）
+   * <p>
+   * 与出售界面不同，它是纯只读的：可以直接换页、换分组，不需要为它准备会话。
+   *
+   * @param group 初始分组筛选；{@code null} 或 {@code all} 表示全部
+   */
+  public void openWorth(Player player, @Nullable String group) {
+    String resolved = group == null || group.isBlank() || group.equalsIgnoreCase(SellGroups.ALL)
+        ? SellGroups.ALL
+        : SellGroups.normalize(group);
+    // 组不存在（或没权限看）时回落到「全部」，避免打开一个空列表让人以为功能坏了
+    if (!resolved.equals(SellGroups.ALL)
+        && (!entries.groups().contains(resolved) || !SellGroups.canView(player, resolved))) {
+      player.sendMessage(i18n.tr("jsell.worth.group_missing", group));
+      resolved = SellGroups.ALL;
+    }
+    PageArbiter.get().open(player, new JSellWorthPage(entries, resolved),
         PagePriorityEnum.REPLACE);
   }
 

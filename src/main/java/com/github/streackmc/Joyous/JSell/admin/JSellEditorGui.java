@@ -18,6 +18,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import com.github.streackmc.Joyous.JSell.JSellMain;
 import com.github.streackmc.Joyous.JSell.data.SellEntry;
 import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellGroups;
 import com.github.streackmc.Joyous.JSell.data.SellService;
 import com.github.streackmc.Joyous.JSell.user.JSellGui;
 import com.github.streackmc.Joyous.utils.i18n;
@@ -53,10 +54,13 @@ public final class JSellEditorGui {
   static final int SLOT_CLOSE = 49;
   static final int SLOT_INFO = 50;
   static final int SLOT_RELOAD = 51;
+  static final int SLOT_GROUP = 52;
   static final int SLOT_NEXT = 53;
 
   static final int DETAIL_SIZE = 27;
+  static final int DETAIL_GROUP = 3;
   static final int DETAIL_PREVIEW = 4;
+  static final int DETAIL_DURABILITY = 5;
   static final int DETAIL_VALUE = 10;
   static final int DETAIL_LIMIT = 11;
   static final int DETAIL_WINDOW = 12;
@@ -82,6 +86,8 @@ public final class JSellEditorGui {
     public int page;
     /** 搜索词（空 = 不过滤） */
     public String filter = "";
+    /** 分组筛选；{@link SellGroups#ALL} 表示不过滤 */
+    public String group = SellGroups.ALL;
     /** 正在查看的条目 */
     @Nullable
     public UUID detail;
@@ -101,8 +107,56 @@ public final class JSellEditorGui {
 
   /** 打开列表 */
   public void open(Player player) {
-    PageArbiter.get().open(player, new JSellListPage(this, store, state(player)),
+    open(player, SellGroups.ALL);
+  }
+
+  /**
+   * 打开列表并指定分组筛选
+   *
+   * @param group 组名或 {@code all}
+   */
+  public void open(Player player, @Nullable String group) {
+    State state = state(player);
+    if (group != null) {
+      state.group = resolveGroup(group);
+      state.page = 0;
+    }
+    PageArbiter.get().open(player, new JSellListPage(this, store, state),
         PagePriorityEnum.REPLACE);
+  }
+
+  /**
+   * 把外部给的组名映射成当前存在的筛选值
+   * <p>
+   * 组名可以是 {@code all}（不过滤），也可以是已存在的组。不存在的组会回落到 {@code all} 并提示——
+   * 比默默显示一个空列表好排查。
+   */
+  public String resolveGroup(@Nullable String raw) {
+    if (raw == null || raw.isBlank() || raw.equalsIgnoreCase(SellGroups.ALL)) {
+      return SellGroups.ALL;
+    }
+    String normalized = SellGroups.normalize(raw);
+    return store.groups().contains(normalized) ? normalized : SellGroups.ALL;
+  }
+
+  /** 列表里可选的分组（{@code all} 在最前） */
+  public List<String> selectableGroups() {
+    List<String> result = new ArrayList<>();
+    result.add(SellGroups.ALL);
+    result.addAll(store.groups());
+    return result;
+  }
+
+  /** 下一个 / 上一个分组（列表底部的「分组」按钮用） */
+  String cycleGroup(String current, boolean forward) {
+    List<String> all = selectableGroups();
+    int index = all.indexOf(current);
+    if (index < 0) {
+      index = 0;
+    }
+    int step = forward ? 1 : -1;
+    int next = Math.floorMod(index + step, all.size());
+    return all.get(next);
   }
 
   /** 打开详情；条目已不存在时退回列表 */
@@ -165,9 +219,16 @@ public final class JSellEditorGui {
     canvas.set(SLOT_INFO, JSellGui.button(Material.PAPER,
         i18n.tr("jsell.editor.info"), List.of(
             i18n.tr("jsell.editor.info_count", store.size(), list.size()),
+            i18n.tr("jsell.editor.info_group", groupLabel(state.group)),
             i18n.tr("jsell.editor.info_page", state.page + 1, pages))));
     canvas.set(SLOT_RELOAD, JSellGui.button(Material.HOPPER,
         i18n.tr("jsell.editor.reload"), List.of(i18n.tr("jsell.editor.reload_lore"))));
+    canvas.set(SLOT_GROUP, JSellGui.button(Material.MAP,
+        i18n.tr("jsell.editor.group", groupLabel(state.group)),
+        List.of(
+            i18n.tr("jsell.editor.group_current", groupLabel(state.group)),
+            i18n.tr("jsell.editor.group_hint"),
+            i18n.tr("jsell.editor.group_next"))));
     canvas.set(SLOT_NEXT, JSellGui.button(Material.ARROW,
         i18n.tr("jsell.editor.next"),
         List.of(i18n.tr("jsell.editor.page", state.page + 1, pages))));
@@ -190,9 +251,15 @@ public final class JSellEditorGui {
     lore.add(Component.empty());
     lore.add(JSellGui.legacy(i18n.tr("jsell.editor.entry_value",
         SellService.display(entry.unitValue()), unit)));
+    lore.add(JSellGui.legacy(i18n.tr("jsell.editor.entry_group", groupLabel(entry.group()))));
     lore.add(JSellGui.legacy(limitLine(entry, unit)));
     lore.add(JSellGui.legacy(i18n.tr("jsell.editor.entry_match",
         entry.match().id(), i18n.tr("jsell.match." + entry.match().id()))));
+    if (entry.hasDurability()) {
+      lore.add(JSellGui.legacy(i18n.tr("jsell.editor.entry_durability",
+          i18n.tr(entry.durabilityLoss()
+              ? "jsell.editor.durability_on" : "jsell.editor.durability_off"))));
+    }
     lore.add(JSellGui.legacy(i18n.tr("jsell.editor.entry_commands",
         entry.commands().size(), entry.perItemCommands().size())));
     if (entry.removed()) {
@@ -215,11 +282,15 @@ public final class JSellEditorGui {
     return i18n.tr("jsell.editor.entry_limit_window", entry.limitCount(), entry.limitSeconds(), unit);
   }
 
-  /** 按搜索词筛选，新登记的排在前面 */
+  /** 按搜索词与分组筛选，新登记的排在前面 */
   private List<SellEntry> filtered(State state) {
     List<SellEntry> result = new ArrayList<>();
     String needle = state.filter == null ? "" : state.filter.trim().toLowerCase(Locale.ROOT);
+    boolean allGroups = state.group == null || state.group.equals(SellGroups.ALL);
     for (SellEntry entry : store.all()) {
+      if (!allGroups && !entry.group().equals(state.group)) {
+        continue;
+      }
       if (needle.isEmpty() || matchesFilter(entry, needle)) {
         result.add(entry);
       }
@@ -228,9 +299,19 @@ public final class JSellEditorGui {
     return result;
   }
 
+  /** 分组的展示名：{@code all} 要翻成「全部组」，其余原样 */
+  String groupLabel(@Nullable String group) {
+    return group == null || group.equals(SellGroups.ALL)
+        ? i18n.tr("jsell.editor.group_all")
+        : group;
+  }
+
   private static boolean matchesFilter(SellEntry entry, String needle) {
     String material = entry.template().getType().name().toLowerCase(Locale.ROOT);
     if (material.contains(needle)) {
+      return true;
+    }
+    if (entry.group().toLowerCase(Locale.ROOT).contains(needle)) {
       return true;
     }
     ItemStack display = entry.display();
@@ -269,6 +350,32 @@ public final class JSellEditorGui {
       preview.setItemMeta(previewMeta);
     }
     canvas.set(DETAIL_PREVIEW, preview);
+
+    canvas.set(DETAIL_GROUP, JSellGui.button(Material.MAP,
+        i18n.tr("jsell.detail.group", groupLabel(entry.group())),
+        List.of(
+            i18n.tr("jsell.detail.group_hint"),
+            i18n.tr("jsell.detail.group_perm", SellGroups.sellableNode(entry.group())),
+            i18n.tr("jsell.detail.group_view_perm", SellGroups.viewableNode(entry.group())),
+            i18n.tr("jsell.detail.click"))));
+
+    // 只有模板自身带耐久的物品才显示折损开关；没有耐久就没有「百分比」可言
+    if (entry.hasDurability()) {
+      ItemStack loss = JSellGui.button(Material.FLINT_AND_STEEL,
+          i18n.tr(entry.durabilityLoss()
+              ? "jsell.detail.durability_on" : "jsell.detail.durability_off"),
+          List.of(
+              i18n.tr("jsell.detail.durability_hint"),
+              i18n.tr("jsell.detail.click")));
+      if (entry.durabilityLoss()) {
+        ItemMeta lossMeta = loss.getItemMeta();
+        if (lossMeta != null) {
+          lossMeta.setEnchantmentGlintOverride(Boolean.TRUE);
+          loss.setItemMeta(lossMeta);
+        }
+      }
+      canvas.set(DETAIL_DURABILITY, loss);
+    }
 
     canvas.set(DETAIL_VALUE, JSellGui.button(Material.GOLD_INGOT,
         i18n.tr("jsell.detail.value", SellService.display(entry.unitValue()), unit),
@@ -330,8 +437,12 @@ public final class JSellEditorGui {
    * 登记一条新的可售物品
    * <p>
    * 只取模板副本（数量归一为 1），<b>不动</b>管理员手上的物品。
+   * <p>
+   * <b>去重</b>：可收购 NBT 完全相同（{@code isSimilar}）的条目已经存在时，不再新增，
+   * 直接打开那一条的编辑界面——重复登记只会让「差异最小」的匹配结果变得不可预期。
+   * 分组取<b>当前筛选的分组</b>；筛选是「全部组」时归入 {@code default}。
    *
-   * @return 是否真的新增了一条
+   * @return 是否真的新增了一条（去重命中时返回 false）
    */
   boolean addEntry(Player player, State state, @Nullable ItemStack source) {
     if (source == null || source.getType().isAir()) {
@@ -339,11 +450,25 @@ public final class JSellEditorGui {
     }
     ItemStack template = source.clone();
     template.setAmount(1);
+
+    SellEntry same = store.findSameTemplate(template);
+    if (same != null) {
+      player.sendMessage(i18n.tr("jsell.editor.duplicate",
+          JSellGui.prettyName(template), groupLabel(same.group())));
+      openDetail(player, same.id());
+      return false;
+    }
+
+    String targetGroup = state.group == null || state.group.equals(SellGroups.ALL)
+        ? SellGroups.DEFAULT
+        : state.group;
     SellEntry entry = new SellEntry(UUID.randomUUID(), template, 1.0, System.currentTimeMillis());
+    entry.group(targetGroup);
     store.save(entry);
     store.flush();
     player.sendMessage(i18n.tr("jsell.editor.added",
         JSellGui.prettyName(template), JSellMain.CONF.unitName()));
+    player.sendMessage(i18n.tr("jsell.editor.added_group", groupLabel(targetGroup)));
     // 新增后回到第一页，保证管理员一眼能看到刚加的那条（列表按登记时间倒序）
     state.page = 0;
     return true;

@@ -73,47 +73,46 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
   返回 null 表示不处理（`%joyous_xxx%` → params = `xxx`）
 - PDC 持久化玩家数据；命令用 Paper Brigadier（`Commands.literal/argument` + `ArgumentTypes.*`）
 - 权限用 `Joyous.addPermissions(PermDef.all/op/none(...))`，命令节点用 `.requires(...)`
+  （`requires` 的参数是 **CommandSourceStack**，不是 CommandContext）
+- **权限命名（0.9.0 起强制，不兼容旧名）**：命令 `joyous.commands.<模型>.<命令>[.<子类型>]`，
+  其它 `joyous.<模型>.<子动作>`。已改：JSell（含 `jsellworth`）、JwardChest（命令与 `edit`/`use` 分离）、
+  Entroprix（修掉 `.get`/`.set` 与声明不符与 `tires` 拼写）、PlayerTitle（`joyous.titles.*` →
+  `joyous.playertitle.titles.*`）
 
 ## Git 约定
 - 身份 `Neonai <neonai+coding@kdxiaoyi.top>`，仅命令行 `-c` 携带；只 add 本次产出；不做任何远程同步
 - 记忆文件属任务产出，先写记忆再提交
 
 ## JSell 要点
-- 命令 `/jsell`(`/sell`)：`gui`/`hand`/`inv`/`all`；`/jsellset`(`/sellset`)：编辑界面/`reload`/`pending`/`restore <tx>`
-- 权限 **`joyous.jsell.use`（默认 all，但必须有节点）**、`joyous.jsell.admin`
-- **可售列表**落 `models/JSell/items.yml`，但**不是分层 YAML**：一行一条整条 Base64
-  （`items: [ "<b64>" ]`）。⚠️ 原因：StreackLib 的 `putNested` 把**第一个点**当成「最后一个点」
-  （`getIndexOfNormalDot` 命中即 `return i`），≥3 层的写入会把前缀重复进叶子键：
-  `putString("items.<uuid>.item", v)` → `items: { <uuid>: { "<uuid>.item": v } }`，读回来找不到。
-  **与 deprecated 的 `put()` 无关**（它是 `cache.put(key,value)`，连一层都不拆）。
-  → 写配置的规则：路径最多一个点；更深层级用 `putSection(path, Map)` 一次写；**读不限深度**
-- 匹配（`SellMatch`）：STRICT = `ItemStack#isSimilar`（忽略数量）；CONTAINS =
-  ⚠️ **不能用 `ItemStack#serialize()`**（1.21.5+ 已从 `type/meta` 变成 `id/components`），
-  改为「PDC 子集 + Lore 前缀 + 附魔等级 ≥ + 自定义名一致 + 其余**数据组件**逐项相等」；
-  组件按 `type.getKey().getKey()` 判名（`CUSTOM_DATA` 等常量在 1.21.8 API 里根本没暴露）
+- 命令 `/jsell`(`/sell`)：`gui`/`hand`/`inv`/`all`；`/jsellworth`(`/jworth`,`/worth`)：玩家只读价目表；
+  `/jsellset`(`/sellset`)：`[组名]` 打开列表 / `<单价> [物品]` 设价 / `reload` / `pending` / `restore <tx>`
+- 权限（0.9.0 起统一命名）：命令 `joyous.commands.jsell.{gui,hand,inv,all}`、`joyous.commands.jsellworth`、
+  `joyous.commands.jsellset[.reload|pending|restore|value|group]`；非命令 `joyous.jsell.admin`、
+  `joyous.jsell.group.<组>.{sellable,viewable}`（默认 true，随组动态注册）
+- **存档 v2（明文 YAML）**：`models/JSell/items.yml` → `format: 2` + `entries: [ {id,group,item,value,…} ]`
+  一项一条，只有 `item` 是 Base64（NBT 只能这么存）。写入用 `putInt("format")` + `putList("entries", List<Map>)`
+  ——**两个路径都没有点**，绕开 StreackLib `putNested` 把第一个点当最后一个点的缺陷；
+  用 `TYPES.YAMLc` + `putComment` 才有注释。旧格式 `items: [base64]` 载入时自动迁移并删旧键，
+  迁移属一次性写盘（强制 `dirty=true`）
+- 分组：`SellGroups`（`all` 是筛选哨兵不是组名；`normalize` 只留 `[a-z0-9_-]`，空/all → `default`）；
+  组由条目派生、`default` 排最前；`/sellset` 根节点同时挂 `value`(double) 与 `group`(word)，数字先命中 value
+- 匹配选优：`SellMatch.difference(item, template)` 给代价（0=完全相同；多出的数据组件/Lore 行/附魔等级/PDC 键
+  各计 1），`locate` 取**代价最小**、同价取**先登记**。取代了旧的「先 STRICT 后 CONTAINS」
+- 去重：`findSameTemplate`（`isSimilar`）命中就**打开已有条目**，不再新增
+- 耐久折损：`SellEntry.hasDurability()` = 模板带 `MAX_DAMAGE`；开启后 `SellService.effectiveUnit()` =
+  单价 × (MAX_DAMAGE−DAMAGE)/MAX_DAMAGE（按**实例**取，缺 DAMAGE 视为满耐久）。
+  **所有取价入口都走 `effectiveUnit`**；`Sale` 自带 `value`，逐条命令用 `sale.value()` 而非「单价×件数」
+- 分组权限同时是定价门槛：`entries.find(player,item)` 拿不到 `sellable` 就当不可售（计价/结算/占位符一致）
 - 托管模型（抗灾核心）：界面里的物品 = 权威内容，每次变动同步写 `jsell_escrow`；
-  关界面/断线 = 取消（原样退还 + 删行 + `player.saveData()`），崩服 = 下次上线交付
-- 结算协议（`jsell_tx` 多阶段）：PREPARED(只记日志) → COMMITTED(已接管物品) →
-  REFUNDED(退款已交还) → PAID(命令可能已跑) → 删除。
+  关界面/断线 = 取消（原样退还 + 删行），崩服 = 下次上线交付
+- 结算协议（`jsell_tx` 多阶段）：PREPARED → COMMITTED → REFUNDED → PAID → 删除。
   **PREPARED/COMMITTED 可整单退回；REFUNDED/PAID 只能按已售处理**（重复执行命令=刷钱）
-- 交付顺序一律「**先删库、再给物品**」：同一微窗口里宁可少给（可人工补），绝不复制
-- 「钱」这个外部副作用无法事务化：停在 REFUNDED/PAID 的单子留给 `/jsellset pending` 人工核查
+- 交付顺序一律「先删库、再给物品」：宁可少给（可人工补），绝不复制
 - 限购：`jsell_usage` 流水 + `SUM(amount)`；`limitCount<=0` 不限、`limitSeconds<=0` 终身累计；
-  查询失败时保守返回 0（宁可卖不掉，也不打穿限购）
-- 限售提示按**玩家视角**写（`SellService.quotaFor` + `formatRemaining`）：「还可卖出 N 个，
-  限额将于 23 小时 59 分钟后重置」；重置时刻取 **MAX(sold_at)+窗口**（滚动窗口要等最后一批过期）；
-  时间只到分钟、>24h 写「约 N 天」（不写秒，否则 Lore 每帧都像变了）；额度按条目缓存，一次绘制一份
-- `/sellset <单价> [物品ID]`（省略=主手，材质带补全）：没有条目就用该物品新建（主手连 NBT），
-  然后直接开详情；匹配用 `findIncludingRemoved`，避免对已移除条目重复建项
-- GUI：6×9，前 5 行放入区，45 关闭 / 49 结算预览 / 53 确认（**金额防抖刷新，`repaint` 只重画物品区**）
-- 展示物品永远是 `clone()`（追加 lore / 改名都在副本上）→ 「展示与实物互不影响」的落点
-- ⚠️ 取消事件里改光标必须 `runTask` 延后 `setItemOnCursor`，否则被服务端还原
-- ⚠️ 改可售列表后要 `store.flush()`；`SellEntryStore` 有材质索引 `byMaterial`（save/delete 置脏）
-- 已用「真机自检」验过（临时 selftest + SQLite）：匹配语义、条目/托管/事务存档往返（PDC 不丢）、
-  限购额度、SQL 白名单；**未验证**：真人 GUI 交互与命令派发（需客户端）
-- ⚠️ 构建注意：VS Code Java 语言服务器会把 ECJ 的「带错误的 class」写进 `target/classes`，
-  随后 `mvn package` 增量编译会跳过它 → 出现「`Unresolved compilation problems`」的运行时错误。
-  **改完代码一律 `mvn clean package`**
+  查询失败保守返回 0；重置时刻取 MAX(sold_at)+窗口；时间只到分钟
+- GUI：6×9；管理员列表 `SLOT_GROUP=52` 循环分组（左键下一个/右键上一个），详情 `3`=分组、`5`=折损开关
+- ⚠️ 取消事件里改光标必须 `runTask` 延后 `setItemOnCursor`；改列表后要 `store.flush()`
+- ⚠️ 构建：VS Code 语言服务器会把 ECJ 的错误 class 写进 `target/classes` → **一律 `mvn clean package`**
 
 ## 共享交互层（排队内核 + 容器页面层已实现，JMenu / Ward 运行时已迁入）
 - 触发：JMenu / JSell / JwardChest 三模块各自重复实现「容器 UI + 聊天输入」。**不放 StreackLib**——

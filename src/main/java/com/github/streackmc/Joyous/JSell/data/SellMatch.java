@@ -111,9 +111,73 @@ public enum SellMatch {
     return contains(item, template);
   }
 
+  /** 差异不可比（不匹配）时的返回值 */
+  public static final int NO_MATCH = Integer.MAX_VALUE;
+
+  /**
+   * 实例与模板之间的「可收购 NBT 差异」代价
+   * <p>
+   * 同一材质下可能登记了多条模板（白板剑、带附魔的剑、带自定义名的剑……），玩家手里那把剑
+   * 往往同时命中好几条。挑哪一条，判据是<b>差异最小</b>：
+   * <ul>
+   *   <li>{@code 0} —— NBT 完全相同（{@code isSimilar} 成立），这是最优先的情况；</li>
+   *   <li>数值越小越"贴近"模板，价格与限额也就越符合管理员的本意。</li>
+   * </ul>
+   * 代价的构成刻意保持简单、可解释：<b>多出来的数据组件</b>（每个 1）、
+   * <b>多出来的 Lore 行</b>、<b>高出的附魔等级</b>、<b>多出来的 PDC 键</b>。
+   * 它只用来排序，不参与「能不能卖」的判断——那是 {@link #matches} 的事。
+   *
+   * @return 代价值；不匹配返回 {@link #NO_MATCH}
+   */
+  public int difference(@Nullable ItemStack item, @Nullable ItemStack template) {
+    if (!matches(item, template)) {
+      return NO_MATCH;
+    }
+    if (item == null || template == null || item.isSimilar(template)) {
+      return 0;
+    }
+    int cost = 0;
+
+    // ① 实例上多出来的数据组件
+    for (DataComponentType type : item.getDataTypes()) {
+      if (!template.hasData(type)) {
+        cost++;
+      }
+    }
+
+    // ② 多出来的 Lore 行
+    ItemMeta actualMeta = item.getItemMeta();
+    ItemMeta requiredMeta = template.getItemMeta();
+    int actualLore = actualMeta == null || actualMeta.lore() == null ? 0 : actualMeta.lore().size();
+    int requiredLore = requiredMeta == null || requiredMeta.lore() == null
+        ? 0 : requiredMeta.lore().size();
+    if (actualLore > requiredLore) {
+      cost += actualLore - requiredLore;
+    }
+
+    // ③ 高出的附魔等级
+    if (requiredMeta != null && actualMeta != null) {
+      for (Map.Entry<Enchantment, Integer> enchant : requiredMeta.getEnchants().entrySet()) {
+        int delta = actualMeta.getEnchantLevel(enchant.getKey()) - enchant.getValue();
+        if (delta > 0) {
+          cost += delta;
+        }
+      }
+
+      // ④ 实例上多出来的 PDC 键
+      PersistentDataContainer actualPdc = actualMeta.getPersistentDataContainer();
+      PersistentDataContainer requiredPdc = requiredMeta.getPersistentDataContainer();
+      for (org.bukkit.NamespacedKey key : actualPdc.getKeys()) {
+        if (!requiredPdc.has(key)) {
+          cost++;
+        }
+      }
+    }
+    return cost;
+  }
+
   /** 「至少包含」的判定：模板上出现的每一处物品数据都必须在实例上成立 */
-  private static boolean contains(ItemStack item, ItemStack template) {
-    ItemMeta required = template.getItemMeta();
+  private static boolean contains(ItemStack item, ItemStack template) {    ItemMeta required = template.getItemMeta();
     ItemMeta actual = item.getItemMeta();
     if (required == null) {
       // 模板没有 meta，实例有 meta 也算命中（「多出来」的部分不管）

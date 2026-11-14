@@ -58,14 +58,39 @@ public final class JSellListener implements Listener {
   /**
    * 权限节点
    * <p>
+   * 命名遵循项目统一规则（0.9.0 起）：
+   * <ul>
+   *   <li><b>命令</b> —— {@code joyous.commands.<模型>.<命令>[.<子类型>]}</li>
+   *   <li><b>其它</b> —— {@code joyous.<模型>.[子动作]}</li>
+   * </ul>
    * 出售是面向玩家的功能，但仍然需要节点：有些服务器要按身份/世界禁用这套系统，
-   * 靠权限（而不是改配置重启）来开关最省事。
+   * 靠权限（而不是改配置重启）来开关最省事。分组权限见 {@code SellGroups}。
    */
   public static final class Perm {
-    /** 使用出售系统（含四个子命令） */
-    public static final String USE = "joyous.jsell.use";
-    /** 编辑可售列表、核查事务 */
-    public static final String ADMIN = "joyous.jsell.admin";
+    /** {@code /jsell}（无参 / gui）——打开出售界面 */
+    public static final String SELL_GUI = "joyous.commands.jsell.gui";
+    /** {@code /jsell hand} */
+    public static final String SELL_HAND = "joyous.commands.jsell.hand";
+    /** {@code /jsell inv} */
+    public static final String SELL_INV = "joyous.commands.jsell.inv";
+    /** {@code /jsell all} */
+    public static final String SELL_ALL = "joyous.commands.jsell.all";
+    /** {@code /jsellworth} ——玩家总览 */
+    public static final String WORTH = "joyous.commands.jsellworth";
+    /** {@code /jsellset} ——打开编辑界面 */
+    public static final String ADMIN = "joyous.commands.jsellset";
+    /** {@code /jsellset reload} */
+    public static final String ADMIN_RELOAD = "joyous.commands.jsellset.reload";
+    /** {@code /jsellset pending} */
+    public static final String ADMIN_PENDING = "joyous.commands.jsellset.pending";
+    /** {@code /jsellset restore <tx>} */
+    public static final String ADMIN_RESTORE = "joyous.commands.jsellset.restore";
+    /** {@code /jsellset <单价> [物品]} */
+    public static final String ADMIN_VALUE = "joyous.commands.jsellset.value";
+    /** {@code /jsellset <组名>} */
+    public static final String ADMIN_GROUP = "joyous.commands.jsellset.group";
+    /** 非命令：接收「存档异常 / 事务未走完」这类管理提示 */
+    public static final String ADMIN_NOTICE = "joyous.jsell.admin";
 
     private Perm() {
     }

@@ -22,6 +22,8 @@ import com.github.streackmc.Joyous.JSell.JSellMain;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.jlogger;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
+
 /**
  * 出售的核心逻辑：计价、限额、结算
  *
@@ -68,29 +70,102 @@ public final class SellService {
     return entries.find(item);
   }
 
+  /**
+   * 命中该物品、且该玩家有权出售的条目
+   * <p>
+   * 面向玩家的取价/结算一律走这个重载：分组权限拿不到时，物品就是<b>不可售</b>。
+   */
+  @Nullable
+  public SellEntry entryOf(@Nullable Player player, @Nullable ItemStack item) {
+    return entries.find(player, item);
+  }
+
   /** 单件价值（一个物品值多少） */
   public double unitValue(@Nullable ItemStack item) {
-    SellEntry entry = entries.find(item);
-    return entry == null ? 0.0 : entry.unitValue();
+    return unitValue(null, item);
+  }
+
+  /** 单件价值（含分组权限与耐久折损） */
+  public double unitValue(@Nullable Player player, @Nullable ItemStack item) {
+    SellEntry entry = entries.find(player, item);
+    return entry == null ? 0.0 : effectiveUnit(item, entry);
+  }
+
+  /**
+   * 一件物品的<b>实际</b>单价
+   * <p>
+   * 平时就是条目单价；条目开启「耐久折损」时按 <b>剩余耐久百分比</b> 折算：
+   * <pre>
+   *   成交价 = 单价 × (最大耐久 - 已损耗) / 最大耐久
+   * </pre>
+   * 判据取自<b>实例</b>的 {@code MAX_DAMAGE} / {@code DAMAGE} 组件，而不是模板——
+   * 管理员改过模板的耐久、或实例被数据包改过，都应当以实例为准。
+   * 实例没有耐久组件（例如模板有、但这件被改成无法破坏）时不折损。
+   */
+  public static double effectiveUnit(@Nullable ItemStack item, @Nullable SellEntry entry) {
+    if (entry == null) {
+      return 0.0;
+    }
+    double base = entry.unitValue();
+    if (!entry.durabilityLoss() || item == null) {
+      return base;
+    }
+    Integer max = item.getData(DataComponentTypes.MAX_DAMAGE);
+    if (max == null || max <= 0) {
+      return base;
+    }
+    int damage = item.getDataOrDefault(DataComponentTypes.DAMAGE, 0);
+    int remaining = Math.max(0, max - Math.max(0, damage));
+    if (remaining >= max) {
+      return base;
+    }
+    return round(base * remaining / (double) max);
+  }
+
+  /**
+   * 剩余耐久百分比（0-100，四舍五入）
+   * <p>
+   * 没有耐久组件的物品返回 {@code 100}——「不存在折损」在展示上就是满耐久。
+   */
+  public static int durabilityPercent(@Nullable ItemStack item) {
+    if (item == null) {
+      return 100;
+    }
+    Integer max = item.getData(DataComponentTypes.MAX_DAMAGE);
+    if (max == null || max <= 0) {
+      return 100;
+    }
+    int damage = item.getDataOrDefault(DataComponentTypes.DAMAGE, 0);
+    int remaining = Math.max(0, max - Math.max(0, damage));
+    return (int) Math.round(remaining * 100.0 / max);
   }
 
   /** 这一摞的总价值（单价 × 数量） */
-  public double stackValue(@Nullable ItemStack item) {
+  public double stackValue(@Nullable ItemStack item) {    return stackValue(null, item);
+  }
+
+  /** 这一摞的总价值（含分组权限与耐久折损） */
+  public double stackValue(@Nullable Player player, @Nullable ItemStack item) {
     if (item == null || item.getType().isAir()) {
       return 0.0;
     }
-    SellEntry entry = entries.find(item);
-    return entry == null ? 0.0 : round(entry.unitValue() * item.getAmount());
+    SellEntry entry = entries.find(player, item);
+    return entry == null ? 0.0 : round(effectiveUnit(item, entry) * item.getAmount());
   }
 
   /** 一组物品的总价值 */
   public double totalValue(@Nullable Collection<ItemStack> items) {
+    return totalValue(null, items);
+  }
+
+  /** 一组物品的总价值（含权限与折损） */
+  public double totalValue(@Nullable Player player, @Nullable Collection<ItemStack> items) {
     if (items == null) {
       return 0.0;
     }
     double total = 0.0;
     for (ItemStack item : items) {
-      total += stackValue(item);
+      total += stackValue(player, item);
     }
     return round(total);
   }
@@ -124,8 +199,13 @@ public final class SellService {
   // 计划
   // ──────────────────────────────────────────────
 
-  /** 一件「确定要卖」的物品，连带它命中的条目（逐件命令要用） */
-  public record Sale(ItemStack item, SellEntry entry) {
+  /**
+   * 一件「确定要卖」的物品，连带它命中的条目与<b>这一摞的实际成交价</b>
+   * <p>
+   * 成交价必须随 {@link Sale} 一起带走：开启耐久折损后同一件物品的每把价格都可能不同，
+   * 命令里的 {@code %amount%} 不能再由「条目单价 × 件数」推出来。
+   */
+  public record Sale(ItemStack item, SellEntry entry, double value) {
   }
 
   /** 一次结算的完整计划 */
@@ -163,10 +243,10 @@ public final class SellService {
    * <p>
    * 限购按<b>条目</b>算，同一批物品里同一路径的条目共享一份剩余额度，先到先得（按界面顺序）。
    *
-   * @param player 出售者（限购按玩家统计）
+   * @param player 出售者（限购按玩家统计，分组权限也按他判定）
    * @param stacks 待结算物品（不会被修改）
    */
-  public Plan plan(UUID player, @Nullable List<? extends ItemStack> stacks) {
+  public Plan plan(Player player, @Nullable List<? extends ItemStack> stacks) {
     Plan plan = new Plan();
     if (stacks == null || stacks.isEmpty()) {
       return plan;
@@ -176,12 +256,12 @@ public final class SellService {
       if (stack == null || stack.getType().isAir() || stack.getAmount() <= 0) {
         continue;
       }
-      SellEntry entry = entries.find(stack);
+      SellEntry entry = entries.find(player, stack);
       if (entry == null) {
         plan.refunds.add(stack.clone());
         continue;
       }
-      int allowed = quota.computeIfAbsent(entry, e -> remainingQuota(player, e));
+      int allowed = quota.computeIfAbsent(entry, e -> remainingQuota(player.getUniqueId(), e));
       if (allowed <= 0) {
         plan.refunds.add(stack.clone());
         continue;
@@ -189,9 +269,10 @@ public final class SellService {
       int take = Math.min(allowed, stack.getAmount());
       ItemStack part = stack.clone();
       part.setAmount(take);
-      plan.sold.add(new Sale(part, entry));
+      double value = round(effectiveUnit(part, entry) * take);
+      plan.sold.add(new Sale(part, entry, value));
       plan.units.merge(entry, take, Integer::sum);
-      plan.amount += entry.unitValue() * take;
+      plan.amount += value;
       if (take < stack.getAmount()) {
         ItemStack rest = stack.clone();
         rest.setAmount(stack.getAmount() - take);
@@ -323,7 +404,7 @@ public final class SellService {
     if (session.settled()) {
       return 0.0;
     }
-    Plan plan = plan(player.getUniqueId(), session.snapshot());
+    Plan plan = plan(player, session.snapshot());
     if (plan.sold.isEmpty()) {
       player.sendMessage(i18n.tr("jsell.sell.nothing"));
       return 0.0;
@@ -391,7 +472,7 @@ public final class SellService {
       if (stack == null || stack.getType().isAir() || stack.getAmount() <= 0) {
         continue;
       }
-      SellEntry entry = entries.find(stack);
+      SellEntry entry = entries.find(player, stack);
       if (entry == null) {
         continue;
       }
@@ -402,9 +483,9 @@ public final class SellService {
       int take = Math.min(allowed, stack.getAmount());
       ItemStack part = stack.clone();
       part.setAmount(take);
-      sold.add(new Sale(part, entry));
+      sold.add(new Sale(part, entry, round(effectiveUnit(part, entry) * take)));
       units.merge(entry, take, Integer::sum);
-      amount += entry.unitValue() * take;
+      amount += effectiveUnit(part, entry) * take;
       quota.put(entry, allowed - take);
 
       // 记录如何回滚（事务建立失败时原样塞回去）
@@ -599,6 +680,12 @@ public final class SellService {
     String uuid = player.getUniqueId().toString();
     int totalUnits = units.values().stream().mapToInt(Integer::intValue).sum();
 
+    // 每个条目实际卖了多少钱（耐久折损后每把价格可能不同，不能再用「单价 × 件数」）
+    Map<SellEntry, Double> subtotals = new LinkedHashMap<>();
+    for (Sale sale : sold) {
+      subtotals.merge(sale.entry(), sale.value(), Double::sum);
+    }
+
     for (String raw : JSellMain.CONF.economyCommands()) {
       dispatch(substitute(raw, name, uuid, totalUnits, amount));
     }
@@ -606,7 +693,7 @@ public final class SellService {
     for (Map.Entry<SellEntry, Integer> e : units.entrySet()) {
       SellEntry entry = e.getKey();
       int count = e.getValue();
-      double subtotal = round(entry.unitValue() * count);
+      double subtotal = round(subtotals.getOrDefault(entry, 0.0));
       for (String raw : entry.commands()) {
         dispatch(substitute(raw, name, uuid, count, subtotal));
       }
@@ -628,7 +715,7 @@ public final class SellService {
               limit, name);
           return;
         }
-        double subtotal = round(entry.unitValue() * sale.item().getAmount());
+        double subtotal = round(sale.value());
         dispatch(substitute(raw, name, uuid, sale.item().getAmount(), subtotal));
         executed++;
       }

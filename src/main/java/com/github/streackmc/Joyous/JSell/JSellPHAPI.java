@@ -66,12 +66,12 @@ public final class JSellPHAPI implements JoyousPHAPIhandler {
     if (hand == null || hand.getType().isAir()) {
       return "0";
     }
-    SellEntry entry = entries.find(hand);
+    SellEntry entry = entries.find(player, hand);
     if (entry == null) {
       return "0";
     }
     String rest = key.substring("hand".length());
-    double unit = entry.unitValue();
+    double unit = SellService.effectiveUnit(hand, entry);
     double total = SellService.round(unit * hand.getAmount());
 
     return switch (rest) {

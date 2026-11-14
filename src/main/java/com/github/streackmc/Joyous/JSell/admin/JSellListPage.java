@@ -166,6 +166,13 @@ final class JSellListPage extends AbstractGuiPage {
         tell(player, "jsell.editor.reloaded", store.size());
         repaint(ctx);
       }
+      case JSellEditorGui.SLOT_GROUP -> {
+        // 左键下一个、右键（含 Shift）上一个；分组是按条目派生的，滚动比下拉菜单更省事
+        boolean forward = click.click() == ClickType.LEFT;
+        state.group = editor.cycleGroup(state.group, forward);
+        state.page = 0;
+        repaint(ctx);
+      }
       case JSellEditorGui.SLOT_CLOSE -> ctx.close();
       default -> {
         return Verdict.HANDLED;

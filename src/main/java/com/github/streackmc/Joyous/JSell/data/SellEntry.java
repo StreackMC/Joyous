@@ -11,6 +11,8 @@ import org.bukkit.inventory.ItemStack;
 
 import com.github.streackmc.Joyous.utils.jlogger;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
+
 /**
  * 一条「可售物品」定义
  * <p>
@@ -39,6 +41,15 @@ public final class SellEntry {
   private int limitCount = UNLIMITED_COUNT;
   private long limitSeconds = UNLIMITED_WINDOW;
   private SellMatch match = SellMatch.STRICT;
+  /** 所属分组（见 {@link SellGroups}），永远不是 {@code all} */
+  private String group = SellGroups.DEFAULT;
+  /**
+   * 是否按耐久折损计价
+   * <p>
+   * 只在模板自身有耐久（带 {@code MAX_DAMAGE} 组件）时有意义；开启后成交价 = 单价 × 耐久百分比。
+   * 默认关闭：老条目的价格不能因为升级而悄悄变低。
+   */
+  private boolean durabilityLoss;
   /** 卖出该物品后执行（支持 %player% / %count% / %amount%） */
   private List<String> commands = new ArrayList<>();
   /** 逐件依次执行（支持同样的占位符，%count% 为该件的数量） */
@@ -112,6 +123,34 @@ public final class SellEntry {
 
   public void match(SellMatch mode) {
     this.match = mode == null ? SellMatch.STRICT : mode;
+  }
+
+  /** 所属分组（规范化后的组名，不会是 {@code all}） */
+  public String group() {
+    return group;
+  }
+
+  public void group(@Nullable String value) {
+    this.group = SellGroups.normalize(value);
+  }
+
+  /**
+   * 模板自身是否有耐久
+   * <p>
+   * 判据是「模板带 {@code MAX_DAMAGE} 组件」，而不是「材质像是工具」——
+   * 数据包可以给任意物品加耐久，也可能把工具的最大耐久改掉，只有组件是可信的。
+   */
+  public boolean hasDurability() {
+    return template.hasData(DataComponentTypes.MAX_DAMAGE);
+  }
+
+  /** 是否按耐久折损计价（只对 {@link #hasDurability()} 的条目有意义） */
+  public boolean durabilityLoss() {
+    return durabilityLoss && hasDurability();
+  }
+
+  public void durabilityLoss(boolean value) {
+    this.durabilityLoss = value;
   }
 
   public List<String> commands() {
