@@ -89,58 +89,6 @@ public final class JSellGui {
   }
 
   // ──────────────────────────────────────────────
-  // 管理员界面标识（出售界面已迁到 JSellSellPage，不再用 Holder）
-  // ──────────────────────────────────────────────
-
-  /** 管理员界面种类 */
-  public enum Kind {
-    /** 可售物品列表 */
-    EDITOR_LIST,
-    /** 条目详情 */
-    EDITOR_DETAIL
-  }
-
-  /** 管理员界面的自定义 Holder（避免用标题字符串判断界面） */
-  public static final class Holder implements org.bukkit.inventory.InventoryHolder {
-    private final Kind kind;
-    private final Object payload;
-    private org.bukkit.inventory.Inventory inventory;
-
-    public Holder(Kind kind, @Nullable Object payload) {
-      this.kind = kind;
-      this.payload = payload;
-    }
-
-    public Kind kind() {
-      return kind;
-    }
-
-    /** 附加上下文（条目 id / 编辑器状态），可为 null */
-    @Nullable
-    public Object payload() {
-      return payload;
-    }
-
-    public void attach(org.bukkit.inventory.Inventory inventory) {
-      this.inventory = inventory;
-    }
-
-    @Override
-    public org.bukkit.inventory.Inventory getInventory() {
-      return inventory;
-    }
-  }
-
-  @Nullable
-  public static Holder holderOf(@Nullable org.bukkit.inventory.Inventory inventory) {
-    if (inventory == null) {
-      return null;
-    }
-    org.bukkit.inventory.InventoryHolder holder = inventory.getHolder();
-    return holder instanceof Holder h ? h : null;
-  }
-
-  // ──────────────────────────────────────────────
   // 共享工具
   // ──────────────────────────────────────────────
 

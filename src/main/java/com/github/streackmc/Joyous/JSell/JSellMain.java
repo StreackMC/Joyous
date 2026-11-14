@@ -50,7 +50,6 @@ public class JSellMain extends JoyousModel {
   private SellService service;
   private JSellGui gui;
   private JSellEditorGui editor;
-  private JSellChatInput chatInput;
   private JSellListener listener;
   private JSellCommand command;
   private JSellPHAPI phapi;
@@ -80,11 +79,9 @@ public class JSellMain extends JoyousModel {
     sessions.recoverPending();
 
     service = new SellService(this, entryStore, store, sessions);
-    chatInput = new JSellChatInput();
     gui = new JSellGui(this, entryStore, sessions, service);
-    editor = new JSellEditorGui(this, entryStore, chatInput);
-    chatInput.bind(editor);
-    listener = new JSellListener(this, sessions, editor, chatInput);
+    editor = new JSellEditorGui(entryStore);
+    listener = new JSellListener(this, sessions, editor);
     command = new JSellCommand(this, entryStore, sessions, gui, editor, store);
 
     Joyous.pluginManager.registerEvents(listener, Joyous.plugin);
@@ -173,10 +170,6 @@ public class JSellMain extends JoyousModel {
 
   public JSellEditorGui editor() {
     return editor;
-  }
-
-  public JSellChatInput chatInput() {
-    return chatInput;
   }
 
   // ──────────────────────────────────────────────

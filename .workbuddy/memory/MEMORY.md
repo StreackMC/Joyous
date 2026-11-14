@@ -136,8 +136,10 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
   keepable=非预览；`render` 从会话现算，`tick` 用 `sessionOf(inventory)` 反查；广播仍由 controller 直写各 viewer 的界面）；
   JWardChest **编辑界面全部**（`WardEditorPage` + `WardSubPage` 派生：`WardContainerPickerPage`/`WardRowsPage`/
   `WardMaxDrawPage`/`WardDistributionPage`/`WardItemEditorPage`；`WardGui.Holder`/`Kind`/`WardChatInput` 已删）；
-  JSell **出售界面**（`JSellSellPage`，keepable=false——关闭即退款；`closingByPlugin` 已退役）。
-  **待迁移**：JSell 管理员列表/详情（仍用 `JSellGui.Holder` + `JSellChatInput`）。
+  JSell **出售界面**（`JSellSellPage`，keepable=false——关闭即退款；`closingByPlugin` 已退役）；
+  JSell **管理员列表/详情**（`JSellListPage` + `JSellDetailPage`，列表→详情 INSTANT；`JSellChatInput`、
+  `JSellGui.Holder`/`Kind` 已删，六种字段输入合并为 `JSellFieldChatPage` + `ChatPrompt.hint`）。
+  **三个模块的界面层与聊天输入已全部迁完**。
 - ⚠️ **`keepable=false` 的页面别在 `onDetach` 里无差别退款**：JSell 只在 `CLOSED`/`REPLACED` 退，
   `QUIT`/`SHUTDOWN` 交给托管表（`jsell_escrow`）与上线交付——关服阶段往背包塞东西会和玩家数据保存抢时序。
 - ⚠️ **上级/下级页面用 INSTANT，不要用 REPLACE**：下级页 ESC/E 关闭后要能回到上级，靠的是上级被**挂起**在队列里。
