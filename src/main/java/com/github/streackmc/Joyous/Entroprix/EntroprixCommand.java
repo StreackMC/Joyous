@@ -21,18 +21,26 @@ import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSele
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class EntroprixCommand {
+
+  /** 命令权限前缀（{@code joyous.commands.<模型>}） */
+  private static final String PERM = "joyous.commands.entroprix";
+
   EntroprixCommand() {
   }
 
   final void register() {
+    // 命令权限统一为 joyous.commands.<模型>.<命令>[.<子类型>]
     Joyous.addPermissions(
-      PermDef.op("joyous.commands.entroprix.guarantee"),
-      PermDef.op("joyous.commands.entroprix.guarantee.set"),
-      PermDef.op("joyous.commands.entroprix.guarantee.set.tries"),
-      PermDef.op("joyous.commands.entroprix.guarantee.set.counts"),
-      PermDef.op("joyous.commands.entroprix.guarantee.get"),
-      PermDef.op("joyous.commands.entroprix.guarantee.reset"),
-      PermDef.op("joyous.commands.entroprix.roll")
+      PermDef.op(PERM),
+      PermDef.op(PERM + ".guarantee"),
+      PermDef.op(PERM + ".guarantee.get"),
+      PermDef.op(PERM + ".guarantee.get.tries"),
+      PermDef.op(PERM + ".guarantee.get.counts"),
+      PermDef.op(PERM + ".guarantee.set"),
+      PermDef.op(PERM + ".guarantee.set.tries"),
+      PermDef.op(PERM + ".guarantee.set.counts"),
+      PermDef.op(PERM + ".guarantee.reset"),
+      PermDef.op(PERM + ".roll")
     );
     Joyous.registerCommand(Commands.literal("entroprix")
       .then(
@@ -40,39 +48,39 @@ public class EntroprixCommand {
         .requires(ctx -> ctx.getSender().hasPermission("minecraft.selector"))
         .then(
           Commands.literal("guarantee")
-          .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix"))
+          .requires(ctx -> ctx.getSender().hasPermission(PERM + ".guarantee"))
           .then(
             Commands.argument("id", StringArgumentType.string())
             .then(
               Commands.literal("get")
-              .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.get"))
+              .requires(ctx -> ctx.getSender().hasPermission(PERM + ".guarantee.get"))
               .executes(ctx -> { return guarantee_get(ctx, ""); })// /entroprix <player> guarantee <id> get
               .then(
                 Commands.literal("tries")
-                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.get.tires"))
+                .requires(ctx -> ctx.getSender().hasPermission(PERM + ".guarantee.get.tries"))
                 .executes(ctx -> { return guarantee_get(ctx, GUARANTEE_TYPE.TRIES); })// /entroprix <player> guarantee <id> get tries
               ).then(
                 Commands.literal("counts")
-                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.get.counts"))
+                .requires(ctx -> ctx.getSender().hasPermission(PERM + ".guarantee.get.counts"))
                 .executes(ctx -> { return guarantee_get(ctx, GUARANTEE_TYPE.COUNTS); })// /entroprix <player> guarantee <id> get tries
               )
             ).then(
               Commands.literal("reset")
-              .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.reset"))
+              .requires(ctx -> ctx.getSender().hasPermission(PERM + ".guarantee.reset"))
               .executes(ctx -> { return guarantee_reset(ctx); }) // /entroprix <player> guarantee <id> reset
             ).then(
               Commands.literal("set")
-              .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.set"))
+              .requires(ctx -> ctx.getSender().hasPermission(PERM + ".guarantee.set"))
               .then(
                 Commands.literal("tries")
-                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.set.tires"))
+                .requires(ctx -> ctx.getSender().hasPermission(PERM + ".guarantee.set.tries"))
                 .then(
                   Commands.argument("value", IntegerArgumentType.integer(0))
                   .executes(ctx -> { return guarantee_set(ctx, GUARANTEE_TYPE.TRIES, IntegerArgumentType.getInteger(ctx, "value")); })// /entroprix <player> guarantee <id> set tries <value>
                 )
               ).then(
                 Commands.literal("counts")
-                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.set.counts"))
+                .requires(ctx -> ctx.getSender().hasPermission(PERM + ".guarantee.set.counts"))
                 .then(
                   Commands.argument("value", IntegerArgumentType.integer(0))
                   .executes(ctx -> { return guarantee_set(ctx, GUARANTEE_TYPE.COUNTS, IntegerArgumentType.getInteger(ctx, "value")); })// /entroprix <player> guarantee <id> set tries <value>
@@ -84,11 +92,11 @@ public class EntroprixCommand {
           Commands.literal("roll")
             .then(
               Commands.argument("poolName", StringArgumentType.string())
-              .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.roll"))
+              .requires(ctx -> ctx.getSender().hasPermission(PERM + ".roll"))
               .executes(ctx -> { return roll(ctx, 1);}) // /entroprix <player> roll <poolName>
               .then(
                 Commands.argument("times", IntegerArgumentType.integer(1))
-                .requires(ctx -> ctx.getSender().hasPermission("joyous.commands.entroprix.roll"))
+                .requires(ctx -> ctx.getSender().hasPermission(PERM + ".roll"))
                 .executes(ctx -> { return roll(ctx, IntegerArgumentType.getInteger(ctx, "times"));}) // /entroprix <player> roll <poolName> [times]
               )
             )

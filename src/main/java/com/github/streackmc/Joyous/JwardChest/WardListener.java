@@ -142,14 +142,30 @@ public final class WardListener implements Listener {
     store.flush();
   }
 
-  /** 权限节点 */
+  /**
+   * 权限节点
+   * <p>
+   * 命名遵循项目统一规则（0.9.0 起）：<b>命令</b>用 {@code joyous.commands.<模型>.<命令>}，
+   * <b>其它</b>（能不能绑定方块、能不能开箱子）用 {@code joyous.<模型>.<子动作>}。
+   * 二者分开是有意的：一个玩家可以「能开箱子但不能绑方块」，也可以反过来。
+   */
   public static final class Perm {
-    /** 绑定与编辑 */
+    /** 非命令：潜行右键绑定方块、进编辑界面 */
     public static final String EDIT = "joyous.jwardchest.edit";
-    /** 正常使用容器 */
+    /** 非命令：打开战利品箱 */
     public static final String USE = "joyous.jwardchest.use";
-    /** 重置临时数据 */
-    public static final String RESET = "joyous.jwardchest.reset";
+    /** 命令：{@code /jwardchest new} */
+    public static final String CMD_NEW = "joyous.commands.jwardchest.new";
+    /** 命令：{@code /jwardchest unbind} */
+    public static final String CMD_UNBIND = "joyous.commands.jwardchest.unbind";
+    /** 命令：{@code /jwardchest info} */
+    public static final String CMD_INFO = "joyous.commands.jwardchest.info";
+    /** 命令：{@code /jwardchest break} */
+    public static final String CMD_BREAK = "joyous.commands.jwardchest.break";
+    /** 命令：{@code /jwardchest reload} */
+    public static final String CMD_RELOAD = "joyous.commands.jwardchest.reload";
+    /** 命令：{@code /jwardchest reset ...} */
+    public static final String CMD_RESET = "joyous.commands.jwardchest.reset";
 
     private Perm() {
     }

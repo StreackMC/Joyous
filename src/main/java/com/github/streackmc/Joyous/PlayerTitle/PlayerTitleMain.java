@@ -38,8 +38,13 @@ public class PlayerTitleMain extends JoyousModel {
   public final static class NAMES {
     /** 配置文件名 */
     public final static String CONF_FILE = "models/playerTitles.yml";
-    /** 权限前缀 */
-    public final static String PERMISSION_PREFIX = "joyous.titles.";
+    /**
+     * 称号权限前缀
+     * <p>
+     * 命名遵循项目统一规则：{@code joyous.<模型>.<子动作>}。所以是
+     * {@code joyous.playertitle.titles.<称号ID>}——授予某个称号就是授予这个节点。
+     */
+    public final static String PERMISSION_PREFIX = "joyous.playertitle.titles.";
     /** 玩家正在使用的称号 */
     public final static String PLAYER_USING_TITLE = "score";
     /** 玩家正在使用的称号 */
@@ -56,7 +61,8 @@ public class PlayerTitleMain extends JoyousModel {
   @Override
   public final void onEnable() throws Exception {
     NAMES.PLAYER_USING_TITLE_NAMESPACED = new NamespacedKey(Joyous.plugin, NAMES.PLAYER_USING_TITLE);
-    Joyous.addPermissions(PermDef.none("joyous.titles", "用于决定一个玩家是否具有指定称号"));
+    Joyous.addPermissions(
+        PermDef.none("joyous.playertitle.titles", "用于决定一个玩家是否具有指定称号"));
     if (!Joyous.requireFileAndCheck(NAMES.CONF_FILE, NAMES.CONF_FILE, null)) {
       throw new FileNotFoundException("无法找到文件" + CONF_PATH);
     }

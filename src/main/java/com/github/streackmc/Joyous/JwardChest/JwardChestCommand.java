@@ -66,35 +66,41 @@ public final class JwardChestCommand {
     Joyous.addPermissions(
         PermDef.op(WardListener.Perm.EDIT, "绑定方块与编辑战利品箱"),
         PermDef.all(WardListener.Perm.USE, "使用战利品箱"),
-        PermDef.op(WardListener.Perm.RESET, "清除战利品箱临时数据"));
+        PermDef.op(WardListener.Perm.CMD_NEW, "命令：绑定准星方块"),
+        PermDef.op(WardListener.Perm.CMD_UNBIND, "命令：解除方块绑定"),
+        PermDef.op(WardListener.Perm.CMD_INFO, "命令：查看容器状态"),
+        PermDef.op(WardListener.Perm.CMD_BREAK, "命令：删除容器并破坏方块"),
+        PermDef.op(WardListener.Perm.CMD_RELOAD, "命令：重新读取容器设置"),
+        PermDef.op(WardListener.Perm.CMD_RESET, "命令：清除容器临时数据"));
 
     Joyous.registerCommand(
         Commands.literal(JwardChestMain.COMMAND)
             .then(Commands.literal("new")
-                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.EDIT))
+                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.CMD_NEW))
                 .executes(this::cmdNew)
                 .then(Commands.argument("pos", ArgumentTypes.blockPosition())
                     .executes(this::cmdNewAt)))
             .then(Commands.literal("unbind")
-                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.EDIT))
+                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.CMD_UNBIND))
                 .executes(this::cmdUnbind)
                 .then(Commands.argument("pos", ArgumentTypes.blockPosition())
                     .executes(this::cmdUnbindAt)))
             .then(Commands.literal("info")
+                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.CMD_INFO))
                 .executes(this::cmdInfo)
                 .then(Commands.argument("pos", ArgumentTypes.blockPosition())
                     .executes(this::cmdInfoAt)))
             .then(Commands.literal("break")
-                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.EDIT))
+                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.CMD_BREAK))
                 .then(Commands.argument("x", IntegerArgumentType.integer())
                     .then(Commands.argument("y", IntegerArgumentType.integer())
                         .then(Commands.argument("z", IntegerArgumentType.integer())
                             .executes(this::cmdBreak)))))
             .then(Commands.literal("reload")
-                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.RESET))
+                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.CMD_RELOAD))
                 .executes(this::cmdReload))
             .then(Commands.literal("reset")
-                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.RESET))
+                .requires(ctx -> ctx.getSender().hasPermission(WardListener.Perm.CMD_RESET))
                 .then(Commands.literal("all")
                     .executes(this::cmdResetAll))
                 .then(Commands.literal("preset")
