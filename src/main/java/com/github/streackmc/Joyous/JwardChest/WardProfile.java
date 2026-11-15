@@ -20,7 +20,7 @@ import com.github.streackmc.StreackLib.types.SConfig;
  * 预设代号不为空时，生效设置来自预设组（编辑也写回预设组，从而联动同组全部容器）。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardProfile {
 

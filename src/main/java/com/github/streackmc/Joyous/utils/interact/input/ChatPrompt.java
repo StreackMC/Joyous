@@ -11,7 +11,7 @@ import javax.annotation.Nullable;
  * @param oldValue   旧值，非空时会附一条「点击粘贴旧值」；可为 null
  * @param extraHints 额外提示行（已经本地化），例如「输入 unset 改回默认」
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public record ChatPrompt(String label, @Nullable String oldValue, List<String> extraHints) {
 

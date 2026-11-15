@@ -22,7 +22,7 @@ import net.kyori.adventure.text.Component;
  * 系统提示用 {@code INSTANT} 插进来时，菜单会被挂起而不是被关掉。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public final class JMenuPage extends AbstractGuiPage {
 

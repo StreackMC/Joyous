@@ -32,7 +32,7 @@ import org.bukkit.inventory.ItemStack;
  * 加锁只是为了让「校验—修改」成为一个不可分割的步骤（避免将来异步化时出现读后写覆盖）。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardSession {
 

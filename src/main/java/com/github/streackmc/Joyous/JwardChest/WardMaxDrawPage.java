@@ -24,7 +24,7 @@ import net.kyori.adventure.text.Component;
  * （{@code /jc reload} 改了档数之后，写死的容量会与槽位算法对不上）。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class WardMaxDrawPage extends WardSubPage {
 

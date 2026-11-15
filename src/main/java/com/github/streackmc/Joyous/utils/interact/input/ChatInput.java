@@ -47,7 +47,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
  * 关闭事件看到的状态是 {@code SUSPENDED}，天然不会误判。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public final class ChatInput implements Listener, IPageObserver {
 

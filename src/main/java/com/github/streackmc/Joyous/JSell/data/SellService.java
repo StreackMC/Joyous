@@ -43,7 +43,7 @@ import io.papermc.paper.datacomponent.DataComponentTypes;
  * 退款（不可售 / 超出限购的部分）也在事务里被记录，所以「崩服 → 重启」之后它不会凭空消失。
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public final class SellService {
 

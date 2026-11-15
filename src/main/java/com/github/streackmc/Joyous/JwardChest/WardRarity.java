@@ -39,7 +39,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 相等性按 {@code id} 判定（而非实例），这样热重载后产生的新实例仍能命中容器设置里存下的旧键。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardRarity implements Comparable<WardRarity> {
 

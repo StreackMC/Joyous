@@ -41,7 +41,7 @@ import io.papermc.paper.datacomponent.DataComponentType;
  * </ol>
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public enum SellMatch {
 

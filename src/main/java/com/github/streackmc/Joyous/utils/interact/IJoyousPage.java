@@ -29,7 +29,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * 这比直接不保留更糟。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  * @see PagePriorityEnum
  */
 public interface IJoyousPage {

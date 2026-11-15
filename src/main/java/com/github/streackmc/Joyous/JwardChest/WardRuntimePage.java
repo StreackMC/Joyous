@@ -29,7 +29,7 @@ import net.kyori.adventure.text.Component;
  * 可保留性：真容器可以（内容与进度都在会话里），预览不行（它本来就是一次性的演示）。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class WardRuntimePage extends AbstractGuiPage {
 

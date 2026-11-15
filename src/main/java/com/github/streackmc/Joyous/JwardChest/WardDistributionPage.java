@@ -23,7 +23,7 @@ import net.kyori.adventure.text.Component;
  * 每对分别是「分布」与「曲线指数」。左键前进、右键后退，Shift+点击则直接输入。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class WardDistributionPage extends WardSubPage {
 

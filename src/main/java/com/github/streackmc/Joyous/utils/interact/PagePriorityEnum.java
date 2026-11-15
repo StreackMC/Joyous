@@ -10,7 +10,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * 一般都选 {@link #INSTANT}。它是唯一一个既能保证玩家立刻看到、又不会毁掉他手上进度的选项。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public enum PagePriorityEnum {
 

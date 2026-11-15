@@ -21,7 +21,7 @@ import org.bukkit.inventory.ItemStack;
  * @param cursor 点击时光标上的物品（可能为空气）
  * @param event  原始事件，需要更深细节（如热键编号）时再用
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public record Click(
     Player player,

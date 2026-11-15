@@ -57,7 +57,7 @@ import com.github.streackmc.StreackLib.types.SConfig;
  * 逐条解码并<b>立即按新格式回写一次</b>，随后删掉旧键——所以升级后第一次启动会重写这个文件。
  *
  * @author Neonai
- * @since 0.9.0
+ * @since 0.3.0
  */
 public final class SellEntryStore {
 

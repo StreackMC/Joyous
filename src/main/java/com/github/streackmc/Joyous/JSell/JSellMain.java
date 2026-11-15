@@ -40,7 +40,7 @@ import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
  * 见 {@link SellGroups}。
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public class JSellMain extends JoyousModel {
 

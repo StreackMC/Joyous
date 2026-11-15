@@ -31,7 +31,7 @@ import com.github.streackmc.Joyous.Joyous.PermDef;
  * 默认都是 {@code true}，否则升级后所有玩家会突然发现自己卖不了东西。
  *
  * @author Neonai
- * @since 0.9.0
+ * @since 0.4.0
  */
 public final class SellGroups {
 

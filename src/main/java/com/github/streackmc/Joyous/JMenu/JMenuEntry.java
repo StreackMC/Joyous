@@ -51,7 +51,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * </ul>
  *
  * @author kdxiaoyi
- * @since 0.6.0
+ * @since 0.2.0
  */
 public class JMenuEntry {
 

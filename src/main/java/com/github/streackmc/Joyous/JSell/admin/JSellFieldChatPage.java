@@ -19,7 +19,7 @@ import com.github.streackmc.Joyous.utils.interact.input.ChatPrompt;
  * 输入页以 {@code INSTANT} 压在列表/详情之上，提交、取消或超时后会自动回到原来的界面。
  *
  * @author Neonai
- * @since 0.8.0
+ * @since 0.4.0
  */
 final class JSellFieldChatPage extends AbstractChatPage {
 

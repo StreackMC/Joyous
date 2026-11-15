@@ -40,7 +40,7 @@ import net.kyori.adventure.text.Component;
  * 界面里的展示物品一律是 {@code clone()} 的副本，改 Lore / 改名字都不影响真实内容。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class WardItemEditorPage extends WardSubPage {
 

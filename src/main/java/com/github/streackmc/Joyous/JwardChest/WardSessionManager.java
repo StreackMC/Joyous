@@ -27,7 +27,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 因总数超限而做的裁剪<b>不</b>触发这一点——那只是把缓存挤出去，内容仍会从存档恢复。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardSessionManager {
 

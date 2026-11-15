@@ -24,7 +24,7 @@ import net.kyori.adventure.text.Component;
  * 物品数量就是行数，一眼就能看出容量。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class WardRowsPage extends WardSubPage {
 

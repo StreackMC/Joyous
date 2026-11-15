@@ -23,7 +23,7 @@ import com.github.streackmc.Joyous.JSell.user.JSellSellPage;
  * 终止时不再退款）。
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public final class SellSession {
 

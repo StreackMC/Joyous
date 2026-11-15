@@ -13,7 +13,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 生命周期与队列位置全部由 {@link PlayerPages} 维护，这里只存数据。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class PageEntry implements IPageContext {
 

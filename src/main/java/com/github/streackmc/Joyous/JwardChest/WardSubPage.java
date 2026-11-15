@@ -29,7 +29,7 @@ import com.github.streackmc.Joyous.utils.interact.input.ChatPrompt;
  * 文本输入则用 {@link PagePriorityEnum#INSTANT}——子界面被挂起，输入结束后自动回到原来的位置。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 abstract class WardSubPage extends AbstractGuiPage {
 

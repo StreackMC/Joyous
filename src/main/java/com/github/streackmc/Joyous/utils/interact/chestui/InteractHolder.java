@@ -13,7 +13,7 @@ import org.bukkit.inventory.InventoryHolder;
  * 「当前可见页 + 容器类型匹配」，见 {@link GuiRouter}。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public final class InteractHolder implements InventoryHolder {
 

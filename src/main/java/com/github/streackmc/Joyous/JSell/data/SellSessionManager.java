@@ -32,7 +32,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 同一个小窗口里宁可少给一次（有日志、可人工补），也绝不复制。
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public final class SellSessionManager {
 

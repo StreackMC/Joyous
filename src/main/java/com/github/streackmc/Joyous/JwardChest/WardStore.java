@@ -56,7 +56,7 @@ import com.github.streackmc.StreackLib.types.SDatabase.SdbDatabase;
  * 不要靠扩展白名单来放行新字段（白名单一放宽，这道防线就没了）。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardStore {
 

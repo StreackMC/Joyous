@@ -46,7 +46,7 @@ import io.papermc.paper.command.brigadier.Commands;
  * 有些服务器要按身份或世界整块关掉这套系统，用权限比改配置重启省事。
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public final class JSellCommand {
 

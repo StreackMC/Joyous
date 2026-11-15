@@ -31,7 +31,7 @@ import net.kyori.adventure.text.Component;
  * 所以不需要「关掉后重新打开列表」这类回调。搜索/跳页的聊天输入同理。
  *
  * @author Neonai
- * @since 0.8.0
+ * @since 0.4.0
  */
 final class JSellListPage extends AbstractGuiPage {
 

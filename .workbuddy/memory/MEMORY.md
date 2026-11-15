@@ -82,6 +82,8 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
 ## Git 约定
 - 身份 `Neonai <neonai+coding@kdxiaoyi.top>`，仅命令行 `-c` 携带；只 add 本次产出；不做任何远程同步
 - 记忆文件属任务产出，先写记忆再提交
+- **`@since` 只能填「已存在的 tag」或「当前 pom 版本」**，禁止预写下一个版本号；
+  pom 的 `<version>` 是唯一版本源（`@since 0.6.0/0.7.0/0.8.0/0.9.0` 曾整片虚标，已按创建时的 pom 版本纠正）
 
 ## JSell 要点
 - 命令 `/jsell`(`/sell`)：`gui`/`hand`/`inv`/`all`；`/jsellworth`(`/jworth`,`/worth`)：玩家只读价目表；

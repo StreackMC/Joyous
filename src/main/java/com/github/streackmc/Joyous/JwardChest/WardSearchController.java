@@ -38,7 +38,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
  * 重新抽取时旧内容一律丢弃。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardSearchController {
 

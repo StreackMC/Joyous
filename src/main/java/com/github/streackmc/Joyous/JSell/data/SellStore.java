@@ -47,7 +47,7 @@ import com.github.streackmc.StreackLib.types.SDatabase.SdbDatabase;
  * 这不是「转义」而是「断言」：谁想往 SQL 里塞自由文本，会在当场抛异常而不是悄悄拼出一条可注入语句。
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public final class SellStore {
 

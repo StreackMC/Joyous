@@ -14,7 +14,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * 为 {@code VISIBLE}，{@code onPageHidden} 时已经是 {@code SUSPENDED} 或 {@code DETACHED}）。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public interface IPageObserver {
 

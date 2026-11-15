@@ -18,7 +18,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 值是该容器设置的唯一 UUID。区块 PDC 随区块一起存盘，因此天然持久化。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardBinding {
 

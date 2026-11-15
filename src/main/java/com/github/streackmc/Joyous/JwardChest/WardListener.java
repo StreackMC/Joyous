@@ -30,7 +30,7 @@ import net.kyori.adventure.text.event.HoverEvent;
  * {@code InventoryHolder}，也不再订阅聊天事件。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardListener implements Listener {
 

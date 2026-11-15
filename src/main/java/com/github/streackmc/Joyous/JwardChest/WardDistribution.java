@@ -23,7 +23,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 不再走全局 config——同一个服务器上不同箱子可以有不同手感。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public enum WardDistribution {
 

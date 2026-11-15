@@ -24,6 +24,6 @@
  * 且 {@code openAnvil} 自 1.21.4 起已弃用。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 package com.github.streackmc.Joyous.utils.interact.input;

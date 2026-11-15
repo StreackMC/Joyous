@@ -31,7 +31,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 新页面的 attach 统一排到下一 tick。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class PlayerPages {
 

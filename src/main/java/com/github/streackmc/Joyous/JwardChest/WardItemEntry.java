@@ -17,7 +17,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * {@code max_stack_size} 组件。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardItemEntry {
 

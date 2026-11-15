@@ -24,7 +24,7 @@ import io.papermc.paper.datacomponent.DataComponentTypes;
  * 这样管理员随时能恢复，也不会因为误删丢掉已经调好的单价与命令。
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public final class SellEntry {
 

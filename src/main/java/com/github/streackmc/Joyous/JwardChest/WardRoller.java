@@ -28,7 +28,7 @@ import org.bukkit.inventory.ItemStack;
  * 再把剩余条数按权重分摊到各珍惜度、并受各自上限约束。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardRoller {
 

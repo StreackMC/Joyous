@@ -35,7 +35,7 @@ import net.kyori.adventure.text.Component;
  * 仲裁器会把列表恢复回来，不需要重新打开列表。
  *
  * @author Neonai
- * @since 0.8.0
+ * @since 0.4.0
  */
 final class JSellDetailPage extends AbstractGuiPage {
 

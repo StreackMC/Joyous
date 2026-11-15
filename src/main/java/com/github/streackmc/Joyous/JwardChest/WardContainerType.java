@@ -21,7 +21,7 @@ import net.kyori.adventure.text.Component;
  * 写法由 {@link #byId(String)} 兼容映射到箱子。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public enum WardContainerType {
   // 不完全继承 InteractContainerEnum，因为有些枚举值在最终效果上是一样的

@@ -19,7 +19,7 @@ import net.kyori.adventure.text.Component;
  * 的自定义 Inventory 都拿不到它们的输入子界面或结果槽由客户端预判，做不出稳定效果。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public enum InteractContainerEnum {
 

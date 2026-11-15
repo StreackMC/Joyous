@@ -26,7 +26,7 @@ import com.github.streackmc.Joyous.Joyous;
  * 「id 认不出来」并回落到 fallback，绝不因为标记异常而中断流程。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardTag {
 

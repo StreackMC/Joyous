@@ -22,7 +22,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * 这里把未显式设置的装饰一律写成 {@code false}；显式写了 {@code §l} 之类的仍然保留。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public final class Text {
 

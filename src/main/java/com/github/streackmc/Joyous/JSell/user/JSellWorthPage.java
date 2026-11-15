@@ -35,7 +35,7 @@ import net.kyori.adventure.text.Component;
  * 关掉再打开会回到「全部组」，这符合「只想顺手看一眼」的使用场景。
  *
  * @author Neonai
- * @since 0.9.0
+ * @since 0.4.0
  */
 public final class JSellWorthPage extends AbstractGuiPage {
 

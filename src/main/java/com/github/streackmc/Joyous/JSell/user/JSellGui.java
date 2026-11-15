@@ -36,7 +36,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * </ul>
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public final class JSellGui {
 

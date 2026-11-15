@@ -61,7 +61,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * </ul>
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public final class PageArbiter implements Listener {
 

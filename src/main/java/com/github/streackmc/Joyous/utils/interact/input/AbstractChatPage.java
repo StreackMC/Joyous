@@ -20,7 +20,7 @@ package com.github.streackmc.Joyous.utils.interact.input;
  * 关掉它以后仲裁器会自动恢复被挂起的编辑界面。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public abstract class AbstractChatPage implements IChatInteract {
 

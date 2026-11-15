@@ -17,6 +17,6 @@
  * 其余（record / 普通类）保持原名。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 package com.github.streackmc.Joyous.utils.interact;

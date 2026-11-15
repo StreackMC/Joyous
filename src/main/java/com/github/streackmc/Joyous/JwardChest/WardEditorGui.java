@@ -26,7 +26,7 @@ import com.github.streackmc.Joyous.utils.interact.PagePriorityEnum;
  * 因此属于预设组时会自动联动整组。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardEditorGui {
 

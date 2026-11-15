@@ -18,7 +18,7 @@ import net.kyori.adventure.text.Component;
  * 这里只回答四件事：长什么样、每格放什么、某格点了算什么、允许原版搬运到什么程度。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public interface IGuiInteract extends IJoyousPage {
 

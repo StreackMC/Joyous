@@ -13,7 +13,7 @@ import org.bukkit.event.inventory.ClickType;
  * @param bottom     玩家背包侧的取消规则
  * @param cancelDrag 拖拽到上半区一律取消
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public record ClickPolicy(boolean cancelTop, ClickPolicy.Bottom bottom, boolean cancelDrag) {
 

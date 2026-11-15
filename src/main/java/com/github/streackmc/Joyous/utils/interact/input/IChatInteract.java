@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
  * 由 {@link ChatInput} 截获聊天事件后回调。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public interface IChatInteract extends ITextInteract {
 

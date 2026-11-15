@@ -30,7 +30,7 @@ import com.github.streackmc.Joyous.utils.jlogger;
  * 只有「页面仍处于 VISIBLE」时的关闭才算玩家主动退出；其余一律忽略。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public final class GuiRouter implements Listener {
 

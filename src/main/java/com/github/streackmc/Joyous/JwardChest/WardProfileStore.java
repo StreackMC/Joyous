@@ -31,7 +31,7 @@ import com.github.streackmc.StreackLib.types.SConfig;
  * 故组的 YAML 键使用 URL 安全的 Base64 编码，真实代号写在段内的 {@code preset-code} 里。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardProfileStore {
 

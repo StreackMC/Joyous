@@ -7,7 +7,7 @@ package com.github.streackmc.Joyous.utils.interact;
  * 消费端据此决定「要不要退款 / 要不要落库 / 要不要提示玩家」。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public enum DetachReasonEnum {
 

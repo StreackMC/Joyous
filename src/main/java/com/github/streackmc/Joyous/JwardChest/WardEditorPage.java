@@ -35,7 +35,7 @@ import net.kyori.adventure.text.Component;
  * 输入结束后自动回到这里——不需要再写「把界面开回来」的回调。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class WardEditorPage extends AbstractGuiPage {
 

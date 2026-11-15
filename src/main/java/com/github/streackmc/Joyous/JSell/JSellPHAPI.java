@@ -28,7 +28,7 @@ import com.github.streackmc.Joyous.utils.model_abstract.JoyousPHAPIhandler;
  * 不可售（或空手）一律返回 {@code 0}，这样计分板/悬浮字里不会出现空洞。
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public final class JSellPHAPI implements JoyousPHAPIhandler {
 

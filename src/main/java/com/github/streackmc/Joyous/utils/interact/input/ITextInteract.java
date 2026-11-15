@@ -20,7 +20,7 @@ import com.github.streackmc.Joyous.utils.interact.IPageContext;
  * </ul>
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public interface ITextInteract extends IJoyousPage {
 

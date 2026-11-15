@@ -44,7 +44,7 @@ import io.papermc.paper.math.BlockPosition;
  * 范围类重置会作用于全部维度。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class JwardChestCommand {
 

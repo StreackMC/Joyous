@@ -15,7 +15,7 @@ import com.github.streackmc.Joyous.utils.interact.input.ChatPrompt;
  * 没有自己的状态，所以这一类字段共用一个实现即可。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class WardFieldChatPage extends AbstractChatPage {
 

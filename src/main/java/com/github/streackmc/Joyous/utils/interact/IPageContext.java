@@ -14,7 +14,7 @@ import org.bukkit.entity.Player;
  * 不会造成递归（见 {@code PageArbiter} 的重入规则）。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public interface IPageContext extends IPageHandle {
 

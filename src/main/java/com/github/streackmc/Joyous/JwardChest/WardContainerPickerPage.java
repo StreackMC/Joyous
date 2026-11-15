@@ -23,7 +23,7 @@ import net.kyori.adventure.text.Component;
  * 其余的选完即回主界面。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 final class WardContainerPickerPage extends WardSubPage {
 

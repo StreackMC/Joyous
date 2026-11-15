@@ -24,7 +24,7 @@ import com.github.streackmc.Joyous.JSell.user.JSellSellPage;
  * </ul>
  *
  * @author kdxiaoyi
- * @since 0.8.0
+ * @since 0.3.0
  */
 public final class JSellListener implements Listener {
 

@@ -17,7 +17,7 @@ import com.github.streackmc.Joyous.utils.interact.PageStateEnum;
  * 页面只需要提供外形、标题、渲染与点击语义。
  *
  * @author Neonai
- * @since 0.7.0
+ * @since 0.4.0
  */
 public abstract class AbstractGuiPage implements IGuiInteract {
 

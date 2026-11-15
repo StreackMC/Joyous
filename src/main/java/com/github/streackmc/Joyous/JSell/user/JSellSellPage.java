@@ -58,7 +58,7 @@ import net.kyori.adventure.text.Component;
  * 终止时再调一次 {@code cancel} 是空操作，所以不需要任何标记。
  *
  * @author Neonai
- * @since 0.8.0
+ * @since 0.4.0
  */
 public final class JSellSellPage extends AbstractGuiPage {
 

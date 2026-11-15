@@ -27,7 +27,7 @@ import net.kyori.adventure.text.Component;
  * 用于在点击/拖拽时把它们和我们自己的真实结果区分开。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public final class WardGui {
 

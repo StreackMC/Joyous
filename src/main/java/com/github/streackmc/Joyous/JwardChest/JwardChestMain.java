@@ -22,7 +22,7 @@ import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
  * 容器设置落在 {@code models/JwardChest/profiles.yml}，容器内容物与搜索进度只在内存里。
  *
  * @author kdxiaoyi
- * @since 0.7.0
+ * @since 0.3.0
  */
 public class JwardChestMain extends JoyousModel {
 
