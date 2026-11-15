@@ -257,10 +257,6 @@ Restarter:
 
 ## JwardChest 模块
 # 「战利品箱」：把任意方块绑定成一个带搜索动画的自定义容器
-# /jwardchest new            绑定准星方块并打开编辑界面（别名 /jc）
-# /jwardchest unbind         解除准星方块的绑定
-# /jwardchest reset ...      让容器刷新（内容重新抽取）
-# /jwardchest reload         重新读取 models/JwardChest/profiles.yml
 # 绑定关系写在区块 PDC（随区块存盘）；容器设置写在 models/JwardChest/profiles.yml；
 # 容器内容（谁还剩什么）存在数据库里，并且是全服共享的一份：
 #   * 有人把东西拿走，所有人都看到那一格空了
@@ -472,15 +468,6 @@ JwardChest:
 # 可售列表由管理员在游戏内编辑：/jsellset [组名]（缺省 all）
 # 玩家可以查看收购价目表：/jsellworth [组名]（别名 /jworth、/worth）
 #
-# 权限（0.9.0 起统一命名：命令 joyous.commands.<模型>.<命令>，其它 joyous.<模型>.<子动作>）：
-#   joyous.commands.jsell.gui / hand / inv / all                     出售
-#   joyous.commands.jsellworth                                       查看价目表
-#   joyous.commands.jsellset[.reload|pending|restore|value|group]     管理
-#   joyous.jsell.admin                                               接收管理提示
-#   joyous.jsell.group.<组名>.sellable                                能否卖出该组（默认 true）
-#   joyous.jsell.group.<组名>.viewable                                能否在价目表里看到该组（默认 true）
-#   组名由条目派生：给物品填一个没见过的组名就等于新建分组，权限节点会自动注册。
-#
 # 以下是可用的 Placeholder API
 #   %joyous_jsell_hand%          手持物品的<b>单个</b>价值（已含耐久折算）
 #   %joyous_jsell_hand_total%    手持物品的<b>总</b>价值（单价 × 数量）
@@ -537,16 +524,12 @@ JSell:
     # 0 表示不限制（不推荐）
     per-item-limit: 512
   ## 出售流水（文本账）
-  # 与数据库里的销量统计分工不同：这里记「谁 什么时候 卖了什么 落袋多少 属于哪个事务号」，
-  # 用于对账与玩家申诉；数据库那张表只为限购统计，丢了可以重建，这个文件不行。
   log:
     ## 是否记录（关闭后只剩数据库里的销量统计）
     enabled: true
     ## 目录，相对插件数据目录；按天切分：<dir>/2026-11/15.txt
     dir: "logs/JSell"
   ## 存档（托管物品 / 事务日志 / 销量）
-  # 用 StreackLib 的 Sdb 系列；表不存在时模块启用阶段会自动创建。
-  # ⚠️ 这里存的是「玩家交出来但还没结算的物品」，删库等于吞物品，请与玩家数据一起备份。
   storage:
     ## 托管物品（界面里还没结算的东西）
     escrow-table: "joyous_jsell_escrow"
