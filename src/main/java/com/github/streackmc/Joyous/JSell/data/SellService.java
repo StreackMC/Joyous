@@ -588,6 +588,8 @@ public final class SellService {
         // 界面内容已经在内存里被接管，直接执行
       }
       runCommands(player, sold, units, amount);
+      // 账还是要记：没有事务号，用一个可检索的标记代替
+      logSales(player, sold, refunds.size(), "no-db");
       return;
     }
 
@@ -632,6 +634,9 @@ public final class SellService {
       runCommands(player, sold, units, amount);
       store.markStatus(txId, SellStore.TX_PAID);
 
+      // ④b 写出售流水：钱已发出，这是「账」的落点
+      logSales(player, sold, refunds.size(), txId);
+
       // ⑤ 记销量（限额统计）
       long at = System.currentTimeMillis();
       for (Map.Entry<SellEntry, Integer> e : units.entrySet()) {
@@ -644,8 +649,23 @@ public final class SellService {
       module.reportStorageError("完成出售事务", e);
       jlogger.severe("JSell 事务 %s（玩家 %s）未走完，物品按已售处理；若玩家没收到款项请人工核查",
           txId, player.getName());
+      // 半途失败也要留痕：流水里能看到「这笔没收尾」，对账时不会漏
+      SellLog.failed(player, txId, e.getMessage());
       player.sendMessage(i18n.tr("jsell.sell.command_failed", txId));
     }
+  }
+
+  /**
+   * 写出售流水
+   * <p>
+   * 一条 {@link Sale} 一行：出售的粒度就是「哪一摞东西离开了玩家」，与实物移动一一对应。
+   * 退款单独一行，方便按事务号把「卖了多少 / 退了多少」凑齐。
+   */
+  private static void logSales(Player player, List<Sale> sold, int refundGroups, String txId) {
+    for (Sale sale : sold) {
+      SellLog.sold(player, sale, txId);
+    }
+    SellLog.refunded(player, refundGroups, txId);
   }
 
   /** 事务备注：给人看的摘要（存在 payload 里，不参与任何判断） */

@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.JSell.admin.JSellEditorGui;
 import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellLog;
 import com.github.streackmc.Joyous.JSell.data.SellGroups;
 import com.github.streackmc.Joyous.JSell.data.SellService;
 import com.github.streackmc.Joyous.JSell.data.SellSessionManager;
@@ -84,6 +85,8 @@ public class JSellMain extends JoyousModel {
     instance = this;
 
     entryStore = new SellEntryStore(Joyous.dataPath);
+    // 出售流水（文本账）：独立于数据库，供对账与申诉
+    SellLog.init(Joyous.dataPath);
     store = new SellStore(Joyous.database, CONF.escrowTable(), CONF.txTable(), CONF.usageTable());
     try {
       store.ensureTables();
@@ -113,8 +116,9 @@ public class JSellMain extends JoyousModel {
     sweepTaskId = Bukkit.getScheduler()
         .runTaskTimer(Joyous.plugin, this::sweep, periodTicks, periodTicks).getTaskId();
 
-    jlogger.info("JSell 模块已启用（可售物品 %s 条，存档表 %s）",
-        entryStore.size(), store.available() ? store.escrowTable() : "未配置数据库");
+    jlogger.info("JSell 模块已启用（可售物品 %s 条，存档表 %s，出售流水 %s）",
+        entryStore.size(), store.available() ? store.escrowTable() : "未配置数据库",
+        CONF.logEnabled() ? CONF.logDir() : "已关闭");
   }
 
   @Override
@@ -123,6 +127,8 @@ public class JSellMain extends JoyousModel {
       Bukkit.getScheduler().cancelTask(sweepTaskId);
       sweepTaskId = -1;
     }
+    // 先把流水刷完再收拾别的，否则最后几笔会丢
+    SellLog.close();
     if (entryStore != null) {
       entryStore.flush();
     }
@@ -317,6 +323,17 @@ public class JSellMain extends JoyousModel {
     /** 存档错误提示的节流间隔（秒） */
     public static int storageNoticeSeconds() {
       return Math.max(5, Joyous.conf.getInt(key("storage.notice-seconds"), 60));
+    }
+
+    /** 是否把每笔出售写成文本流水（默认开；关掉后只剩数据库里的销量统计） */
+    public static boolean logEnabled() {
+      return Joyous.conf.getBoolean(key("log.enabled"), true);
+    }
+
+    /** 出售流水的目录（相对插件数据目录） */
+    public static String logDir() {
+      String raw = Joyous.conf.getString(key("log.dir"), "logs/JSell");
+      return raw == null || raw.isBlank() ? "logs/JSell" : raw.trim();
     }
 
     private CONF() {

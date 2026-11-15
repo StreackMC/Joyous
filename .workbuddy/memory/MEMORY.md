@@ -112,6 +112,10 @@ StreackLib 0.6.2 / PlaceholderAPI 2.11.6 / Geyser+Floodgate / Paper 1.21.8 / Spi
 - 交付顺序一律「先删库、再给物品」：宁可少给（可人工补），绝不复制
 - 限购：`jsell_usage` 流水 + `SUM(amount)`；`limitCount<=0` 不限、`limitSeconds<=0` 终身累计；
   查询失败保守返回 0；重置时刻取 MAX(sold_at)+窗口；时间只到分钟
+- **出售流水**（文本账，独立于数据库）：`SellLog` + `utils/AsyncDailyLog` →
+  `plugins/Joyous/logs/JSell/yyyy-MM/dd.txt`，列序 `时间|动作|玩家|UUID|分组|内容|数量|金额|tx`，
+  动作 `SOLD/REFUND/FAILED`；写入点只有 `SellService.commit()`（PAID 之后）。
+  配置 `JSell.log.enabled` / `log.dir`。`AsyncDailyLog` 是通用件（Entroprix 仍有自己的私有实现，可择机合并）。
 - GUI：6×9；管理员列表 `SLOT_GROUP=52` 循环分组（左键下一个/右键上一个），详情 `3`=分组、`5`=折损开关
 - ⚠️ 取消事件里改光标必须 `runTask` 延后 `setItemOnCursor`；改列表后要 `store.flush()`
 - ⚠️ 构建：VS Code 语言服务器会把 ECJ 的错误 class 写进 `target/classes` → **一律 `mvn clean package`**
