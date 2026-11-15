@@ -33,7 +33,8 @@ import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
  * <ul>
  *   <li><b>可售列表</b>（配置性质、含命令原文）→ {@code models/JSell/groups/<组名>.yml}，
  *       <b>一组一个文件</b>、逐字段的明文 YAML，见 {@link SellEntryStore}；
- *       单文件时代的 {@code items.yml} 会在首次载入时按组拆分并归档成 {@code items.legacy.bak}</li>
+ *       0.3.0 的 {@code items.yml}（Base64 列表）会在首次载入时并入 {@code groups/default.yml}
+ *       并归档成 {@code items.legacy.bak}</li>
  *   <li><b>运行时状态</b>（托管物品、事务日志、销量）→ 数据库，见 {@link SellStore}</li>
  * </ul>
  *

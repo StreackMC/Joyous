@@ -42,7 +42,7 @@ import com.github.streackmc.StreackLib.types.SConfig;
  * 一条记录一个列表项，字段逐项铺开，可以直接手改：
  * <pre>
  * # models/JSell/groups/farming.yml
- * format: 3
+ * format: 2
  * entries:
  * - id: 8f3e2c1a-...
  *   item: "AQACAAEAAAAEAAAA"        # 物品模板，Base64（NBT 完整保留）
@@ -73,12 +73,13 @@ import com.github.streackmc.StreackLib.types.SConfig;
  * 结构由 {@link SConfig#putList(String, List)} 一次写入，不经过拆点逻辑。
  *
  * <h3>兼容旧存档</h3>
- * 单文件时代的两代格式都会被读出来，按组拆分到 {@code groups/}，随后把原文件改名成
- * {@code items.legacy.bak}（不删，人工还能翻回去对照）：
- * <ul>
- *   <li>{@code format: 2} —— {@code entries} 列表，每项带 {@code group}；</li>
- *   <li>0.8.x —— {@code items} 列表，一行一条整条 Base64，全部归 {@code default} 组。</li>
- * </ul>
+ * 只兼容<b>已发布</b>过的 0.3.0 存档 {@code models/JSell/items.yml}：一个 {@code items} 列表，
+ * 一行一条整条 Base64，全部归 {@code default} 组。读出后写进 {@code groups/default.yml}，
+ * 原文件改名成 {@code items.legacy.bak}（不删，人工还能翻回去对照）。
+ * <p>
+ * 0.4.0 开发期短暂存在过的「{@code entries} 里带 {@code group}」的中间格式<b>不兼容</b>
+ * （那个版本从未发版，为它留一条迁移路径只会在代码里长期躺着一段没人敢删的分支）：
+ * 读到这种文件只报一次警告、原样留着不动，由管理员自己决定是转成 Base64 列表还是删掉。
  *
  * @author Neonai
  * @since 0.3.0
@@ -89,10 +90,10 @@ public final class SellEntryStore {
   private static final String EXTENSION = ".yml";
   /** 分组文件里「记录列表」的键名 */
   private static final String ROOT = "entries";
-  /** 旧格式（0.8.x）：整条 Base64 的扁平列表 */
+  /** 旧格式（0.3.0）：整条 Base64 的扁平列表 */
   private static final String LEGACY_ROOT = "items";
-  /** 格式版本；结构变化时递增（3 = 一组一文件，条目内不再写 group） */
-  private static final int FORMAT_VERSION = 3;
+  /** 格式版本；结构变化时递增（旧存档没有这个键；2 = 一组一文件） */
+  private static final int FORMAT_VERSION = 2;
   /** 单文件时代的存档名；发现它就拆分、然后归档 */
   private static final String LEGACY_FILE = "items.yml";
   /** 拆分完成后旧存档改名成这个 */
@@ -152,7 +153,7 @@ public final class SellEntryStore {
     Set<File> stale = new LinkedHashSet<>();
     int broken = loadGroupFiles(loaded, stale);
 
-    // 单文件时代的老存档（v2 / 0.8.x）：读出来，一会儿并进分组文件
+    // 0.3.0 的单文件存档（items 列表）：读出来，一会儿并进分组文件
     LegacyRead legacy = readLegacyFile();
     List<SellEntry> migrated = legacy.entries();
     broken += legacy.broken;
@@ -520,13 +521,11 @@ public final class SellEntryStore {
     }
     int broken = 0;
     for (Object row : conf.getList(ROOT, List.of())) {
-      SellEntry entry = decodeRow(row, group, false);
+      SellEntry entry = decodeRow(row, group);
       if (entry == null) {
         broken++;
         continue;
       }
-      // 组名只认文件名，行里哪怕写了 group 也不算数
-      entry.group(group);
       sink.add(entry);
     }
     return broken;
@@ -558,14 +557,19 @@ public final class SellEntryStore {
   /**
    * 单文件老存档的读取结果
    *
-   * @param entries 读出来的条目（已按行内 {@code group} 归组）
+   * @param entries 读出来的条目（全部归 {@code default} 组）
    * @param broken  解析失败的条数
    * @param readable 文件是否读成功（读失败时不能归档，否则数据就被藏起来了）
    */
   private record LegacyRead(List<SellEntry> entries, int broken, boolean readable) {
   }
 
-  /** 读出 {@code items.yml}（v2 的 entries 或 0.8.x 的 items），没有就返回空 */
+  /**
+   * 读出 0.3.0 的 {@code items.yml}（{@code items} 列表，一行一条整条 Base64）
+   * <p>
+   * 0.4.0 开发期那个「{@code entries} 里带 {@code group}」的中间格式没发过版，这里不认：
+   * 发现就报一次警告并<b>原样留着</b>（不归档），由管理员自己决定转成 Base64 列表还是删掉。
+   */
   private LegacyRead readLegacyFile() {
     List<SellEntry> result = new ArrayList<>();
     if (!legacyFile.isFile()) {
@@ -578,16 +582,17 @@ public final class SellEntryStore {
       jlogger.warn("JSell 无法读取旧存档 %s：%s", legacyFile.getPath(), e.getLocalizedMessage());
       return new LegacyRead(result, 0, false);
     }
-    int broken = 0;
-    for (Object row : conf.getList(ROOT, List.of())) {
-      SellEntry entry = decodeRow(row, SellGroups.DEFAULT, true);
-      if (entry == null) {
-        broken++;
-        continue;
-      }
-      result.add(entry);
+
+    List<String> lines = conf.getListOfString(LEGACY_ROOT, List.of());
+    if (lines.isEmpty() && !conf.getList(ROOT, List.of()).isEmpty()) {
+      jlogger.warn("JSell 旧存档 %s 是 0.4.0 开发期的中间格式（entries 带 group），"
+          + "该格式从未发版、不再兼容；文件已原样保留，请转成 items 的 Base64 列表或删除", 
+          legacyFile.getPath());
+      return new LegacyRead(result, 0, false);
     }
-    for (String line : conf.getListOfString(LEGACY_ROOT, List.of())) {
+
+    int broken = 0;
+    for (String line : lines) {
       SellEntry entry = decodeLegacy(line);
       if (entry == null) {
         broken++;
@@ -605,16 +610,20 @@ public final class SellEntryStore {
   /**
    * 把 {@code items.yml} 改名成 {@code items.legacy.bak}
    * <p>
-   * 不改名的话下次重载会再并一遍。但有解析失败的记录时<b>不动它</b>：改名虽然不丢数据，
-   * 却会让那几条彻底从服务里消失，管理员还以为迁移成功了。
+   * 不改名的话下次重载会再并一遍。两种情况下<b>不动它</b>：读不出来（含「中间格式」，
+   * 原因已在读取处报过），或有解析失败的记录——改名虽然不丢数据，却会让那几条彻底从服务里消失，
+   * 管理员还以为迁移成功了。
    */
   private void archiveLegacy(LegacyRead read) {
     if (!legacyFile.isFile()) {
       return;
     }
-    if (!read.readable() || read.broken() > 0) {
-      jlogger.warn("JSell 旧存档 %s 未归档（读取失败或有无法解析的记录），"
-          + "迁移只做了一半，请处理后重试", legacyFile.getPath());
+    if (!read.readable()) {
+      return;
+    }
+    if (read.broken() > 0) {
+      jlogger.warn("JSell 旧存档 %s 未归档（有 %s 条无法解析），迁移只做了一半，请处理后重试",
+          legacyFile.getPath(), read.broken());
       return;
     }
     File target = new File(legacyFile.getParentFile(), LEGACY_ARCHIVE);
@@ -676,12 +685,10 @@ public final class SellEntryStore {
   /**
    * 一个 Map → 一条记录；缺字段用默认值，模板坏了返回 null
    *
-   * @param fallbackGroup 条目归属的组
-   * @param readGroupKey  是否采用行内的 {@code group}（只有单文件时代的老存档需要）
+   * @param group 条目归属的组（组名只认文件名，行内哪怕写了 {@code group} 也不算数）
    */
   @Nullable
-  private static SellEntry decodeRow(@Nullable Object raw, String fallbackGroup,
-      boolean readGroupKey) {
+  private static SellEntry decodeRow(@Nullable Object raw, String group) {
     if (!(raw instanceof Map<?, ?> row)) {
       return null;
     }
@@ -698,7 +705,7 @@ public final class SellEntryStore {
       }
       SellEntry entry = new SellEntry(id, template, asDouble(row.get("value"), 0.0),
           asLong(row.get("created"), 0L));
-      entry.group(readGroupKey ? asString(row.get("group"), fallbackGroup) : fallbackGroup);
+      entry.group(group);
       entry.limitCount((int) asLong(row.get("limit-count"), 0L));
       entry.limitSeconds(asLong(row.get("limit-seconds"), 0L));
       entry.match(SellMatch.parse(asString(row.get("match"), SellMatch.STRICT.id())));
@@ -758,7 +765,7 @@ public final class SellEntryStore {
   }
 
   // ──────────────────────────────────────────────
-  // 编码：旧格式（0.8.x，仅供迁移）
+  // 编码：旧格式（0.3.0，仅供迁移）
   // ──────────────────────────────────────────────
 
   /**

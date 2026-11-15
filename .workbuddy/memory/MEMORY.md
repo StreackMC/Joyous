@@ -82,7 +82,7 @@
 - 权限：命令 `joyous.commands.jsell.{gui,hand,inv,all}`、`joyous.commands.jsellworth`、
   `joyous.commands.jsellset[.reload|pending|restore|value|group]`；非命令 `joyous.jsell.admin`、
   `joyous.jsell.group.<组>.{sellable,viewable}`（默认 true，随组动态注册）
-- **存档 v3（一组一文件）**：`models/JSell/groups/<组名>.yml`，`format: 3` + `entries: [ … ]`
+- **存档（一组一文件，0.4.0 起）**：`models/JSell/groups/<组名>.yml`，`format: 2` + `entries: [ … ]`
   · **组名 = 文件名，行内不再写 `group`**（两处说法会冲突）；只有 `item` 是 Base64（NBT 只能这么存）
   · 组名规范化后只含 `[a-z0-9_-]`≤32，跨平台可用；Windows 保留设备名加 `_` 前缀（`con` → `_con.yml`）
   · 判定「文件名是否规范」用 `fileOf(group).getName().equals(file.getName())`，不要拿字符串比组名
@@ -90,9 +90,11 @@
   · 写入只重写 `dirtyGroups` 里的文件；某组没条目就**删文件**（组的边界就是文件）
   · **改分组要重写两个组**：旧组文件要让它消失。⚠️ 条目是可变对象，详情页改分组时 `save()` 拿到的
     就是表里那一份，`group` 已被覆盖 → 必须靠 `persistedGroups`（id→已落盘组名）快照判断「搬家」
-  · 载入顺序：先读 `groups/*.yml`，再把单文件老存档并进来（**同 id 以分组文件为准**），最后按 `createdAt` 排序入表
-  · 迁移：`models/JSell/items.yml`（v2 的 `entries` 带 group / 0.8.x 的 `items` 整条 Base64）
-    → 拆分写盘 → 改名 `items.legacy.bak`；**有解析失败记录时不改名**（否则数据被藏起来）
+  · 载入顺序：先读 `groups/*.yml`，再把老存档并进来（**同 id 以分组文件为准**），最后按 `createdAt` 排序入表
+  · 只兼容**已发布**的 0.3.0 存档 `models/JSell/items.yml`（`items` 列表，一行一条整条 Base64 → 全归
+    `default`），迁移后改名 `items.legacy.bak`；**有解析失败记录时不改名**（否则数据被藏起来）
+  · 0.4.0 开发期的「`entries` 带 `group`」中间格式**不兼容**（从没发版，不留没人敢删的分支）：
+    读到只报一次警告、文件原样留着，由管理员自己转成 Base64 列表或删掉
   · 写入用 `putInt("format")` + `putList("entries", List<Map>)`（两个路径都没有点，绕开 `putNested` 缺陷），
     `TYPES.YAMLc` + `putComment` 才有注释
 - 匹配选优：`SellMatch.difference(item, template)` 取代「先 STRICT 后 CONTAINS」（0=完全相同；多出的数据组件/
