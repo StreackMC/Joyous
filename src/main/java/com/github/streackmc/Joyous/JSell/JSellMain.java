@@ -9,8 +9,8 @@ import org.bukkit.entity.Player;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.JSell.admin.JSellEditorGui;
 import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
-import com.github.streackmc.Joyous.JSell.data.SellLog;
 import com.github.streackmc.Joyous.JSell.data.SellGroups;
+import com.github.streackmc.Joyous.JSell.data.SellLog;
 import com.github.streackmc.Joyous.JSell.data.SellService;
 import com.github.streackmc.Joyous.JSell.data.SellSessionManager;
 import com.github.streackmc.Joyous.JSell.data.SellStore;
@@ -31,14 +31,15 @@ import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
  *
  * <h3>数据放在哪</h3>
  * <ul>
- *   <li><b>可售列表</b>（配置性质、含命令原文）→ {@code models/JSell/items.yml}，逐字段的明文 YAML，
- *       见 {@link SellEntryStore}；旧版「一行一条 Base64」会在首次载入时自动迁移</li>
+ *   <li><b>可售列表</b>（配置性质、含命令原文）→ {@code models/JSell/groups/<组名>.yml}，
+ *       <b>一组一个文件</b>、逐字段的明文 YAML，见 {@link SellEntryStore}；
+ *       单文件时代的 {@code items.yml} 会在首次载入时按组拆分并归档成 {@code items.legacy.bak}</li>
  *   <li><b>运行时状态</b>（托管物品、事务日志、销量）→ 数据库，见 {@link SellStore}</li>
  * </ul>
  *
  * <h3>分组</h3>
- * 分组只是条目上的标签（组由条目派生），每组带 {@code sellable} / {@code viewable} 两个权限，
- * 见 {@link SellGroups}。
+ * 分组的边界就是分组文件：{@code groups/} 里有哪些文件就有哪些组，删光某组的条目文件会一起消失。
+ * 每组带 {@code sellable} / {@code viewable} 两个权限，见 {@link SellGroups}。
  *
  * @author kdxiaoyi
  * @since 0.3.0
@@ -116,8 +117,9 @@ public class JSellMain extends JoyousModel {
     sweepTaskId = Bukkit.getScheduler()
         .runTaskTimer(Joyous.plugin, this::sweep, periodTicks, periodTicks).getTaskId();
 
-    jlogger.info("JSell 模块已启用（可售物品 %s 条，存档表 %s，出售流水 %s）",
-        entryStore.size(), store.available() ? store.escrowTable() : "未配置数据库",
+    jlogger.info("JSell 模块已启用（可售物品 %s 条 / %s 个分组，存档表 %s，出售流水 %s）",
+        entryStore.size(), entryStore.groups().size(),
+        store.available() ? store.escrowTable() : "未配置数据库",
         CONF.logEnabled() ? CONF.logDir() : "已关闭");
   }
 

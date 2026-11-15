@@ -17,8 +17,9 @@ import com.github.streackmc.Joyous.Joyous.PermDef;
 /**
  * 可售物品的分组与它的两个权限
  * <p>
- * 分组只是条目上的一个标签（{@link SellEntry#group()}），没有单独的「组对象」——
- * 组由条目派生，所以删光某组的条目，这个组就自然消失，不需要额外的清理逻辑。
+ * 分组是条目上的一个标签（{@link SellEntry#group()}），没有单独的「组对象」——
+ * 组由条目派生，所以删光某组的条目，这个组就自然消失（存档里对应的
+ * {@code models/JSell/groups/<组名>.yml} 也会被删掉），不需要额外的清理逻辑。
  *
  * <h3>权限</h3>
  * 每个组两个节点，命名遵循 {@code joyous.<model>.<subaction>}：
