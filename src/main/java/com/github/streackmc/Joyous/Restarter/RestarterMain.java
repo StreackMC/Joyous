@@ -327,7 +327,7 @@ public class RestarterMain extends JoyousModel {
         List<String> lines = Files.readAllLines(oldFile);
         List<String> migrated = new ArrayList<>();
         for (String line : lines) {
-          String name = line.trim().toLowerCase();
+          String name = line.trim();
           if (!name.isEmpty())
             migrated.add(name);
         }
@@ -1177,7 +1177,7 @@ public class RestarterMain extends JoyousModel {
    * 崩溃、强杀、插件重载都不会走到保存逻辑，新增条目会直接消失。
    */
   public static boolean addFakePlayer(String name) {
-    boolean added = fakePlayers.add(name.toLowerCase());
+    boolean added = fakePlayers.add(name.trim());
     if (added)
       persistFakePlayers();
     return added;
@@ -1185,7 +1185,7 @@ public class RestarterMain extends JoyousModel {
 
   /** 通过命令移除假人，并立即落盘 */
   public static boolean removeFakePlayer(String name) {
-    boolean removed = fakePlayers.remove(name.toLowerCase());
+    boolean removed = fakePlayers.remove(name.trim());
     if (removed)
       persistFakePlayers();
     return removed;
@@ -1196,7 +1196,7 @@ public class RestarterMain extends JoyousModel {
     String perm = getFpPerm();
     for (Player p : Server.getOnlinePlayers()) {
       if (p.hasPermission(perm)) {
-        fakePlayers.add(p.getName().toLowerCase());
+        fakePlayers.add(p.getName().trim());
       }
     }
   }
@@ -1235,7 +1235,7 @@ public class RestarterMain extends JoyousModel {
     List<String> list = datStore.getListOfString("fakePlayers");
     if (list != null) {
       for (String name : list) {
-        String n = name.trim().toLowerCase();
+        String n = name.trim();
         if (!n.isEmpty())
           fakePlayers.add(n);
       }
