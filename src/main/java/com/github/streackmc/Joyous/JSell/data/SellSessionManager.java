@@ -115,7 +115,13 @@ public final class SellSessionManager {
   public SellSession open(Player player) {
     SellSession session = active.get(player.getUniqueId());
     if (session != null) {
-      return session;
+      if (!session.settled()) {
+        return session;
+      }
+      // 已结算的会话不能复用：它的 settled 是永久的，复用后「确认出售」会直接 return（点不动），
+      // 关闭时 onDetach 也认为已结算而不退款 —— 玩家看到的就是「界面能用但一点出售就没反应」。
+      active.remove(player.getUniqueId(), session);
+      jlogger.debug("JSell 丢弃 %s 已结算的旧会话", player.getName());
     }
     session = new SellSession(player.getUniqueId());
     List<ItemStack> owed = pending.remove(player.getUniqueId());
@@ -156,6 +162,20 @@ public final class SellSessionManager {
     if (store != null && store.available()) {
       store.deleteEscrow(player);
     }
+  }
+
+  /**
+   * 结算完成：把会话从活跃表摘掉
+   * <p>
+   * 结算成功的会话已经<b>用完了</b>——内容交给了事务，{@code settled} 也翻不回来了。
+   * 留在表里的后果是「僵尸会话」：下一次 {@link #open} 会把它交出去，于是确认按钮点不动、
+   * 关界面也不退款。这里按<b>实例</b>删（{@code remove(key, value)}），
+   * 免得误删玩家在这之后新开的会话。
+   *
+   * @return 是否真的摘掉了（重复调用返回 false，无副作用）
+   */
+  public boolean complete(SellSession session) {
+    return session != null && active.remove(session.player(), session);
   }
 
   /**

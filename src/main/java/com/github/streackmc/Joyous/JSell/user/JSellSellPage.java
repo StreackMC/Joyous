@@ -530,11 +530,17 @@ public final class JSellSellPage extends AbstractGuiPage {
   public void onDetach(IPageContext ctx, DetachReasonEnum why) {
     super.onDetach(ctx, why);
     cancelPendingRefresh();
-    if (why != DetachReasonEnum.CLOSED && why != DetachReasonEnum.REPLACED) {
+    Player player = ctx.player();
+    if (player == null) {
       return;
     }
-    Player player = ctx.player();
-    if (player == null || session.settled()) {
+    if (session.settled()) {
+      // 结算成功的会话已经用完了：这里只保证它不会留在活跃表里变成「僵尸会话」。
+      // 不退款——物品早已交给事务，退款由事务流程负责。
+      sessions.complete(session);
+      return;
+    }
+    if (why != DetachReasonEnum.CLOSED && why != DetachReasonEnum.REPLACED) {
       return;
     }
     sessions.cancel(player, why == DetachReasonEnum.CLOSED);

@@ -430,6 +430,8 @@ public final class SellService {
     }
     // 成功：物品已被事务接管，界面内容清空（退款部分已经由事务流程交还）
     session.drain();
+    // 摘掉会话：settled 的会话不能再被 open() 复用（否则第二次打开会「按钮点不动、关不掉」）
+    sessions.complete(session);
 
     player.sendMessage(i18n.tr("jsell.sell.success",
         display(plan.amount), JSellMain.CONF.unitName(), plan.units(), plan.entryCount()));
