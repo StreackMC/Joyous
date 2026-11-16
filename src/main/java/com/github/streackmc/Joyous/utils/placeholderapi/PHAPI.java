@@ -80,11 +80,15 @@ public class PHAPI {
           return player.getName();
         case "uuid":
           return player.getUniqueId().toString();
-        case "exp": case "xp":
+        case "exp":
+        case "xp":
           return String.valueOf(player.getExp());
         case "level":
           return String.valueOf(player.getExpToLevel());
-        case "exp_cooldown": case "xp_cooldown": case "exp_cd": case "xp_cd":
+        case "exp_cooldown":
+        case "xp_cooldown":
+        case "exp_cd":
+        case "xp_cd":
           return String.valueOf(player.getExpCooldown());
         case "health":
           return String.valueOf(player.getHealth());
@@ -92,8 +96,10 @@ public class PHAPI {
           return String.valueOf(player.getRemainingAir());
         case "food":
           return String.valueOf(player.getFoodLevel());
+        case "sat":
         case "saturation":
           return String.valueOf(player.getSaturation());
+        case "exh":
         case "exhaustion":
           return String.valueOf(player.getExhaustion());
         default:
