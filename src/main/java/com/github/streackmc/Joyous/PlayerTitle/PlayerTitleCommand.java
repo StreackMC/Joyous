@@ -84,7 +84,7 @@ public class PlayerTitleCommand {
       return 0;
     } catch (Exception e) {
       jlogger.warn("无法为 [%s] 设置称号 [%s]", sender.toString(), titleId, e);
-      sender.sendMessage(i18n.tr("titles.set.wrong"), e.getLocalizedMessage(), e);
+      sender.sendMessage(i18n.tr("titles.set.wrong"), e.getLocalizedMessage());
       return 0;
     }
     return 1;
@@ -99,7 +99,7 @@ public class PlayerTitleCommand {
       target = ctx.getArgument("target", PlayerSelectorArgumentResolver.class).resolve(ctx.getSource()).getFirst();
     } catch (CommandSyntaxException e) {
       jlogger.debug("无法设置为指定玩家设置称号：%s", e.getLocalizedMessage(), e);
-      sender.sendMessage(i18n.tr("system.command.target_loss"), e.getLocalizedMessage(), e);
+      sender.sendMessage(i18n.tr("system.command.target_loss"), e.getLocalizedMessage());
       return 0;
     }
 
