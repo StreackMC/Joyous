@@ -121,10 +121,10 @@ public class Joyous {
    * 智能从提取JAR内部资源文件，若已存在则不动作
    * 
    * @apiNote 应当使用硬编码参数，不得信任用户输入，以防绝对路径覆写意外文件
-   * @param target           外部资源路径，相对插件数据目录
-   * @param internalFileName 内部资源文件，自动识别并补全开头的 /
-   * @param compareVersion   是否要比较版本，仅限{@link SConfig.TYPES}中定义的字符串，将作为配置文件格式传入。如果为
-   *                         Null 将不比较。
+   * @param target               外部资源路径，相对插件数据目录
+   * @param internalFileName     内部资源文件，自动识别并补全开头的 /
+   * @param versionCompareFormat 是否要比较版本，仅限{@link SConfig.TYPES}中定义的字符串，将作为配置文件格式传入。如果为
+   *                             Null 将不比较。将比较配置节<code>version</code>这个 Long 数值。
    * @return 文件是否存在
    * @throws FileNotFoundException         没有找到指定的资源文件
    * @throws IOException                   无法创建指定的临时文件
@@ -132,7 +132,7 @@ public class Joyous {
    * @throws UnsupportedOperationException 不支持的格式
    */
   @Internal
-  public static boolean requireFileAndCheck(String target, String internalFileName, @Nullable String compareVersion) throws Exception {
+  public static boolean requireFileAndCheck(String target, String internalFileName, @Nullable String versionCompareFormat) throws Exception {
     Path file = dataPath.toPath().resolve(Objects.requireNonNull(target, "target 参数不能为 Null"));
     String internalFilePath = (Objects.requireNonNull(internalFileName, "internalFileName 参数不能为 Null").startsWith("/"))
         ? internalFileName
@@ -147,10 +147,10 @@ public class Joyous {
         jlogger.err("警告：无法写入 %s ： %s", internalFilePath, e.getLocalizedMessage(), e);
         return false;
       }
-    } else /* 文件存在 */ if (compareVersion != null) {
+    } else /* 文件存在 */ if (versionCompareFormat != null) {
       // 非 null 则判断版本
-      SConfig outerConf = new SConfig(file, compareVersion);
-      SConfig innerConf = new SConfig(Joyous.getResourceAsFile(internalFilePath), compareVersion);
+      SConfig outerConf = new SConfig(file, versionCompareFormat);
+      SConfig innerConf = new SConfig(Joyous.getResourceAsFile(internalFilePath), versionCompareFormat);
       if (outerConf.getLong("version", 0L) < innerConf.getLong("version", 0L)) {
         // 文件版本过低，写出 .new
         int lastIndexOfDot = target.lastIndexOf(".");
