@@ -63,7 +63,7 @@ public class MailsMain extends JoyousModel {
       mailConf = new SConfig(CONF_PATH.toFile(), "yml");
       mailConf.setAutoReload(true);
     } catch (Exception e) {
-      jlogger.err("Mails | 无法加载邮件配置: %s", e.getLocalizedMessage());
+      jlogger.err("Mails | 无法加载邮件配置: %s", e.getLocalizedMessage(), e);
       return;
     }
 

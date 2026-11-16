@@ -14,8 +14,8 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
-import com.github.streackmc.Joyous.utils.interact.chestui.Canvas;
 import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.interact.chestui.Canvas;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
 import net.kyori.adventure.text.Component;
@@ -252,7 +252,7 @@ public final class WardGui {
     } catch (Exception e) {
       // 配置里写了非法键（如大写、中文）时不要让整个搜索流程炸掉
       jlogger.warn("JwardChest 占位物品的 item-model [%s] 非法，已忽略：%s", value,
-          e.getLocalizedMessage());
+          e.getLocalizedMessage(), e);
       return null;
     }
   }

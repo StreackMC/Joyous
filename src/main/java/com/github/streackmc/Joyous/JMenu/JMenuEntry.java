@@ -355,7 +355,7 @@ public class JMenuEntry {
       return value.contains(":") ? NamespacedKey.fromString(value) : NamespacedKey.minecraft(value);
     } catch (Exception e) {
       jlogger.warn("菜单 [%s] 的 item_model [%s] 非法，已忽略：%s", menuPath, value,
-          e.getLocalizedMessage());
+          e.getLocalizedMessage(), e);
       return null;
     }
   }

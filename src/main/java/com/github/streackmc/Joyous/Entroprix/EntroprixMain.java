@@ -89,7 +89,7 @@ public class EntroprixMain extends JoyousModel {
     try {
       Files.createDirectories(LOG_DIR);
     } catch (IOException e) {
-      jlogger.err("无法创建日志目录: %s", e.getLocalizedMessage());
+      jlogger.err("无法创建日志目录: %s", e.getLocalizedMessage(), e);
     }
     Joyous.PlaceholderService.registerParser(PlaceholderService);
     CommandService.register();
@@ -623,7 +623,7 @@ public class EntroprixMain extends JoyousModel {
           jlogger.warn(i18n.tr("system.command.failed"), cmd);
         }
       } catch (Exception e) {
-        jlogger.err(i18n.tr("system.command.unexpected"), cmd, e.getLocalizedMessage());
+        jlogger.err(i18n.tr("system.command.unexpected"), cmd, e.getLocalizedMessage(), e);
       }
       //String clean = cmd.replaceAll("\\s+", " ").trim();
     }

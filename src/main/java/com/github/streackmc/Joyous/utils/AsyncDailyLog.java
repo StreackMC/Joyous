@@ -79,7 +79,7 @@ public final class AsyncDailyLog {
       out.newLine();
       out.flush();
     } catch (Exception e) {
-      jlogger.err("无法写入日志文件（%s）：%s", root, e.getLocalizedMessage());
+      jlogger.err("无法写入日志文件（%s）：%s", root, e.getLocalizedMessage(), e);
     }
   }
 
@@ -109,7 +109,7 @@ public final class AsyncDailyLog {
       out.flush();
       out.close();
     } catch (IOException e) {
-      jlogger.err("无法关闭日志文件（%s）：%s", root, e.getLocalizedMessage());
+      jlogger.err("无法关闭日志文件（%s）：%s", root, e.getLocalizedMessage(), e);
     }
   }
 

@@ -248,7 +248,7 @@ public class NeonaicBridge {
           try {
             cb.accept(p);
           } catch (Exception e) {
-            jlogger.warn("[NeonaicBridge] 对端就绪回调异常：%s", e.getLocalizedMessage());
+            jlogger.warn("[NeonaicBridge] 对端就绪回调异常：%s", e.getLocalizedMessage(), e);
           }
         }
       }
@@ -264,7 +264,7 @@ public class NeonaicBridge {
           try {
             cb.run();
           } catch (Exception e) {
-            jlogger.warn("[NeonaicBridge] 对端断开回调异常：%s", e.getLocalizedMessage());
+            jlogger.warn("[NeonaicBridge] 对端断开回调异常：%s", e.getLocalizedMessage(), e);
           }
         }
       }

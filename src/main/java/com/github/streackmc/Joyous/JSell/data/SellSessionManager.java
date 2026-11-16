@@ -274,7 +274,7 @@ public final class SellSessionManager {
     try {
       player.saveData();
     } catch (Exception e) {
-      jlogger.debug("JSell 交付后保存玩家数据失败（不影响本次交付）：%s", e.getLocalizedMessage());
+      jlogger.debug("JSell 交付后保存玩家数据失败（不影响本次交付）：%s", e.getLocalizedMessage(), e);
     }
   }
 

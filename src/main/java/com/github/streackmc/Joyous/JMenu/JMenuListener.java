@@ -60,7 +60,7 @@ public class JMenuListener implements Listener {
     } catch (IllegalArgumentException e) {
       player.sendMessage(MCColor.parse("&c无法打开菜单：" + e.getLocalizedMessage()));
       jlogger.warn("玩家 [%s] 通过物品打开菜单 [%s] 失败：%s",
-          player.getName(), menuPath, e.getLocalizedMessage());
+          player.getName(), menuPath, e.getLocalizedMessage(), e);
     }
   }
 }

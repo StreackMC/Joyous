@@ -219,7 +219,7 @@ public final class WardRarity implements Comparable<WardRarity> {
     try {
       return Registry.SOUNDS.get(nk);
     } catch (Exception e) {
-      jlogger.debug("无法解析音效 [%s]：%s", key, e.getLocalizedMessage());
+      jlogger.debug("无法解析音效 [%s]：%s", key, e.getLocalizedMessage(), e);
       return null;
     }
   }

@@ -217,7 +217,7 @@ public final class WardItemEntry {
       int max = Integer.parseInt(parts[4]);
       return new WardItemEntry(item, weight, rarity, min, max);
     } catch (Exception e) {
-      jlogger.debug("JwardChest 无法解析物品条目 [%s]：%s", raw, e.getLocalizedMessage());
+      jlogger.debug("JwardChest 无法解析物品条目 [%s]：%s", raw, e.getLocalizedMessage(), e);
       return null;
     }
   }

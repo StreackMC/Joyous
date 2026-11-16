@@ -217,7 +217,7 @@ public final class SellEntry {
     try {
       return ItemStack.deserializeBytes(Base64.getDecoder().decode(encoded));
     } catch (Exception e) {
-      jlogger.warn("JSell 无法解析存档里的物品模板：%s", e.getLocalizedMessage());
+      jlogger.warn("JSell 无法解析存档里的物品模板：%s", e.getLocalizedMessage(), e);
       return null;
     }
   }

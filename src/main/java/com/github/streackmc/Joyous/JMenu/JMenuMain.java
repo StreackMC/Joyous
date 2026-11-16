@@ -68,7 +68,7 @@ public class JMenuMain extends JoyousModel {
         SFile.mv(tmp, MENU_PATH.resolve("example.jmenu").toFile());
         jlogger.info("已释放示例菜单文件 example.jmenu");
       } catch (Exception e) {
-        jlogger.warn("无法写入 %s ： %s", MENU_PATH.resolve("example.jmenu"), e.getLocalizedMessage());
+        jlogger.warn("无法写入 %s ： %s", MENU_PATH.resolve("example.jmenu"), e.getLocalizedMessage(), e);
       }
     }
 

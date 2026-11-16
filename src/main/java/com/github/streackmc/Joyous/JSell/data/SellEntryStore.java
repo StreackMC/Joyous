@@ -461,7 +461,7 @@ public final class SellEntryStore {
       return true;
     } catch (Exception e) {
       jlogger.warn("JSell 无法保存分组「%s」的可售列表 %s：%s", group, target.getPath(),
-          e.getLocalizedMessage());
+          e.getLocalizedMessage(), e);
       return false;
     }
   }
@@ -513,7 +513,7 @@ public final class SellEntryStore {
     try {
       conf.reload();
     } catch (Exception e) {
-      jlogger.warn("JSell 无法读取分组文件 %s：%s", file.getPath(), e.getLocalizedMessage());
+      jlogger.warn("JSell 无法读取分组文件 %s：%s", file.getPath(), e.getLocalizedMessage(), e);
       return 0;
     }
     int broken = 0;

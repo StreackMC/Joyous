@@ -355,7 +355,7 @@ public class NeonaicSubsystem extends JoyousModel {
       server.removeHandler(path);
       jlogger.info("[Neonaic] 已注销 HTTP 入站端点 %s", path);
     } catch (Exception e) {
-      jlogger.warn("[Neonaic] 注销 HTTP 入站端点 %s 失败：%s", path, e.getLocalizedMessage());
+      jlogger.warn("[Neonaic] 注销 HTTP 入站端点 %s 失败：%s", path, e.getLocalizedMessage(), e);
     }
   }
 

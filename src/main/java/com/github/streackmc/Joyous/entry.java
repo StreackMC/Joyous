@@ -20,8 +20,8 @@ import com.github.streackmc.Joyous.Neonaic.NeonaicSubsystem;
 import com.github.streackmc.Joyous.PlayerTitle.PlayerTitleMain;
 import com.github.streackmc.Joyous.Restarter.RestarterMain;
 import com.github.streackmc.Joyous.utils.i18n;
-import com.github.streackmc.Joyous.utils.interact.PageArbiter;
 import com.github.streackmc.Joyous.utils.jlogger;
+import com.github.streackmc.Joyous.utils.interact.PageArbiter;
 import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 import com.github.streackmc.Joyous.utils.placeholderapi.PHAPI;
 import com.github.streackmc.StreackLib.StreackLib;
@@ -134,7 +134,7 @@ public class entry extends JavaPlugin {
         jlogger.info("正在启用 " + name);
         model.onEnable();
       } catch (IgnoredException e1) {
-        jlogger.debug("中断" + e1.getLocalizedMessage() + "\n", e1.getStackTrace().toString());
+        jlogger.debug("中断" + e1.getLocalizedMessage(), e1);
       } catch (Exception e2) {
         jlogger.severe("启用 %s 时发生错误：%s", name, e2.getLocalizedMessage(), e2);
       }

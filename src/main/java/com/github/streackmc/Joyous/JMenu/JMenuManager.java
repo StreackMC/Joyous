@@ -12,9 +12,9 @@ import org.bukkit.plugin.Plugin;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.i18n;
+import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.Joyous.utils.interact.PageArbiter;
 import com.github.streackmc.Joyous.utils.interact.PagePriorityEnum;
-import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.utils.MCColor;
 
 import net.kyori.adventure.text.Component;
@@ -370,7 +370,7 @@ public class JMenuManager {
     try {
       return org.geysermc.geyser.api.GeyserApi.api().isBedrockPlayer(player.getUniqueId());
     } catch (Exception e) {
-      jlogger.debug("检测基岩版玩家失败：%s", e.getLocalizedMessage());
+      jlogger.debug("检测基岩版玩家失败：%s", e.getLocalizedMessage(), e);
       return false;
     }
   }

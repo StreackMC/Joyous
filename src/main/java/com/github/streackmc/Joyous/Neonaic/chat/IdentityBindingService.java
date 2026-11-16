@@ -172,7 +172,7 @@ public class IdentityBindingService {
         NeonaicText.send(owner, NeonaicText.tr("neonaic.bind.claimed"));
       }
     } catch (Exception e) {
-      jlogger.debug("[Neonaic] 绑定成功通知发送失败（非致命）：%s", e.getLocalizedMessage());
+      jlogger.debug("[Neonaic] 绑定成功通知发送失败（非致命）：%s", e.getLocalizedMessage(), e);
     }
   }
 

@@ -59,7 +59,7 @@ public final class WardBinding {
         return null;
       return UUID.fromString(raw);
     } catch (Exception e) {
-      jlogger.debug("JwardChest 读取方块绑定失败 @ %s：%s", block.getLocation(), e.getLocalizedMessage());
+      jlogger.debug("JwardChest 读取方块绑定失败 @ %s：%s", block.getLocation(), e.getLocalizedMessage(), e);
       return null;
     }
   }

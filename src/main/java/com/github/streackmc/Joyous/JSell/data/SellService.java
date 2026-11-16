@@ -769,7 +769,7 @@ public final class SellService {
         jlogger.warn("JSell 命令执行失败（可能不存在或参数不对）：%s", cmd);
       }
     } catch (Exception e) {
-      jlogger.warn("JSell 命令执行异常：%s → %s", cmd, e.getLocalizedMessage());
+      jlogger.warn("JSell 命令执行异常：%s → %s", cmd, e.getLocalizedMessage(), e);
     }
   }
 }

@@ -257,7 +257,7 @@ public final class WardStore {
       }
     } catch (IOException e) {
       // ByteArrayOutputStream 不会真的抛 IO 异常
-      jlogger.warn("JwardChest 编码容器内容失败：%s", e.getLocalizedMessage());
+      jlogger.warn("JwardChest 编码容器内容失败：%s", e.getLocalizedMessage(), e);
       return "";
     }
     return Base64.getEncoder().encodeToString(bytes.toByteArray());

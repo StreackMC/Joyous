@@ -70,7 +70,7 @@ public final class WardProfileStore {
     try {
       conf.reload();
     } catch (Exception e) {
-      jlogger.warn("JwardChest 无法读取设置文件 %s：%s", file.getPath(), e.getLocalizedMessage());
+      jlogger.warn("JwardChest 无法读取设置文件 %s：%s", file.getPath(), e.getLocalizedMessage(), e);
     }
 
     Map<String, Object> groups = conf.getSection("groups", null);
@@ -270,7 +270,7 @@ public final class WardProfileStore {
       conf.save();
       dirty = false;
     } catch (Exception e) {
-      jlogger.warn("JwardChest 无法保存设置文件 %s：%s", file.getPath(), e.getLocalizedMessage());
+      jlogger.warn("JwardChest 无法保存设置文件 %s：%s", file.getPath(), e.getLocalizedMessage(), e);
     }
   }
 

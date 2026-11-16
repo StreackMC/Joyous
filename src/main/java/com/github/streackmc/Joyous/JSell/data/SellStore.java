@@ -403,7 +403,7 @@ public final class SellStore {
       writeItems(out, items);
     } catch (IOException e) {
       // ByteArrayOutputStream 不会真的抛 IO 异常
-      jlogger.warn("JSell 编码物品列表失败：%s", e.getLocalizedMessage());
+      jlogger.warn("JSell 编码物品列表失败：%s", e.getLocalizedMessage(), e);
       return "";
     }
     return Base64.getEncoder().encodeToString(bytes.toByteArray());
@@ -436,7 +436,7 @@ public final class SellStore {
       writeItems(out, sold);
       writeItems(out, refunds);
     } catch (IOException e) {
-      jlogger.warn("JSell 编码事务失败：%s", e.getLocalizedMessage());
+      jlogger.warn("JSell 编码事务失败：%s", e.getLocalizedMessage(), e);
       return "";
     }
     return Base64.getEncoder().encodeToString(bytes.toByteArray());
@@ -505,7 +505,7 @@ public final class SellStore {
         items.add(ItemStack.deserializeBytes(data));
       } catch (Exception e) {
         // 单件损坏不该让整份记录作废
-        jlogger.warn("JSell 记录里的某件物品无法解析，已跳过：%s", e.getLocalizedMessage());
+        jlogger.warn("JSell 记录里的某件物品无法解析，已跳过：%s", e.getLocalizedMessage(), e);
       }
     }
     return items;

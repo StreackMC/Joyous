@@ -84,7 +84,7 @@ public class UdsServer {
     try {
       Files.deleteIfExists(path);
     } catch (IOException e) {
-      jlogger.warn("[NeonaicBridge] 无法删除陈旧套接字文件 %s：%s", path, e.getLocalizedMessage());
+      jlogger.warn("[NeonaicBridge] 无法删除陈旧套接字文件 %s：%s", path, e.getLocalizedMessage(), e);
     }
 
     ServerSocketChannel channel;
@@ -118,7 +118,7 @@ public class UdsServer {
       Files.deleteIfExists(path);
       jlogger.info("[NeonaicBridge] UDS 已停止并清理：%s", path);
     } catch (IOException e) {
-      jlogger.warn("[NeonaicBridge] 无法删除套接字文件 %s：%s", path, e.getLocalizedMessage());
+      jlogger.warn("[NeonaicBridge] 无法删除套接字文件 %s：%s", path, e.getLocalizedMessage(), e);
     }
   }
 
@@ -135,7 +135,7 @@ public class UdsServer {
         break;
       } catch (Exception e) {
         if (!running) break;
-        jlogger.warn("[NeonaicBridge] accept 失败：%s", e.getLocalizedMessage());
+        jlogger.warn("[NeonaicBridge] accept 失败：%s", e.getLocalizedMessage(), e);
         continue;
       }
       Thread.ofVirtual().name("Joyous-Neonaic-UDS-Conn").start(() -> handleConnection(client));
@@ -178,7 +178,7 @@ public class UdsServer {
     try {
       readLoop(client, session);
     } catch (IOException e) {
-      jlogger.debug("[NeonaicBridge] UDS 读取中断：%s", e.getLocalizedMessage());
+      jlogger.debug("[NeonaicBridge] UDS 读取中断：%s", e.getLocalizedMessage(), e);
     } finally {
       session.transportClosed("对端关闭连接");
       teardown.accept("连接结束");
