@@ -3,6 +3,7 @@ package com.github.streackmc.Joyous.JSell.data;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -24,6 +25,7 @@ import org.bukkit.inventory.ItemStack;
 
 import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.StreackLib.types.SConfig;
+import com.github.streackmc.StreackLib.utils.SFile;
 
 /**
  * 可售列表的持久化（{@code models/JSell/groups/<组名>.yml}，<b>一组一个文件</b>）
@@ -446,11 +448,6 @@ public final class SellEntryStore {
         // 新文件读不到是正常的，下面直接整份写
       }
       conf.putInt("format", FORMAT_VERSION);
-      conf.putComment("format",
-          "格式版本；结构变化时递增。本文件的组名就是文件名（" + target.getName()
-              + "），条目里不再重复写 group");
-      conf.putComment(ROOT,
-          "一项一条可售物品；item 是物品模板的 Base64（含完整 NBT），其余字段都是明文");
       conf.putList(ROOT, rows);
       // 老格式的键必须消失，否则下次载入会把废弃数据再并进来
       conf.remove(LEGACY_ROOT);
@@ -575,19 +572,28 @@ public final class SellEntryStore {
     if (!legacyFile.isFile()) {
       return new LegacyRead(result, 0, false);
     }
-    SConfig conf = new SConfig(legacyFile, SConfig.TYPES.YAMLc);
+    // 原子备份
+    SConfig conf = null;
     try {
+      File legacyBackup = new File(legacyFile.getParentFile(), LEGACY_ARCHIVE);
+      SFile.copy(legacyFile, legacyBackup);
+      conf = new SConfig(legacyFile, SConfig.TYPES.YAMLc);
       conf.reload();
     } catch (Exception e) {
-      jlogger.warn("JSell 无法读取旧存档 %s：%s", legacyFile.getPath(), e.getLocalizedMessage());
+      jlogger.warn("JSell 无法读取旧存档 %s：%s", legacyFile.getPath(), e.getLocalizedMessage(), e);
       return new LegacyRead(result, 0, false);
     }
 
     List<String> lines = conf.getListOfString(LEGACY_ROOT, List.of());
     if (lines.isEmpty() && !conf.getList(ROOT, List.of()).isEmpty()) {
-      jlogger.warn("JSell 旧存档 %s 是 0.4.0 开发期的中间格式（entries 带 group），"
-          + "该格式从未发版、不再兼容；文件已原样保留，请转成 items 的 Base64 列表或删除", 
+      jlogger.warn("JSell 旧存档 %s 是 0.4.0 开发期的中间格式（entries 带 group），不兼容对其的自动升级，"
+          + "该文件已在备份后删除。", 
           legacyFile.getPath());
+      try {
+        SFile.rm(legacyFile);
+      } catch (IOException e) {
+        jlogger.warn("JSell 无法删除旧存档 %s：%s", legacyFile.getPath(), e.getLocalizedMessage(), e);
+      }
       return new LegacyRead(result, 0, false);
     }
 
@@ -601,8 +607,12 @@ public final class SellEntryStore {
       result.add(entry);
     }
     if (broken > 0) {
-      jlogger.warn("JSell 旧存档里有 %s 条记录无法解析，已跳过（%s）；该文件不会被归档，"
-          + "请修好或手动挪走后再启动", broken, legacyFile.getPath());
+      jlogger.warn("JSell 旧存档里有 %s 条记录无法解析，已跳过（%s）；该文件已在备份后删除。", broken, legacyFile.getPath());
+    }
+    try {
+      SFile.rm(legacyFile);
+    } catch (IOException e) {
+      jlogger.warn("JSell 无法删除旧存档 %s：%s", legacyFile.getPath(), e.getLocalizedMessage(), e);
     }
     return new LegacyRead(result, broken, true);
   }
