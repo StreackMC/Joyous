@@ -73,14 +73,15 @@ public final class JSellPHAPI implements JoyousPHAPIhandler {
     String rest = key.substring("hand".length());
     double unit = SellService.effectiveUnit(hand, entry);
     double total = SellService.round(unit * hand.getAmount());
+    String group = entry.group();
 
     return switch (rest) {
-      case "" -> SellService.amountText(unit);
-      case "_total" -> SellService.amountText(total);
+      case "" -> SellService.amountText(unit, JSellMain.CONF.decimals(group));
+      case "_total" -> SellService.amountText(total, JSellMain.CONF.decimals(group));
       case "_amount" -> String.valueOf(hand.getAmount());
-      case "_display" -> SellService.display(unit);
-      case "_total_display" -> SellService.display(total);
-      case "_unit" -> JSellMain.CONF.unitName();
+      case "_display" -> SellService.display(unit, group);
+      case "_total_display" -> SellService.display(total, group);
+      case "_unit" -> JSellMain.CONF.unitName(group);
       case "_name" -> JSellGui.prettyName(hand);
       default -> null;
     };

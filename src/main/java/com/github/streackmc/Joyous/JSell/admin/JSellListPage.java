@@ -167,7 +167,20 @@ final class JSellListPage extends AbstractGuiPage {
         repaint(ctx);
       }
       case JSellEditorGui.SLOT_GROUP -> {
-        // 左键下一个、右键（含 Shift）上一个；分组是按条目派生的，滚动比下拉菜单更省事
+        // Shift+左键：列出全部组（可右键进分组设置）
+        if (click.click() == ClickType.SHIFT_LEFT) {
+          org.bukkit.entity.Player viewer = ctx.player();
+          if (viewer != null) {
+            PageArbiter.get().open(viewer,
+                new JSellGroupListPage(store, true, group -> {
+                  state.group = group;
+                  state.page = 0;
+                }),
+                PagePriorityEnum.INSTANT);
+          }
+          return Verdict.HANDLED;
+        }
+        // 左键下一个、右键上一个；分组是按条目派生的，滚动比下拉菜单更省事
         boolean forward = click.click() == ClickType.LEFT;
         state.group = editor.cycleGroup(state.group, forward);
         state.page = 0;

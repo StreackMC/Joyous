@@ -187,12 +187,22 @@ public final class JSellSellPage extends AbstractGuiPage {
         sellableStacks++;
       }
     }
-    String unit = JSellMain.CONF.unitName();
+    // 单位跟着组走：只卖一个组时用那组覆写的单位，跨组时回落全局（并在下面分行列出各组分额）
+    String unit = service.summaryUnit(player, session.items());
 
     List<String> infoLore = new ArrayList<>();
     infoLore.add(i18n.tr("jsell.gui.info_total", SellService.display(total), unit));
     infoLore.add(i18n.tr("jsell.gui.info_units", units, sellableStacks));
     infoLore.add(i18n.tr("jsell.gui.info_slots", session.size(), JSellMain.CONF.maxSlots()));
+    // 跨组时总额是把不同货币加起来，必须逐组交代清楚，否则玩家会以为「总共就这么多金币」
+    Map<String, Double> byGroup = service.groupTotals(player, session.items());
+    if (byGroup.size() > 1) {
+      for (Map.Entry<String, Double> e : byGroup.entrySet()) {
+        infoLore.add(i18n.tr("jsell.gui.info_group_line", entries.label(e.getKey()),
+            SellService.display(e.getValue(), e.getKey()),
+            JSellMain.CONF.unitName(e.getKey())));
+      }
+    }
     canvas.set(INFO_SLOT, JSellGui.button(Material.PAPER, i18n.tr("jsell.gui.info_name"), infoLore));
 
     boolean ready = total > 0.0;
@@ -239,7 +249,7 @@ public final class JSellSellPage extends AbstractGuiPage {
       // 单价取「实际单价」：开启耐久折损时它已经按剩余耐久折算过
       double unitValue = SellService.effectiveUnit(real, entry);
       double stackValue = SellService.round(unitValue * real.getAmount());
-      String unit = JSellMain.CONF.unitName();
+      String unit = JSellMain.CONF.unitName(entry.group());
       lore.add(Component.empty());
       lore.add(JSellGui.legacy(i18n.tr("jsell.gui.value_line",
           SellService.display(unitValue), unit)));
@@ -274,7 +284,7 @@ public final class JSellSellPage extends AbstractGuiPage {
     }
     SellService.Quota quota = quotas.computeIfAbsent(entry.id(),
         ignored -> service.quotaFor(player.getUniqueId(), entry));
-    String unit = JSellMain.CONF.unitName();
+    String unit = JSellMain.CONF.unitName(entry.group());
     boolean lifetime = entry.limitSeconds() <= 0;
     long reset = quota.resetInMillis();
 

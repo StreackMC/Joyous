@@ -246,7 +246,7 @@ public final class JSellEditorGui {
     if (meta == null) {
       return icon;
     }
-    String unit = JSellMain.CONF.unitName();
+    String unit = JSellMain.CONF.unitName(entry.group());
     List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
     lore.add(Component.empty());
     lore.add(JSellGui.legacy(i18n.tr("jsell.editor.entry_value",
@@ -299,11 +299,15 @@ public final class JSellEditorGui {
     return result;
   }
 
-  /** 分组的展示名：{@code all} 要翻成「全部组」，其余原样 */
+  /**
+   * 分组的展示名：{@code all} 要翻成「全部组」，其余用组设置里的展示名（没设就用组名）
+   * <p>
+   * 展示名只影响界面文字；筛选值、权限节点、文件名、命令参数仍然是组名。
+   */
   String groupLabel(@Nullable String group) {
     return group == null || group.equals(SellGroups.ALL)
         ? i18n.tr("jsell.editor.group_all")
-        : group;
+        : store.label(group);
   }
 
   private static boolean matchesFilter(SellEntry entry, String needle) {
@@ -339,7 +343,7 @@ public final class JSellEditorGui {
       canvas.set(slot, JSellGui.filler());
     }
 
-    String unit = JSellMain.CONF.unitName();
+    String unit = JSellMain.CONF.unitName(entry.group());
 
     ItemStack preview = entry.display();
     ItemMeta previewMeta = preview.getItemMeta();
@@ -467,7 +471,7 @@ public final class JSellEditorGui {
     store.save(entry);
     store.flush();
     player.sendMessage(i18n.tr("jsell.editor.added",
-        JSellGui.prettyName(template), JSellMain.CONF.unitName()));
+        JSellGui.prettyName(template), JSellMain.CONF.unitName(targetGroup)));
     player.sendMessage(i18n.tr("jsell.editor.added_group", groupLabel(targetGroup)));
     // 新增后回到第一页，保证管理员一眼能看到刚加的那条（列表按登记时间倒序）
     state.page = 0;

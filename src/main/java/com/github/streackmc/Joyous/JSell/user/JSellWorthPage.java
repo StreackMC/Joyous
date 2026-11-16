@@ -11,12 +11,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.github.streackmc.Joyous.JSell.JSellMain;
+import com.github.streackmc.Joyous.JSell.admin.JSellGroupListPage;
 import com.github.streackmc.Joyous.JSell.data.SellEntry;
 import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
 import com.github.streackmc.Joyous.JSell.data.SellGroups;
 import com.github.streackmc.Joyous.JSell.data.SellService;
 import com.github.streackmc.Joyous.utils.i18n;
 import com.github.streackmc.Joyous.utils.interact.IPageContext;
+import com.github.streackmc.Joyous.utils.interact.PageArbiter;
+import com.github.streackmc.Joyous.utils.interact.PagePriorityEnum;
 import com.github.streackmc.Joyous.utils.interact.chestui.AbstractGuiPage;
 import com.github.streackmc.Joyous.utils.interact.chestui.Canvas;
 import com.github.streackmc.Joyous.utils.interact.chestui.Click;
@@ -150,6 +153,16 @@ public final class JSellWorthPage extends AbstractGuiPage {
         repaint(ctx);
       }
       case SLOT_GROUP -> {
+        // Shift+左键：列出全部组（只列有查看权限的），选完自动回来并按它筛选
+        if (click.click() == ClickType.SHIFT_LEFT) {
+          PageArbiter.get().open(player,
+              new JSellGroupListPage(store, false, chosen -> {
+                group = chosen;
+                page = 0;
+              }),
+              PagePriorityEnum.INSTANT);
+          return Verdict.HANDLED;
+        }
         List<String> options = viewableGroups(player);
         int index = options.indexOf(group);
         if (index < 0) {
@@ -210,7 +223,7 @@ public final class JSellWorthPage extends AbstractGuiPage {
   }
 
   private String groupLabel() {
-    return group.equals(SellGroups.ALL) ? i18n.tr("jsell.worth.group_all") : group;
+    return group.equals(SellGroups.ALL) ? i18n.tr("jsell.worth.group_all") : store.label(group);
   }
 
   private String pageLine(int pages) {
@@ -224,12 +237,12 @@ public final class JSellWorthPage extends AbstractGuiPage {
     if (meta == null) {
       return icon;
     }
-    String unit = JSellMain.CONF.unitName();
+    String unit = JSellMain.CONF.unitName(entry.group());
     List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
     lore.add(Component.empty());
     lore.add(JSellGui.legacy(i18n.tr("jsell.worth.entry_value",
         SellService.display(entry.unitValue()), unit)));
-    lore.add(JSellGui.legacy(i18n.tr("jsell.worth.entry_group", entry.group())));
+    lore.add(JSellGui.legacy(i18n.tr("jsell.worth.entry_group", store.label(entry.group()))));
     lore.add(JSellGui.legacy(limitLine(entry, unit)));
     if (entry.hasDurability() && entry.durabilityLoss()) {
       lore.add(JSellGui.legacy(i18n.tr("jsell.worth.entry_durability")));

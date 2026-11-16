@@ -170,20 +170,87 @@ public final class SellService {
     return round(total);
   }
 
+  /**
+   * 一组待售物品按分组汇总的金额（只统计可售的）
+   * <p>
+   * 分组可以覆写自己的单位，所以「总价」在多组混卖时是个容易骗人的数字：
+   * 界面用它按组分行展示，玩家才知道每一部分赚的是什么。
+   */
+  public Map<String, Double> groupTotals(@Nullable Player player,
+      @Nullable Collection<ItemStack> items) {
+    Map<String, Double> totals = new LinkedHashMap<>();
+    if (items == null) {
+      return totals;
+    }
+    for (ItemStack item : items) {
+      SellEntry entry = entries.find(player, item);
+      if (entry == null) {
+        continue;
+      }
+      totals.merge(entry.group(), round(effectiveUnit(item, entry) * item.getAmount()),
+          Double::sum);
+    }
+    return totals;
+  }
+
+  /**
+   * 报总额该用哪个单位
+   * <p>
+   * 全部命中同一个组时用那一组的单位（可能被覆写过），跨组时回落全局单位——
+   * 把「60 金币 + 40 点券」加成一个「100 金币」是在撒谎。
+   */
+  public String summaryUnit(@Nullable Player player, @Nullable Collection<ItemStack> items) {
+    String group = null;
+    if (items != null) {
+      for (ItemStack item : items) {
+        SellEntry entry = entries.find(player, item);
+        if (entry == null) {
+          continue;
+        }
+        if (group == null) {
+          group = entry.group();
+        } else if (!group.equals(entry.group())) {
+          return JSellMain.CONF.unitName();
+        }
+      }
+    }
+    return group == null ? JSellMain.CONF.unitName() : JSellMain.CONF.unitName(group);
+  }
+
   /** 金额 → 命令行里用的纯数字文本（不带千分位、不带货币符号） */
   public static String amountText(double amount) {
-    int decimals = JSellMain.CONF.decimals();
-    BigDecimal value = BigDecimal.valueOf(amount).setScale(decimals, RoundingMode.HALF_UP);
+    return amountText(amount, JSellMain.CONF.decimals());
+  }
+
+  /** 金额 → 命令行文本（按指定精度；分组可覆写小数位） */
+  public static String amountText(double amount, int decimals) {
+    int scale = Math.max(0, Math.min(6, decimals));
+    BigDecimal value = BigDecimal.valueOf(amount).setScale(scale, RoundingMode.HALF_UP);
     return value.stripTrailingZeros().toPlainString();
   }
 
   /** 金额 → 界面上用的展示文本（带千分位） */
   public static String display(double amount) {
-    int decimals = Math.max(0, Math.min(6, JSellMain.CONF.decimals()));
+    return display(amount, JSellMain.CONF.decimals());
+  }
+
+  /**
+   * 金额 → 展示文本（按该组生效的小数位）
+   * <p>
+   * 组可以覆写 economy.decimals，所以同一笔钱在不同组里的「看得出几位小数」可以不同；
+   * 内部计算与限额统计仍然用全局精度（见 {@link #round}），覆写只影响呈现与命令文本。
+   */
+  public static String display(double amount, @Nullable String group) {
+    return display(amount, JSellMain.CONF.decimals(group));
+  }
+
+  /** 金额 → 展示文本（按指定精度） */
+  public static String display(double amount, int decimals) {
+    int scale = Math.max(0, Math.min(6, decimals));
     StringBuilder pattern = new StringBuilder("#,##0");
-    if (decimals > 0) {
+    if (scale > 0) {
       pattern.append('.');
-      pattern.append("0".repeat(decimals));
+      pattern.append("0".repeat(scale));
     }
     return new DecimalFormat(pattern.toString()).format(amount);
   }
@@ -415,6 +482,8 @@ public final class SellService {
     }
 
     int unsellable = plan.refunds.size();
+    // 单位要在 drain 之前取：这一单的「金币/点券」由它涉及的组决定
+    String unit = unitOf(plan.units.keySet());
 
     session.settled(true);
     try {
@@ -434,7 +503,7 @@ public final class SellService {
     sessions.complete(session);
 
     player.sendMessage(i18n.tr("jsell.sell.success",
-        display(plan.amount), JSellMain.CONF.unitName(), plan.units(), plan.entryCount()));
+        display(plan.amount), unit, plan.units(), plan.entryCount()));
     if (unsellable > 0) {
       player.sendMessage(i18n.tr("jsell.sell.refunded", unsellable));
     }
@@ -540,8 +609,8 @@ public final class SellService {
     }
 
     player.sendMessage(i18n.tr("jsell.sell.success",
-        display(amount), JSellMain.CONF.unitName(), units.values().stream().mapToInt(i -> i).sum(),
-        units.size()));
+        display(amount), unitOf(units.keySet()),
+        units.values().stream().mapToInt(i -> i).sum(), units.size()));
     return amount;
   }
 
@@ -695,12 +764,17 @@ public final class SellService {
    * 命令都以控制台身份执行（玩家不该因为卖东西就获得执行任意命令的权限）。
    * 「逐件命令」会为每一件执行一次，所以管理员那边会看到「一次卖太多会卡」的警告；
    * 这里再兜一层上限（{@code command.per-item-limit}），超过就停下并记日志。
+   *
+   * <h3>为什么付款要按「生效配置」分组</h3>
+   * 分组可以覆写自己的付款命令与单位，所以一单里不同组的钱可能要走不同的命令。
+   * 但绝大多数服根本没覆写——那种情况下所有组共享同一份配置，必须<b>合成一次</b>付款，
+   * 否则「一次卖 100 金币」会变成「两次 60 + 40」，任何按次数触发的副作用都会翻倍。
+   * 所以这里按 {@link Payout}（命令列表 + unit 名称）聚合，没覆写就等于只有一种 Payout。
    */
   private void runCommands(Player player, List<Sale> sold, Map<SellEntry, Integer> units,
       double amount) {
     String name = player.getName();
     String uuid = player.getUniqueId().toString();
-    int totalUnits = units.values().stream().mapToInt(Integer::intValue).sum();
 
     // 每个条目实际卖了多少钱（耐久折损后每把价格可能不同，不能再用「单价 × 件数」）
     Map<SellEntry, Double> subtotals = new LinkedHashMap<>();
@@ -708,8 +782,21 @@ public final class SellService {
       subtotals.merge(sale.entry(), sale.value(), Double::sum);
     }
 
-    for (String raw : JSellMain.CONF.economyCommands()) {
-      dispatch(substitute(raw, name, uuid, totalUnits, amount));
+    // 按「生效的付款配置」汇总：钱、件数、单位都要跟着这一份配置走
+    Map<Payout, double[]> payouts = new LinkedHashMap<>();
+    for (Sale sale : sold) {
+      Payout payout = payoutOf(sale.entry().group());
+      double[] agg = payouts.computeIfAbsent(payout, ignored -> new double[2]);
+      agg[0] += sale.value();
+      agg[1] += sale.item().getAmount();
+    }
+    for (Map.Entry<Payout, double[]> e : payouts.entrySet()) {
+      Payout payout = e.getKey();
+      double subtotal = round(e.getValue()[0]);
+      int count = (int) Math.round(e.getValue()[1]);
+      for (String raw : payout.commands()) {
+        dispatch(substitute(raw, name, uuid, count, subtotal, payout.unit(), payout.decimals()));
+      }
     }
 
     for (Map.Entry<SellEntry, Integer> e : units.entrySet()) {
@@ -717,7 +804,8 @@ public final class SellService {
       int count = e.getValue();
       double subtotal = round(subtotals.getOrDefault(entry, 0.0));
       for (String raw : entry.commands()) {
-        dispatch(substitute(raw, name, uuid, count, subtotal));
+        dispatch(substitute(raw, name, uuid, count, subtotal,
+            JSellMain.CONF.unitName(entry.group()), JSellMain.CONF.decimals(entry.group())));
       }
     }
 
@@ -738,22 +826,56 @@ public final class SellService {
           return;
         }
         double subtotal = round(sale.value());
-        dispatch(substitute(raw, name, uuid, sale.item().getAmount(), subtotal));
+        dispatch(substitute(raw, name, uuid, sale.item().getAmount(), subtotal,
+            JSellMain.CONF.unitName(entry.group()), JSellMain.CONF.decimals(entry.group())));
         executed++;
       }
     }
   }
 
+  /**
+   * 一个组生效的付款方式
+   *
+   * @param commands 要执行的命令（已解析过覆写）
+   * @param unit     这一组显示的单位名（{@code %unit%} 用）
+   * @param decimals 金额精度（命令文本用）
+   */
+  private record Payout(List<String> commands, String unit, int decimals) {
+  }
+
+  private static Payout payoutOf(@Nullable String group) {
+    return new Payout(List.copyOf(JSellMain.CONF.economyCommands(group)),
+        JSellMain.CONF.unitName(group), JSellMain.CONF.decimals(group));
+  }
+
+  /**
+   * 这一单该用什么单位报总额
+   * <p>
+   * 全是同一个组 → 用那一组（可能覆写过）；跨组 → 回落全局，因为把两种货币加起来本身就不成立。
+   */
+  private static String unitOf(Collection<SellEntry> entries) {
+    String group = null;
+    for (SellEntry entry : entries) {
+      if (group == null) {
+        group = entry.group();
+      } else if (!group.equals(entry.group())) {
+        return JSellMain.CONF.unitName();
+      }
+    }
+    return group == null ? JSellMain.CONF.unitName() : JSellMain.CONF.unitName(group);
+  }
+
   /** 占位符替换：%player% / %uuid% / %count% / %amount% / %unit% */
-  static String substitute(String raw, String player, String uuid, int count, double amount) {
+  static String substitute(String raw, String player, String uuid, int count, double amount,
+      String unit, int decimals) {
     String result = raw.replace("%player%", player)
         .replace("%uuid%", uuid)
         .replace("%count%", String.valueOf(count))
-        .replace("%amount%", amountText(amount))
-        .replace("%unit%", JSellMain.CONF.unitName());
+        .replace("%amount%", amountText(amount, decimals))
+        .replace("%unit%", unit == null ? "" : unit);
     // 兼容易经插件常见的写法
     return result.replace("{player}", player)
-        .replace("{amount}", amountText(amount));
+        .replace("{amount}", amountText(amount, decimals));
   }
 
   /** 以控制台身份执行；失败只记日志（不能因为一条命令写错就把整单卡住） */

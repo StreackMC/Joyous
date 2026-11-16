@@ -154,7 +154,8 @@ final class JSellDetailPage extends AbstractGuiPage {
             entry.unitValue(parsed);
             editor.save(entry);
             tell(player, "jsell.detail.value_set",
-                SellService.display(parsed), JSellMain.CONF.unitName());
+                SellService.display(parsed, entry.group()),
+                JSellMain.CONF.unitName(entry.group()));
           });
       case JSellEditorGui.DETAIL_LIMIT -> openChat(ctx, "limit",
           ChatPrompt.of(i18n.tr("jsell.input.field.limit"),

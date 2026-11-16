@@ -80,6 +80,15 @@ public final class SellGroups {
     return "joyous.jsell.group." + normalize(group) + "." + action;
   }
 
+  /**
+   * 是否是那个代表「没有分组」的特殊组
+   * <p>
+   * 它的 unit / economy <b>就是</b>全局配置本身，所以不给它做覆写——否则同一个值会有两个来源。
+   */
+  public static boolean isDefault(@Nullable String group) {
+    return DEFAULT.equals(normalize(group));
+  }
+
   public static String sellableNode(String group) {
     return node(group, "sellable");
   }
@@ -118,9 +127,22 @@ public final class SellGroups {
 
   /** 从一批条目里收集出现过的组名（升序，{@code default} 排在最前） */
   public static List<String> groupsOf(Collection<SellEntry> entries) {
+    return groupsOf(entries, List.of());
+  }
+
+  /**
+   * 组名 = 条目里出现过的 ∪ 额外给的（没有条目、只剩设置的组）
+   * <p>
+   * 组的边界是文件，而文件在「没有条目但有设置」时也要留着——那种组必须能被列出来，
+   * 否则管理员改过展示名的组会在搬空物品后神秘消失，连改回去的入口都没了。
+   */
+  public static List<String> groupsOf(Collection<SellEntry> entries, Collection<String> extra) {
     Set<String> names = new LinkedHashSet<>();
     for (SellEntry entry : entries) {
       names.add(entry.group());
+    }
+    for (String name : extra) {
+      names.add(normalize(name));
     }
     List<String> result = new ArrayList<>(names.size());
     if (names.remove(DEFAULT)) {

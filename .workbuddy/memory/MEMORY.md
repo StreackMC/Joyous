@@ -1,7 +1,7 @@
 # Joyous 项目长期记忆
 
 ## 概述
-- 「栈流Streack」MC 玩法插件；`com.github.streackmc:Joyous`，pom `0.4.0`（最新 tag `0.3.0`）
+- 「栈流Streack」MC 玩法插件；`com.github.streackmc:Joyous`，pom `0.4.1`（最新 tag `0.3.0`）
 - Paper 1.21.8 API（线上 1.21.11）+ Java 21，GPL-3.0；依赖全 provided：StreackLib **0.6.2** / PAPI 2.11.6 / Geyser+Floodgate
 - 测试服 `mcserver/`：**测试服务器目录、非生产环境，世界/存档/配置随便造随便删都没事**（plugins 内即 0.6.2）
 
@@ -93,7 +93,7 @@
   · 组名=文件名，行内不写 `group`；只有 `item` 是 Base64；组名规范化后只含 `[a-z0-9_-]`≤32
     （Windows 保留设备名加 `_` 前缀 `con`→`_con.yml`）；判「文件名是否规范」用
     `fileOf(group).getName().equals(file.getName())`，别拿字符串比组名
-  · 只重写 `dirtyGroups`；某组没条目就**删文件**（组边界=文件）；**改分组要重写两个组**——
+  · 只重写 `dirtyGroups`；某组**既没条目也没分组设置**才删文件（组边界=文件）；**改分组要重写两个组**——
     条目是可变对象，靠 `persistedGroups`(id→已落盘组名) 快照判断「搬家」
   · 载入：先 `groups/*.yml`，再并入老存档（**同 id 以分组文件为准**），最后按 `createdAt` 排序
   · 只兼容**已发布**的 0.3.0 `items.yml`（整条 Base64 一行一条 → 归 `default`），迁移后改名
@@ -112,7 +112,20 @@
   重置取 MAX(sold_at)+窗口；时间只到分钟
 - 流水：`SellLog`+`AsyncDailyLog`→`logs/JSell/yyyy-MM/dd.txt`（`SOLD/REFUND/FAILED`）；唯一写入点
   `SellService.commit()`；列序以 `SellLog` 为准
-- GUI 6×9；管理员列表 `SLOT_GROUP=52` 循环分组（左键下/右键上），详情 `3`=分组、`5`=折损
+- **分组设置**（`SellGroupSettings`，就写在组文件顶层，删掉=继承）：
+  `display`（展示名，只影响界面文字）/ `unit.name` / `economy.commands` / `economy.decimals`
+  · 全是可空字段：`null` = 继承 `JSell.*`；界面写「继承全局（当前：金币）」，输入 `unset` 恢复
+  · ⚠️ `default` 组 `canOverride()==false`：它的值**就是**全局值，界面不画 unit/economy（只留展示名）
+  · 读用 `getSection("unit"|"economy")` 再取子键（`getString(key, null)` 分不清「没写」与「空」）；写前先
+    `remove("display"/"unit"/"economy")` 整段重刷，否则「覆写→继承」会留幽灵字段
+  · 只有设置没有条目的组**也出现在 `groups()`**（`SellGroups.groupsOf(entries, extra)`），否则改过名的组会消失
+- 展示名：`store.label(group)` 是唯一出口（总览 Lore、筛选按钮、组列表页都用它）；权限节点/文件名/命令参数仍用组名
+- **付款按「生效配置」聚合**：`SellService.runCommands` 用 `Payout(commands, unit, decimals)` 当 key 汇总金额，
+  没覆写时所有组共享同一份配置 → 仍然**只发一次钱**（拆成多笔会放大任何按次数触发的副作用）
+- 单位取用：`CONF.unitName(group)` / `decimals(group)` / `economyCommands(group)`；跨组用全局（把两种货币加总不成立），
+  出售界面在跨组时逐组列出小计（`jsell.gui.info_group_line`）
+- GUI 6×9；管理员列表 `SLOT_GROUP=52` 循环分组（左键下/右键上）、**Shift+左键 → 分组列表**；
+  分组列表左键筛选、**右键（仅管理员）→ 分组设置页**；详情 `3`=分组、`5`=折损
 - ⚠️ 取消事件里改光标必须 `runTask` 延后 `setItemOnCursor`；改列表后要 `store.flush()`
 
 ## 共享交互层（utils/interact）

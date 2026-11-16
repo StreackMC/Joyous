@@ -89,7 +89,10 @@ public final class SellLog {
     String item = sale.item().getType().name();
     write(line("SOLD", playerName, playerUuid, sale.entry().group(), item,
         "x" + sale.item().getAmount(),
-        SellService.amountText(sale.value()) + " " + JSellMain.CONF.unitName(), "tx=" + txId));
+        SellService.amountText(sale.value(),
+            JSellMain.CONF.decimals(sale.entry().group()))
+            + " " + JSellMain.CONF.unitName(sale.entry().group()),
+        "tx=" + txId));
   }
 
   /** 一行「退回」：不可售 / 超出限购而还给玩家的部分（按堆叠组计） */

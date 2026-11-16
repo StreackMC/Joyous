@@ -334,7 +334,8 @@ public final class JSellCommand {
 
     String name = JSellGui.prettyName(target);
     player.sendMessage(i18n.tr(created ? "jsell.command.value_added" : "jsell.command.value_set",
-        name, SellService.display(entry.unitValue()), JSellMain.CONF.unitName()));
+        name, SellService.display(entry.unitValue(), entry.group()),
+        JSellMain.CONF.unitName(entry.group())));
     if (entry.removed()) {
       player.sendMessage(i18n.tr("jsell.command.value_removed_hint"));
     }

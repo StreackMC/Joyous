@@ -3,12 +3,15 @@ package com.github.streackmc.Joyous.JSell;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.JSell.admin.JSellEditorGui;
 import com.github.streackmc.Joyous.JSell.data.SellEntryStore;
+import com.github.streackmc.Joyous.JSell.data.SellGroupSettings;
 import com.github.streackmc.Joyous.JSell.data.SellGroups;
 import com.github.streackmc.Joyous.JSell.data.SellLog;
 import com.github.streackmc.Joyous.JSell.data.SellService;
@@ -39,8 +42,9 @@ import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
  * </ul>
  *
  * <h3>分组</h3>
- * 分组的边界就是分组文件：{@code groups/} 里有哪些文件就有哪些组，删光某组的条目文件会一起消失。
- * 每组带 {@code sellable} / {@code viewable} 两个权限，见 {@link SellGroups}。
+ * 分组的边界就是分组文件：{@code groups/} 里有哪些文件就有哪些组（只改了设置、没有条目时文件也会保留）。
+ * 每组带 {@code sellable} / {@code viewable} 两个权限，见 {@link SellGroups}；
+ * 组还可以有自己的展示名、unit 与 economy 覆写，见 {@link SellGroupSettings}。
  *
  * @author kdxiaoyi
  * @since 0.3.0
@@ -250,6 +254,16 @@ public class JSellMain extends JoyousModel {
       return raw == null || raw.isBlank() ? "金币" : raw.trim();
     }
 
+    /**
+     * 某个组生效的 unit 名称
+     * <p>
+     * 组设置里有覆写就用覆写，否则回到全局。{@code default} 组没有覆写概念（它就是全局本身）。
+     */
+    public static String unitName(@Nullable String group) {
+      SellGroupSettings settings = settingsOf(group);
+      return settings != null && settings.unitName() != null ? settings.unitName() : unitName();
+    }
+
     /** 给钱要执行的命令（支持 %player% / %amount% / %uuid%） */
     public static List<String> economyCommands() {
       List<String> raw = Joyous.conf.getListOfString(key("economy.commands"),
@@ -263,9 +277,39 @@ public class JSellMain extends JoyousModel {
       return result;
     }
 
+    /**
+     * 某个组生效的付款命令
+     * <p>
+     * 注意「没覆写」与「覆写成空列表」是两回事：前者继承全局，后者会被
+     * {@link SellGroupSettings#economyCommands(List)} 当成恢复继承处理——想表达「这组不发钱」
+     * 请改全局或让命令自己判断。
+     */
+    public static List<String> economyCommands(@Nullable String group) {
+      SellGroupSettings settings = settingsOf(group);
+      return settings != null && settings.economyCommands() != null
+          ? settings.economyCommands()
+          : economyCommands();
+    }
+
     /** 金额保留几位小数 */
     public static int decimals() {
       return Math.max(0, Math.min(6, Joyous.conf.getInt(key("economy.decimals"), 2)));
+    }
+
+    /** 某个组生效的金额小数位（组覆写 > 全局） */
+    public static int decimals(@Nullable String group) {
+      SellGroupSettings settings = settingsOf(group);
+      return settings != null && settings.decimals() != null ? settings.decimals() : decimals();
+    }
+
+    /** 取分组设置；模块没启用（或还没构造存档）时返回 null，调用方一律回落到全局值 */
+    @Nullable
+    private static SellGroupSettings settingsOf(@Nullable String group) {
+      JSellMain module = instance;
+      if (module == null || module.entryStore == null || group == null) {
+        return null;
+      }
+      return module.entryStore.settingsOf(group);
     }
 
     /** 是否在界面物品上追加「售出价值」说明行（不影响被卖掉的实体物品） */

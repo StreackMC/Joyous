@@ -44,6 +44,13 @@ import com.github.streackmc.StreackLib.utils.SFile;
  * 一条记录一个列表项，字段逐项铺开，可以直接手改：
  * <pre>
  * # models/JSell/groups/farming.yml
+ * display: "农作物"              # 可选：展示名（只影响界面文字）
+ * unit:                          # 可选：unit 覆写，删掉就继承 JSell.unit.name
+ *   name: "点券"
+ * economy:                       # 可选：付款覆写，删掉就继承 JSell.economy.*
+ *   commands:
+ *   - "points give %player% %amount%"
+ *   decimals: 0
  * format: 2
  * entries:
  * - id: 8f3e2c1a-...
@@ -92,6 +99,12 @@ public final class SellEntryStore {
   private static final String EXTENSION = ".yml";
   /** 分组文件里「记录列表」的键名 */
   private static final String ROOT = "entries";
+  /** 分组设置：展示名（顶层单键） */
+  private static final String KEY_DISPLAY = "display";
+  /** 分组设置：unit 覆写段（{@code unit.name}，两层，安全） */
+  private static final String KEY_UNIT = "unit";
+  /** 分组设置：economy 覆写段（{@code economy.commands} / {@code economy.decimals}，两层，安全） */
+  private static final String KEY_ECONOMY = "economy";
   /** 旧格式（0.3.0）：整条 Base64 的扁平列表 */
   private static final String LEGACY_ROOT = "items";
   /** 格式版本；结构变化时递增（旧存档没有这个键；2 = 一组一文件） */
@@ -125,6 +138,8 @@ public final class SellEntryStore {
    * 旧值已经被覆盖了。没有这张快照就发现不了「搬家」，旧组文件里那一条也就删不掉。
    */
   private final Map<UUID, String> persistedGroups = new HashMap<>();
+  /** 每个组自己的设置（展示名 / unit / economy）；空设置不占位置 */
+  private final Map<String, SellGroupSettings> settings = new LinkedHashMap<>();
   private boolean indexDirty = true;
   private volatile boolean dirty;
 
@@ -148,6 +163,7 @@ public final class SellEntryStore {
   public synchronized void reload() {
     entries.clear();
     persistedGroups.clear();
+    settings.clear();
     dirtyGroups.clear();
     indexDirty = true;
 
@@ -231,9 +247,62 @@ public final class SellEntryStore {
     return entries.size();
   }
 
-  /** 出现过的组名（{@code default} 在最前，其余按字典序） */
+  /**
+   * 出现过的组名（{@code default} 在最前，其余按字典序）
+   * <p>
+   * 「出现过」= 有条目，或者有非空的分组设置。后者让「搬空物品但改过展示名」的组不会神秘消失。
+   */
   public synchronized List<String> groups() {
-    return SellGroups.groupsOf(entries.values());
+    List<String> extra = new ArrayList<>();
+    for (Map.Entry<String, SellGroupSettings> e : settings.entrySet()) {
+      if (!e.getValue().isEmpty()) {
+        extra.add(e.getKey());
+      }
+    }
+    return SellGroups.groupsOf(entries.values(), extra);
+  }
+
+  // ──────────────────────────────────────────────
+  // 分组设置
+  // ──────────────────────────────────────────────
+
+  /**
+   * 某个组的设置（不存在时返回一份空设置，并且它<b>不会</b>因此出现在 {@link #groups()} 里）
+   * <p>
+   * 返回的是<b>活对象</b>：界面改完调 {@link #saveSettings} 才会落盘。
+   */
+  public synchronized SellGroupSettings settingsOf(@Nullable String group) {
+    String normalized = SellGroups.normalize(group);
+    return settings.computeIfAbsent(normalized, SellGroupSettings::new);
+  }
+
+  /** 保存分组设置（只影响这一个组文件；全空的设置会从存档里被清掉） */
+  public synchronized void saveSettings(SellGroupSettings value) {
+    if (value == null) {
+      return;
+    }
+    String group = value.group();
+    if (value.isEmpty()) {
+      settings.remove(group);
+    } else {
+      settings.put(group, value);
+    }
+    dirtyGroups.add(group);
+    dirty = true;
+  }
+
+  /**
+   * 组在界面上的名字：设了展示名就用展示名，否则用组名
+   * <p>
+   * 只影响展示——权限节点、文件名、{@code /sellset <组名>} 仍然用组名。
+   */
+  public synchronized String label(@Nullable String group) {
+    String normalized = SellGroups.normalize(group);
+    SellGroupSettings value = settings.get(normalized);
+    if (value != null && value.display() != null) {
+      return value.display();
+    }
+    return normalized;
   }
 
   @Nullable
@@ -415,7 +484,8 @@ public final class SellEntryStore {
   /**
    * 重写一个分组文件
    * <p>
-   * 该组已经没有任何条目时<b>删掉文件</b>——组的边界就是文件，留着空文件等于留下一个空组。
+   * 该组既没有条目、也没有分组设置时才<b>删掉文件</b>——组的边界就是文件，
+   * 但「只改了展示名」的组必须留着，否则管理员的配置会跟着最后一件物品一起消失。
    *
    * @return 是否成功（失败时保持 dirty，下次 flush 再试）
    */
@@ -431,7 +501,9 @@ public final class SellEntryStore {
         rows.add(row);
       }
     }
-    if (rows.isEmpty()) {
+    SellGroupSettings value = settings.get(group);
+    if (rows.isEmpty() && (value == null || value.isEmpty())) {
+      settings.remove(group);
       if (target.isFile() && !target.delete()) {
         jlogger.warn("JSell 分组「%s」已经没有条目，但删不掉空文件 %s", group, target.getPath());
         return false;
@@ -451,6 +523,9 @@ public final class SellEntryStore {
       conf.putList(ROOT, rows);
       // 老格式的键必须消失，否则下次载入会把废弃数据再并进来
       conf.remove(LEGACY_ROOT);
+      // 设置段整段重写：先把旧的三个顶层键摘掉，再按当前值重新写，
+      // 这样「覆写 → 恢复继承」不会在文件里留下幽灵字段
+      writeSettings(conf, value);
       conf.save();
       // 这一组已经落盘，组别快照跟着对齐（下次「搬家」才知道从哪搬）
       for (SellEntry entry : entries.values()) {
@@ -467,9 +542,94 @@ public final class SellEntryStore {
   }
 
   // ──────────────────────────────────────────────
-  // 载入：分组文件
+  // 分组设置的读写
   // ──────────────────────────────────────────────
 
+  /**
+   * 写分组设置段
+   * <p>
+   * 三个键都是<b>顶层</b>，子层最多两层（{@code unit.name}、{@code economy.commands}）——
+   * 在 StreackLib {@code putNested} 的「≥3 层会坏」缺陷范围之内是安全的。
+   * 每次先整段摘掉再写，所以「覆写 → 恢复继承」不会在文件里留下幽灵字段。
+   */
+  private static void writeSettings(SConfig conf, @Nullable SellGroupSettings value) {
+    conf.remove(KEY_DISPLAY);
+    conf.remove(KEY_UNIT);
+    conf.remove(KEY_ECONOMY);
+    if (value == null || value.isEmpty()) {
+      return;
+    }
+
+    if (value.display() != null) {
+      conf.putString(KEY_DISPLAY, value.display());
+      conf.putComment(KEY_DISPLAY,
+          "展示名：只影响界面文字；权限节点、文件名、/sellset 的参数仍然用组名");
+    }
+
+    String unit = value.unitName();
+    if (unit != null) {
+      Map<String, Object> section = new LinkedHashMap<>();
+      section.put("name", unit);
+      conf.putSection(KEY_UNIT, section);
+      conf.putComment(KEY_UNIT, "unit 名称覆写；删掉这一段就继承 JSell.unit.name");
+    }
+
+    List<String> commands = value.economyCommands();
+    Integer decimals = value.decimals();
+    if (commands != null || decimals != null) {
+      Map<String, Object> section = new LinkedHashMap<>();
+      if (commands != null) {
+        section.put("commands", new ArrayList<>(commands));
+      }
+      if (decimals != null) {
+        section.put("decimals", decimals);
+      }
+      conf.putSection(KEY_ECONOMY, section);
+      conf.putComment(KEY_ECONOMY,
+          "付款覆写；删掉这一段就继承 JSell.economy.*。"
+              + "commands 可用 %player% %uuid% %count% %amount% %unit%");
+    }
+  }
+
+  /** 读分组设置段；全空返回 null（不占内存、不参与 {@link #groups()}） */
+  @Nullable
+  private static SellGroupSettings readSettings(SConfig conf, String group) {
+    SellGroupSettings value = new SellGroupSettings(group);
+    value.display(conf.getString(KEY_DISPLAY, null));
+
+    Map<String, Object> unit = conf.getSection(KEY_UNIT, Map.of());
+    Object unitName = unit.get("name");
+    if (unitName != null) {
+      value.unitName(String.valueOf(unitName));
+    }
+
+    Map<String, Object> economy = conf.getSection(KEY_ECONOMY, Map.of());
+    Object commands = economy.get("commands");
+    if (commands instanceof List<?> list) {
+      List<String> lines = new ArrayList<>(list.size());
+      for (Object line : list) {
+        if (line != null && !String.valueOf(line).isBlank()) {
+          lines.add(String.valueOf(line));
+        }
+      }
+      value.economyCommands(lines);
+    }
+    Object decimals = economy.get("decimals");
+    if (decimals instanceof Number number) {
+      value.decimals(number.intValue());
+    } else if (decimals != null) {
+      try {
+        value.decimals(Integer.parseInt(String.valueOf(decimals).trim()));
+      } catch (NumberFormatException ignored) {
+        // 手改坏了就当没写，继承全局
+      }
+    }
+    return value.isEmpty() ? null : value;
+  }
+
+  // ──────────────────────────────────────────────
+  // 载入：分组文件
+  // ──────────────────────────────────────────────
   /**
    * 读取 {@code groups/} 下的全部 {@code *.yml}
    *
@@ -524,6 +684,10 @@ public final class SellEntryStore {
         continue;
       }
       sink.add(entry);
+    }
+    SellGroupSettings value = readSettings(conf, group);
+    if (value != null) {
+      settings.put(group, value);
     }
     return broken;
   }
