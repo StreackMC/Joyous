@@ -1,0 +1,10 @@
+## Common 模块
+
+## 实用 PlaceholderAPI 解析
+placeholder:
+  ## 玩家相关
+  # %joyous_p_%
+  player: true
+  ## 时间
+  # %joyous_time_%
+  time: true

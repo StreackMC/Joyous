@@ -9,6 +9,7 @@ import java.util.Map;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.github.streackmc.Joyous.Common.CommonMain;
 import com.github.streackmc.Joyous.Entroprix.EntroprixMain;
 import com.github.streackmc.Joyous.EnvExport.EnvExport;
 import com.github.streackmc.Joyous.JMenu.JMenuMain;
@@ -43,6 +44,7 @@ public class entry extends JavaPlugin {
     }
 
     static {// 在这里统一注册模块，下方自动遍历处理。
+      addModel(new CommonMain());
       addModel(new JStatusAPIMain());
       addModel(new EntroprixMain());
       addModel(new EnvExport());
