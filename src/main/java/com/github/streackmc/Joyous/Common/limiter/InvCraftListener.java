@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.InventoryView;
 
 import com.github.streackmc.Joyous.Common.CommonMain;
+import com.github.streackmc.Joyous.utils.i18n;
 
 /**
  * 玩家背包 2x2 合成方格的权限限制。
@@ -61,6 +62,7 @@ public final class InvCraftListener implements Listener {
       return;
     }
     if (isDenied(player)) {
+      player.sendMessage(i18n.tr("common.invcraft_prevented"));
       event.setCancelled(true);
     }
   }
@@ -80,6 +82,7 @@ public final class InvCraftListener implements Listener {
       return;
     }
     if (isDenied(player)) {
+      player.sendMessage(i18n.tr("common.invcraft_prevented"));
       event.setCancelled(true);
     }
   }
@@ -108,6 +111,7 @@ public final class InvCraftListener implements Listener {
       return;
     }
     if (isDenied(player)) {
+      player.sendMessage(i18n.tr("common.invcraft_prevented"));
       event.setCancelled(true);
     }
   }
