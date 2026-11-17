@@ -3,9 +3,12 @@ package com.github.streackmc.Joyous.Common;
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 
+import org.bukkit.Bukkit;
+
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 import com.github.streackmc.StreackLib.types.SConfig;
+import com.github.streackmc.Joyous.Joyous.PermDef;
 
 public class CommonMain extends JoyousModel {
   public String MODEL_NAME() {
@@ -50,6 +53,11 @@ public class CommonMain extends JoyousModel {
     }
     conf = new SConfig(Joyous.dataPath.toPath().resolve(NAMES.CONF_FILE), SConfig.TYPES.YAML);
     conf.setAutoReload(true);
+
+    // 注册权限：默认放行，仅「显式拒绝」才禁用背包合成（见 InvCraftListener）
+    Joyous.addPermissions(PermDef.all(NAMES.PERMISSION_PREFIX("invcraft"), "使用背包 2x2 合成方格"));
+    // 注册背包 2x2 合成限制监听器
+    Bukkit.getPluginManager().registerEvents(new InvCraftListener(), Joyous.plugin);
 
     // 注册服务
     Joyous.PlaceholderService.registerParser(PlaceholderService);
