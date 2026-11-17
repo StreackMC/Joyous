@@ -25,6 +25,10 @@ placeholder:
 #   · 无法参与合成（工作台 3x3 与背包 2x2）
 # 纯存储容器（箱子 / 木桶 / 潜影盒 / 末影箱 / 漏斗 / 投掷器）不受影响。
 #
+# 读取口径（决定能匹配到哪些键）：
+#   · 装了 NBTAPI 插件 → 经 Item-NBT-API 读取完整 custom_data：顶层键 + PublicBukkitValues 子键
+#   · 未装 → 回退 Paper PDC，只匹配 custom_data.PublicBukkitValues 下的键
+#
 # 支持三种写法：
 #   streack:protected                     精确匹配「命名空间 + 键」
 #   protected                             只写键名，匹配任意命名空间的同名键

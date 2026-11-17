@@ -1,6 +1,7 @@
 package com.github.streackmc.Joyous.Common.limiter;
 
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -33,12 +34,14 @@ import com.github.streackmc.StreackLib.types.SConfig;
  * </ul>
  * 纯存储容器（箱子、木桶、潜影盒、末影箱、漏斗、投掷器）不受影响。
  *
- * <p><b>custom_data 的读取口径</b>：Paper API 的 {@code ItemMeta#getPersistentDataContainer()}
- * 实际写入的是 {@code custom_data.PublicBukkitValues}，因此本类统一通过
- * {@link ItemStack#getPersistentDataContainer()} 读取——它天然就是
- * {@code PublicBukkitValues} 这一层的只读视图。配置项若显式写了
- * {@code PublicBukkitValues.} / {@code custom_data.PublicBukkitValues.} 前缀，会被自动剥掉；
- * 只写键名而不带命名空间时，则按「任意命名空间的同名键」宽松匹配。
+ * <p><b>custom_data 的读取口径</b>：优先交给 Item-NBT-API（{@link NbtCustomData}）——
+ * 1.20.5+ 起 {@code NBT.get(ItemStack, ...)} 访问的就是 {@code custom_data} 组件本身，
+ * 能同时看到顶层键（数据包 / {@code /give} 写入）与 {@code PublicBukkitValues} 的子键
+ * （Paper API PDC 的落点）。NBTAPI 插件缺席时自动回退到 Paper 的 PDC 视图，
+ * 此时只覆盖 {@code PublicBukkitValues} 这一层。
+ *
+ * <p>配置项若显式写了 {@code PublicBukkitValues.} / {@code custom_data.PublicBukkitValues.}
+ * 前缀，会被自动剥掉；只写键名而不带命名空间时，则按「任意命名空间的同名键」宽松匹配。
  *
  * @author Neonai
  * @author kdxiaoyi
@@ -100,42 +103,63 @@ public final class UsingPreventListener implements Listener {
     if (stack == null || stack.getType().isAir() || patterns.isEmpty()) {
       return false;
     }
-    // PDC 视图 = custom_data.PublicBukkitValues
-    Set<NamespacedKey> present = stack.getPersistentDataContainer().getKeys();
+    Set<String> present = presentKeys(stack);
     if (present.isEmpty()) {
       return false;
     }
     for (String raw : patterns) {
       String token = normalize(raw);
-      if (token.isEmpty()) {
-        continue;
-      }
-      if (token.indexOf(':') >= 0) {
-        NamespacedKey key = parseKey(token);
-        if (key != null && present.contains(key)) {
-          return true;
-        }
-      } else {
-        // 未写命名空间：按 key 名匹配任意命名空间
-        for (NamespacedKey key : present) {
-          if (key.getKey().equalsIgnoreCase(token)) {
-            return true;
-          }
-        }
+      if (!token.isEmpty() && hit(present, token)) {
+        return true;
       }
     }
     return false;
   }
 
-  private static NamespacedKey parseKey(String token) {
-    try {
-      return NamespacedKey.fromString(token.toLowerCase(Locale.ROOT));
-    } catch (IllegalArgumentException ignored) {
-      return null;
+  /**
+   * 物品 custom_data 里存在的键（统一小写，形如 {@code namespace:key}）。
+   *
+   * <p>优先走 Item-NBT-API：它能同时给出顶层键与 {@code PublicBukkitValues} 下的键；
+   * NBTAPI 缺席时回退到 Paper 的 PDC 视图（只覆盖 {@code PublicBukkitValues}）。
+   */
+  private static Set<String> presentKeys(ItemStack stack) {
+    Set<String> raw = NbtCustomData.keys(stack);
+    if (raw == null) {
+      raw = new HashSet<>();
+      for (NamespacedKey key : stack.getPersistentDataContainer().getKeys()) {
+        raw.add(key.toString());
+      }
     }
+    if (raw.isEmpty()) {
+      return raw;
+    }
+    Set<String> normalized = new HashSet<>(raw.size());
+    for (String key : raw) {
+      normalized.add(key.toLowerCase(Locale.ROOT));
+    }
+    return normalized;
   }
 
-  /** 归一化配置项：去空白/引号，并剥掉显式书写的 PublicBukkitValues 存放路径前缀。 */
+  private static boolean hit(Set<String> present, String token) {
+    if (present.contains(token)) {
+      return true;
+    }
+    if (token.indexOf(':') >= 0) {
+      // 写了命名空间就必须精确命中
+      return false;
+    }
+    // 未写命名空间：按本地键名匹配任意命名空间（顶层裸键也在此列）
+    for (String key : present) {
+      int colon = key.indexOf(':');
+      String local = colon >= 0 ? key.substring(colon + 1) : key;
+      if (local.equalsIgnoreCase(token)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** 归一化配置项：去空白/引号，剥掉显式书写的 PublicBukkitValues 前缀，并统一小写。 */
   private static String normalize(String raw) {
     if (raw == null) {
       return "";
@@ -147,7 +171,7 @@ public final class UsingPreventListener implements Listener {
     s = stripPrefix(s, "custom_data.PublicBukkitValues.");
     s = stripPrefix(s, "PublicBukkitValues.");
     s = stripPrefix(s, "PublicBukkitValues:");
-    return s;
+    return s.toLowerCase(Locale.ROOT);
   }
 
   private static String stripPrefix(String value, String prefix) {

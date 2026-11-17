@@ -8,7 +8,9 @@ import org.bukkit.Bukkit;
 import com.github.streackmc.Joyous.Joyous;
 import com.github.streackmc.Joyous.Joyous.PermDef;
 import com.github.streackmc.Joyous.Common.limiter.InvCraftListener;
+import com.github.streackmc.Joyous.Common.limiter.NbtCustomData;
 import com.github.streackmc.Joyous.Common.limiter.UsingPreventListener;
+import com.github.streackmc.Joyous.utils.jlogger;
 import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 import com.github.streackmc.StreackLib.types.SConfig;
 
@@ -64,6 +66,12 @@ public class CommonMain extends JoyousModel {
     // · UsingPreventListener：按 custom_data 拦截物品放进工作方块 / 参与合成
     Bukkit.getPluginManager().registerEvents(new InvCraftListener(), Joyous.plugin);
     Bukkit.getPluginManager().registerEvents(new UsingPreventListener(), Joyous.plugin);
+
+    // 说明 custom_data 的读取能力：装了 NBTAPI 才能看到 custom_data 顶层键
+    jlogger.info("custom_data 读取模式：%s",
+        NbtCustomData.isAvailable()
+            ? "Item-NBT-API（顶层键 + PublicBukkitValues）"
+            : "PDC 回退（仅 PublicBukkitValues）");
 
     // 注册服务
     Joyous.PlaceholderService.registerParser(PlaceholderService);
