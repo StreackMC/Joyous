@@ -13,6 +13,9 @@ placeholder:
   ## 时间
   # %joyous_time_%
   time: true
+  ## 记分板数值
+  # %joyous_sb_<objective>[|default]%
+  scoreboard: true
 
 # ===========================
 # 快捷命令

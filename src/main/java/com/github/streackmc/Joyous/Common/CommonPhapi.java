@@ -46,8 +46,31 @@ public class CommonPhapi implements JoyousPHAPIhandler {
       }
     }
 
+    // %joyous_scoreboard_% / %joyous_sb_% 处理
+    if (conf().getBoolean("placeholder.scoreboard", true)) {
+      if (params.toLowerCase().startsWith("scoreboard_") && params.length() > 7 && player != null) {
+        String rawParam = params.substring(11);
+        String[] parts = rawParam.split("\\|", 2);
+        return resolveScoreboardData(player, parts[0], parts.length > 1 ? parts[1] : "");
+      } else if (params.toLowerCase().startsWith("sb_") && params.length() > 2 && player != null) {
+        String rawParam = params.substring(3);
+        String[] parts = rawParam.split("\\|", 2);
+        return resolveScoreboardData(player, parts[0], parts.length > 1 ? parts[1] : "");
+      }
+    }
+
     // 无效
     return null;
+  }
+
+  private String resolveScoreboardData(Player player, String objective, String defaultValue) {
+    if (player.getScoreboard() == null) {
+      return String.valueOf(defaultValue);
+    }
+    if (player.getScoreboard().getObjective(objective) == null) {
+      return String.valueOf(defaultValue);
+    }
+    return String.valueOf(player.getScoreboard().getObjective(objective).getScore(player.getName()).getScore());
   }
 
   private String resolvePlayerMeta(Player player, String filteredParam) {
