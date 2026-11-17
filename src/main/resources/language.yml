@@ -21,7 +21,7 @@ system:
     you: "您"
   command:
     no_premission: "&c未知或不完整的命令"
-    player_only: "&c该命令只能由玩家执行"
+    player_only: "&c该命令只能对玩家执行"
     target_loss: "&c找不到指定的目标"
     failed: "&c无法执行命令：\n&r&c&n%s &r&c&o<- [HERE]"
     unexpected: "&c执行命令时发生意外：\n&r&c&n%s &r&c&o<- [HERE]\n&r&c%s"
