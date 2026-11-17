@@ -1,4 +1,4 @@
-package com.github.streackmc.Joyous.Common;
+package com.github.streackmc.Joyous.Common.limiter;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -10,6 +10,8 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.InventoryView;
+
+import com.github.streackmc.Joyous.Common.CommonMain;
 
 /**
  * 玩家背包 2x2 合成方格的权限限制。
@@ -34,8 +36,9 @@ public final class InvCraftListener implements Listener {
 
   private static final String PERMISSION = CommonMain.NAMES.PERMISSION_PREFIX("invcraft");
 
-  /** 只有权限被显式拒绝时才返回 true。 */
+  /** 只有模块启用且权限被显式拒绝时才返回 true。 */
   private static boolean isDenied(Player player) {
+    if (!CommonMain.conf.getBoolean("invcraft-limiter", true)) return false;
     return player.isPermissionSet(PERMISSION) && !player.hasPermission(PERMISSION);
   }
 

@@ -6,9 +6,11 @@ import java.nio.file.Path;
 import org.bukkit.Bukkit;
 
 import com.github.streackmc.Joyous.Joyous;
+import com.github.streackmc.Joyous.Joyous.PermDef;
+import com.github.streackmc.Joyous.Common.limiter.InvCraftListener;
+import com.github.streackmc.Joyous.Common.limiter.UsingPreventListener;
 import com.github.streackmc.Joyous.utils.model_abstract.JoyousModel;
 import com.github.streackmc.StreackLib.types.SConfig;
-import com.github.streackmc.Joyous.Joyous.PermDef;
 
 public class CommonMain extends JoyousModel {
   public String MODEL_NAME() {
@@ -56,8 +58,12 @@ public class CommonMain extends JoyousModel {
 
     // 注册权限：默认放行，仅「显式拒绝」才禁用背包合成（见 InvCraftListener）
     Joyous.addPermissions(PermDef.all(NAMES.PERMISSION_PREFIX("invcraft"), "使用背包 2x2 合成方格"));
-    // 注册背包 2x2 合成限制监听器
+
+    // 注册事件监听
+    // · InvCraftListener：背包 2x2 合成的权限限制
+    // · UsingPreventListener：按 custom_data 拦截物品放进工作方块 / 参与合成
     Bukkit.getPluginManager().registerEvents(new InvCraftListener(), Joyous.plugin);
+    Bukkit.getPluginManager().registerEvents(new UsingPreventListener(), Joyous.plugin);
 
     // 注册服务
     Joyous.PlaceholderService.registerParser(PlaceholderService);

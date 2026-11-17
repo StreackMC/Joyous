@@ -1,4 +1,9 @@
 ## Common 模块
+# 带有 * 项表示需要重启才能生效
+
+# ===========================
+# 数据获取
+# ===========================
 
 ## 实用 PlaceholderAPI 解析
 placeholder:
@@ -8,3 +13,29 @@ placeholder:
   ## 时间
   # %joyous_time_%
   time: true
+
+# ===========================
+# 行为限制
+# ===========================
+
+## 物品使用限制
+# 命中 custom-data 任意一项的物品：
+#   · 无法放入熔炉 / 高炉 / 烟熏炉 / 酿造台 / 切石机 / 制图台 / 铁砧 / 砂轮 /
+#     织布机 / 锻造台 / 附魔台 / 信标 / 自动合成器 / 讲台等工作方块
+#   · 无法参与合成（工作台 3x3 与背包 2x2）
+# 纯存储容器（箱子 / 木桶 / 潜影盒 / 末影箱 / 漏斗 / 投掷器）不受影响。
+#
+# 支持三种写法：
+#   streack:protected                     精确匹配「命名空间 + 键」
+#   protected                             只写键名，匹配任意命名空间的同名键
+#   PublicBukkitValues.streack:protected  显式写出存放路径，前缀会被自动剥掉
+using-prevent:
+  ## 是否启用
+  enabled: true
+  ## 匹配任意一项即生效；留空表示不限制任何物品
+  custom-data:
+    # - "streack:protected"
+
+## 背包合成管理
+# 显式缺失 joyous.common.invcraft 才生效，玩家将无法使用背包合成
+invcraft-limiter: true
